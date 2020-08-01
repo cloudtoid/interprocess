@@ -17,9 +17,14 @@ namespace Cloudtoid.SharedMemory
 
         public unsafe bool TryDequeue(CancellationToken cancellationToken, out ReadOnlyMemory<byte> message)
         {
+            bool shouldWait = false;
+
             while (true)
             {
-                WaitForReceiverSignal(millisecondsTimeout: 100);
+                if (shouldWait)
+                    WaitForReceiverSignal(millisecondsTimeout: 100);
+                else
+                    shouldWait = true;
 
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -59,7 +64,7 @@ namespace Cloudtoid.SharedMemory
             }
         }
 
-        private void WaitForMessageToBeConsumable(long* state, CancellationToken cancellationToken)
+        private unsafe void WaitForMessageToBeConsumable(long* state, CancellationToken cancellationToken)
         {
             var start = DateTime.Now;
             while (*state == BeingCreated)

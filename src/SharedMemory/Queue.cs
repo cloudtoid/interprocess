@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Cloudtoid.SharedMemory
 {
     internal abstract class Queue : IDisposable
     {
-        private readonly EventWaitHandle receiversEvent;
+        private readonly CrossProcessSignal receiversSignal;
         protected readonly SharedMemoryView view;
         protected readonly CircularBuffer buffer;
 
@@ -17,14 +16,14 @@ namespace Cloudtoid.SharedMemory
 
             try
             {
-                receiversEvent = new EventWaitHandle(true, EventResetMode.AutoReset, "SMQ_" + options.QueueName);
+                receiversSignal = CrossProcessSignal.Create(options.QueueName, options.Path);
                 view = new SharedMemoryView(options);
                 buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);
             }
             catch
             {
                 view?.Dispose();
-                receiversEvent?.Dispose();
+                receiversSignal?.Dispose();
                 throw;
             }
         }
@@ -32,7 +31,7 @@ namespace Cloudtoid.SharedMemory
         public virtual void Dispose()
         {
             view.Dispose();
-            receiversEvent.Dispose();
+            receiversSignal.Dispose();
         }
 
         /// <summary>
@@ -41,7 +40,7 @@ namespace Cloudtoid.SharedMemory
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected void SignalReceivers()
-            => receiversEvent.Set();
+            => receiversSignal.Signal();
 
         /// <summary>
         /// Waits the maximum of <paramref name="millisecondsTimeout"/> for a signal that there might be
@@ -50,7 +49,7 @@ namespace Cloudtoid.SharedMemory
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected void WaitForReceiverSignal(int millisecondsTimeout)
-            => receiversEvent.WaitOne(millisecondsTimeout);
+            => receiversSignal.Wait(millisecondsTimeout);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected unsafe long GetMessageBodyOffset(long messageHeaderOffset)
