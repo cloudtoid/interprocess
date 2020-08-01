@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace Cloudtoid.Interprocess
 {
-    public interface IConsumer
+    public interface ISubscriber : IDisposable
     {
         bool TryDequeue(CancellationToken cancellationToken, out ReadOnlyMemory<byte> message);
     }

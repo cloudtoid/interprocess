@@ -2,7 +2,7 @@
 
 namespace Cloudtoid.Interprocess
 {
-    public interface IProducer
+    public interface IPublisher : IDisposable
     {
         bool TryEnqueue(ReadOnlySpan<byte> message);
     }

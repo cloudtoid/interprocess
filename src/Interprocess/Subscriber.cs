@@ -4,13 +4,13 @@ using System.Threading;
 
 namespace Cloudtoid.Interprocess
 {
-    internal sealed class Consumer : Queue, IConsumer
+    internal sealed class Subscriber : Queue, ISubscriber
     {
         private const long BeingCreated = (long)MessageState.BeingCreated;
         private const long LockedToBeConsumed = (long)MessageState.LockedToBeConsumed;
         private const long ReadyToBeConsumed = (long)MessageState.ReadyToBeConsumed;
 
-        internal Consumer(QueueOptions options)
+        internal Subscriber(QueueOptions options)
             : base(options)
         {
         }

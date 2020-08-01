@@ -3,9 +3,9 @@ using System.Threading;
 
 namespace Cloudtoid.Interprocess
 {
-    internal sealed class Producer : Queue, IProducer
+    internal sealed class Publisher : Queue, IPublisher
     {
-        internal Producer(QueueOptions options)
+        internal Publisher(QueueOptions options)
             : base(options)
         {
         }
