@@ -6,7 +6,7 @@ namespace Cloudtoid.Interprocess
     {
         private sealed class WindowsSignal : InteprocessSignal
         {
-            private const string HandleNamePrefix = "SMQ_";
+            private const string HandleNamePrefix = "CT.IP.";
             private readonly EventWaitHandle handle;
 
             internal WindowsSignal(string queueName)
@@ -20,7 +20,7 @@ namespace Cloudtoid.Interprocess
             internal override void Signal()
                 => handle.Set();
 
-            internal override void Wait(int millisecondsTimeout)
+            internal override bool Wait(int millisecondsTimeout)
                 => handle.WaitOne(millisecondsTimeout);
         }
     }

@@ -7,13 +7,14 @@ namespace Cloudtoid.Interprocess
     {
         public abstract void Dispose();
         internal abstract void Signal();
-        internal abstract void Wait(int millisecondsTimeout);
+        internal abstract bool Wait(int millisecondsTimeout);
 
         internal static InteprocessSignal Create(string queueName, string path)
         {
-            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new WindowsSignal(queueName)
-                : (InteprocessSignal)new LinuxSignal(queueName, path);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return new WindowsSignal(queueName);
+
+            return new LinuxSignal(queueName, path);
         }
     }
 }   

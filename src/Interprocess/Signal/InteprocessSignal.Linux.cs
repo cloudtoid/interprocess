@@ -6,7 +6,8 @@ namespace Cloudtoid.Interprocess
 {
     internal partial class InteprocessSignal
     {
-        private sealed class LinuxSignal : InteprocessSignal
+        // internal for testing
+        internal sealed class LinuxSignal : InteprocessSignal
         {
             private const string FileExtension = ".fw";
             private readonly string filePath;
@@ -19,7 +20,7 @@ namespace Cloudtoid.Interprocess
                 filePath = Path.Combine(path, fileName);
 
                 if (!File.Exists(filePath))
-                    File.WriteAllText(filePath, "shared memory queue sync file");
+                    File.WriteAllText(filePath, "interprocess sync file");
 
                 handle = new AutoResetEvent(true);
 
@@ -38,7 +39,7 @@ namespace Cloudtoid.Interprocess
             internal override void Signal()
                 => File.SetLastAccessTimeUtc(filePath, DateTime.UtcNow);
 
-            internal override void Wait(int millisecondsTimeout)
+            internal override bool Wait(int millisecondsTimeout)
                 => handle.WaitOne(millisecondsTimeout);
 
             private void OnChanged(object _, FileSystemEventArgs e)
