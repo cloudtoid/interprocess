@@ -6,6 +6,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>Cloudtoid.Interprocess</RootNamespace>
+    <AssemblyName>Cloudtoid.Interprocess</AssemblyName>
   </PropertyGroup>
 
 </Project>

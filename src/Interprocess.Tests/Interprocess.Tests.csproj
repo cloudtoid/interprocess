@@ -6,6 +6,7 @@
     <nullable>enable</nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Cloudtoid.Interprocess.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
