@@ -5,7 +5,7 @@
     <nullable>enable</nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <RootNamespace>Cloudtoid.SharedMemory</RootNamespace>
+    <RootNamespace>Cloudtoid.Interprocess</RootNamespace>
   </PropertyGroup>
 
 </Project>

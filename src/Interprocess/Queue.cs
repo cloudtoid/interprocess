@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
-namespace Cloudtoid.SharedMemory
+namespace Cloudtoid.Interprocess
 {
     internal abstract class Queue : IDisposable
     {

@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Cloudtoid.SharedMemory
+namespace Cloudtoid.Interprocess
 {
     internal sealed class Consumer : Queue, IConsumer
     {

@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SharedMemory\SharedMemory.csproj" />
+    <ProjectReference Include="..\Interprocess\Interprocess.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Cloudtoid.SharedMemory
+namespace Cloudtoid.Interprocess
 {
     [StructLayout(LayoutKind.Sequential)]
     internal struct MessageHeader

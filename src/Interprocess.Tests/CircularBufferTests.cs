@@ -3,7 +3,7 @@ using System;
 using System.Linq;
 using Xunit;
 
-namespace Cloudtoid.SharedMemory.Tests
+namespace Cloudtoid.Interprocess.Tests
 {
     public unsafe class CircularBufferTests
     {

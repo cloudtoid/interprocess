@@ -3,7 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace Cloudtoid.SharedMemory
+namespace Cloudtoid.Interprocess
 {
     internal abstract class CrossProcessSignal : IDisposable
     {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Cloudtoid.SharedMemory
+namespace Cloudtoid.Interprocess
 {
     public interface IProducer
     {

@@ -2,7 +2,7 @@ using FluentAssertions;
 using System;
 using Xunit;
 
-namespace Cloudtoid.SharedMemory.Tests
+namespace Cloudtoid.Interprocess.Tests
 {
     public class QueueTests
     {

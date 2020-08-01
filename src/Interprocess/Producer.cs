@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 
-namespace Cloudtoid.SharedMemory
+namespace Cloudtoid.Interprocess
 {
     internal sealed class Producer : Queue, IProducer
     {

@@ -1,4 +1,4 @@
-﻿namespace Cloudtoid.SharedMemory
+﻿namespace Cloudtoid.Interprocess
 {
     internal enum MessageState : long
     {

@@ -2,7 +2,7 @@
 using System.IO;
 using System.IO.MemoryMappedFiles;
 
-namespace Cloudtoid.SharedMemory
+namespace Cloudtoid.Interprocess
 {
     // This class managed the underlying Memory Mapped File and View
     internal class SharedMemoryView : IDisposable
