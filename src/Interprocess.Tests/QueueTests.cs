@@ -47,7 +47,6 @@ namespace Cloudtoid.Interprocess.Tests
             {
                 p.Dispose();
 
-                // The memory mapped file should not have been deleted so this line should work just fine
                 var message = await s.WaitDequeueAsync(default);
                 message.ToArray().Should().BeEquivalentTo(byteArray3);
             }
@@ -59,7 +58,7 @@ namespace Cloudtoid.Interprocess.Tests
             var p = CreatePublisher(24, createOrOverride: true);
             p.TryEnqueue(byteArray3).Should().BeTrue();
             using (var s = CreateSubscriber(24))
-                p.Dispose(); // file should not get deleted because there is a reader (subscriber) using the file.
+                p.Dispose();
 
             using (CreatePublisher(24))
             using (var s = CreateSubscriber(24))
