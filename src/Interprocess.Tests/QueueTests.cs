@@ -15,15 +15,15 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanEnqueueAndDequeue()
         {
-            using (var p = InterprocessQueue.CreatePublisher(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: true)))
-            using (var c = InterprocessQueue.CreateSubscriber(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: false)))
+            using (var p = CreatePublisher(24, createOrOverride: true))
+            using (var s = CreateSubscriber(24))
             {
                 p.TryEnqueue(byteArray3).Should().BeTrue();
-                var message = await c.WaitDequeueAsync(default);
+                var message = await s.WaitDequeueAsync(default);
                 message.ToArray().Should().BeEquivalentTo(byteArray3);
 
                 p.TryEnqueue(byteArray3).Should().BeTrue();
-                message = await c.WaitDequeueAsync(default);
+                message = await s.WaitDequeueAsync(default);
                 message.ToArray().Should().BeEquivalentTo(byteArray3);
             }
         }
@@ -31,7 +31,7 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public void CannotEnqueuePastCapacity()
         {
-            using (var p = InterprocessQueue.CreatePublisher(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: true)))
+            using (var p = CreatePublisher(24, createOrOverride: true))
             {
                 p.TryEnqueue(byteArray3).Should().BeTrue();
                 p.TryEnqueue(byteArray1).Should().BeFalse();
@@ -41,34 +41,38 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task DisposeShouldNotThrow()
         {
-            var p = InterprocessQueue.CreatePublisher(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: true));
+            var p = CreatePublisher(24, createOrOverride: true);
             p.TryEnqueue(byteArray3).Should().BeTrue();
-            using (var c = InterprocessQueue.CreateSubscriber(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: false)))
+            using (var s = CreateSubscriber(24))
             {
                 p.Dispose();
 
                 // The memory mapped file should not have been deleted so this line should work just fine
-                var message = await c.WaitDequeueAsync(default);
+                var message = await s.WaitDequeueAsync(default);
                 message.ToArray().Should().BeEquivalentTo(byteArray3);
             }
         }
 
         [Fact]
-        public async Task CanReadAfterProducerIsDisposed()
+        public async Task CanReadAfterProducerIsDisposedButFileNotDeleted()
         {
-            var p = InterprocessQueue.CreatePublisher(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: true));
+            var p = CreatePublisher(24, createOrOverride: true);
             p.TryEnqueue(byteArray3).Should().BeTrue();
-            using (var c = InterprocessQueue.CreateSubscriber(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: false)))
-            {
-                p.Dispose();
-            }
+            using (var s = CreateSubscriber(24))
+                p.Dispose(); // file should not get deleted because there is a reader (subscriber) using the file.
 
-            using (InterprocessQueue.CreatePublisher(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: false)))
-            using (var c = InterprocessQueue.CreateSubscriber(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: false)))
+            using (CreatePublisher(24))
+            using (var s = CreateSubscriber(24))
             {
-                (await c.TryDequeueAsync(default, out var message)).Should().BeTrue();
+                (await s.TryDequeueAsync(default, out var message)).Should().BeTrue();
                 message.ToArray().Should().BeEquivalentTo(byteArray3);
             }
         }
+
+        private static IPublisher CreatePublisher(long capacity, bool createOrOverride = false)
+            => InterprocessQueue.CreatePublisher(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, capacity, createOrOverride));
+
+        private static ISubscriber CreateSubscriber(long capacity, bool createOrOverride = false)
+            => InterprocessQueue.CreateSubscriber(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, capacity, createOrOverride));
     }
 }
