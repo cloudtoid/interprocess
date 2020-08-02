@@ -51,6 +51,7 @@ namespace Cloudtoid.Interprocess
             if (disposing)
             {
                 view.SafeMemoryMappedViewHandle.ReleasePointer();
+                view.Flush();
                 view.Dispose();
                 file.Dispose();
             }
