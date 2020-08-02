@@ -54,10 +54,10 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task ProducerDisposeWithSubscriberKeepsFile()
+        public async Task CanReadAfterProducerIsDisposed()
         {
             var p = InterprocessQueue.CreatePublisher(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: true));
-            p.TryEnqueue(new byte[] { 100, 110, 120 }).Should().BeTrue();
+            p.TryEnqueue(byteArray3).Should().BeTrue();
             using (var c = InterprocessQueue.CreateSubscriber(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: false)))
             {
                 p.Dispose();
@@ -66,7 +66,8 @@ namespace Cloudtoid.Interprocess.Tests
             using (InterprocessQueue.CreatePublisher(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: false)))
             using (var c = InterprocessQueue.CreateSubscriber(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, 24, createOrOverride: false)))
             {
-                (await c.TryDequeueAsync(default, out var _)).Should().BeFalse();
+                (await c.TryDequeueAsync(default, out var message)).Should().BeTrue();
+                message.ToArray().Should().BeEquivalentTo(byteArray3);
             }
         }
     }
