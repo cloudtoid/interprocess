@@ -4,7 +4,7 @@ using System.IO.MemoryMappedFiles;
 
 namespace Cloudtoid.Interprocess
 {
-    internal partial class MemoryFile
+    internal partial class MemoryView
     {
         private sealed class UnixMemoryFile : IMemoryFile
         {

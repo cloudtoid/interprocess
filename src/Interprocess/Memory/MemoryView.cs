@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 namespace Cloudtoid.Interprocess
 {
     // This class manages the underlying Memory Mapped File
-    internal partial class MemoryFile : IDisposable
+    internal partial class MemoryView : IDisposable
     {
         private readonly IMemoryFile file;
         private readonly MemoryMappedViewAccessor view;
 
-        internal unsafe MemoryFile(QueueOptions options)
+        internal unsafe MemoryView(QueueOptions options)
         {
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
