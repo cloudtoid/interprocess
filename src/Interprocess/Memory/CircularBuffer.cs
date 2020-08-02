@@ -98,6 +98,21 @@ namespace Cloudtoid.Interprocess
                 Buffer.MemoryCopy(sourcePtr + rightLength, buffer, leftLength, leftLength);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void ZeroBlock(long offset, long length)
+        {
+            if (length == 0)
+                return;
+
+            AdjustedOffset(ref offset);
+            var rightLength = Math.Min(Capacity - offset, length);
+            Unsafe.InitBlock(buffer + offset, 0, (uint)rightLength);
+
+            var leftLength = length - rightLength;
+            if (leftLength > 0)
+                Unsafe.InitBlock(buffer, 0, (uint)leftLength);
+        }
+
         // internal for testing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AdjustedOffset(ref long offset)

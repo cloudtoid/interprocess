@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess
 {
@@ -15,7 +16,63 @@ namespace Cloudtoid.Interprocess
         {
         }
 
-        public unsafe bool TryDequeue(CancellationToken cancellationToken, out ReadOnlyMemory<byte> message)
+        public unsafe Task<bool> TryDequeueAsync(
+            CancellationToken cancellationToken,
+            out ReadOnlyMemory<byte> message)
+        {
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var header = *(QueueHeader*)view.Pointer;
+                var headOffset = header.HeadOffset;
+
+                // is this is an empty queue?
+                if (headOffset == header.TailOffset)
+                {
+                    message = ReadOnlyMemory<byte>.Empty;
+                    return Task.FromResult(false);
+                }
+
+                var state = (long*)buffer.GetPointer(headOffset);
+
+                if (*state == LockedToBeConsumed)
+                    continue; // some other receiver got to this message before us
+
+                // is the message still being written/created?
+                if (*state != ReadyToBeConsumed)
+                {
+                    Task.Delay(1).Wait();
+                    if (*state != ReadyToBeConsumed)
+                        continue; // message is not ready to be consumed yet
+                }
+
+                // take a lock so no other thread can start processing this message
+                if (Interlocked.CompareExchange(ref *state, LockedToBeConsumed, ReadyToBeConsumed) != ReadyToBeConsumed)
+                    continue; // some other receiver got to this message before us
+
+                // read the message body from the queue buffer
+                var bodyOffset = GetMessageBodyOffset(headOffset);
+                var bodyLength = ReadMessageBodyLength(headOffset);
+                message = buffer.Read(bodyOffset, bodyLength).AsMemory();
+
+                // zero out the entire message block
+                long messageLength = GetMessageLength(bodyLength);
+                buffer.ZeroBlock(headOffset, messageLength);
+
+                // updating the queue header to point the head of the queue to the next available message 
+                var newHeadOffset = SafeIncrementMessageOffset(headOffset, messageLength);
+                var currentHeadOffset = (long*)view.Pointer;
+                Interlocked.Exchange(ref *currentHeadOffset, newHeadOffset);
+
+                // signal the receivers to try and read the next message (if one is available)
+                SignalReceivers();
+
+                return Task.FromResult(true);
+            }
+        }
+
+        public async Task<ReadOnlyMemory<byte>> WaitDequeueAsync(CancellationToken cancellationToken)
         {
             bool shouldWait = false;
 
@@ -26,58 +83,9 @@ namespace Cloudtoid.Interprocess
                 else
                     shouldWait = true;
 
-                cancellationToken.ThrowIfCancellationRequested();
+                if (await TryDequeueAsync(cancellationToken, out var message))
+                    return message;
 
-                var header = *(QueueHeader*)view.Pointer;
-                var headOffset = header.HeadOffset;
-
-                if (headOffset == header.TailOffset)
-                    continue; // this is an empty queue
-
-                var state = (long*)buffer.GetPointer(headOffset);
-
-                if (*state == LockedToBeConsumed)
-                    continue; // some other receiver got to this message before us
-
-                // wait until the message is fully created/written
-                WaitForMessageToBeConsumable(state, cancellationToken);
-
-                // take a lock so no other thread can start processing this message
-                if (Interlocked.CompareExchange(ref *state, LockedToBeConsumed, ReadyToBeConsumed) != ReadyToBeConsumed)
-                    continue; // some other receiver got to this message before us
-
-                // read the message body from the queue buffer
-                var bodyOffset = GetMessageBodyOffset(headOffset);
-                var bodyLength = ReadMessageBodyLength(headOffset);
-                message = buffer.Read(bodyOffset, bodyLength);
-
-                // updating the queue header to point the head of the queue to the next available message 
-                long messageLength = GetMessageLength(bodyLength);
-                var newHeadOffset = SafeIncrementMessageOffset(headOffset, messageLength);
-                var currentHeadOffset = (long*)view.Pointer;
-                Interlocked.Exchange(ref *currentHeadOffset, newHeadOffset);
-
-                // signal the receivers to try and read the next message (if one is available)
-                SignalReceivers();
-
-                return true;
-            }
-        }
-
-        private unsafe void WaitForMessageToBeConsumable(long* state, CancellationToken cancellationToken)
-        {
-            var start = DateTime.Now;
-            while (*state == BeingCreated)
-            {
-                if ((DateTime.Now - start).Seconds > 30)
-                {
-                    // if we get here, we are in a bad state.
-                    // treat this as a fatal exception and crash the process
-                    Environment.FailFast("Trying to dequeue from the shared memory queue failed. This means that the shared memory is corrupted.");
-                }
-
-                Thread.Yield();
-                cancellationToken.ThrowIfCancellationRequested();
             }
         }
 

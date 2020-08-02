@@ -164,5 +164,31 @@ namespace Cloudtoid.Interprocess.Tests
             };
             action.Should().ThrowExactly<ArgumentException>("*capacity*");
         }
+
+        [Theory]
+        [InlineData(0, 0)]
+        [InlineData(0, 1)]
+        [InlineData(1, 1)]
+        [InlineData(2, 1)]
+        [InlineData(3, 1)]
+        [InlineData(0, 2)]
+        [InlineData(1, 2)]
+        [InlineData(2, 2)]
+        [InlineData(3, 2)]
+        [InlineData(0, 3)]
+        [InlineData(1, 3)]
+        [InlineData(2, 3)]
+        [InlineData(3, 3)]
+        public void CanZeroBlock(long offset, long length)
+        {
+            var b = new byte[3] { 1, 1, 1 };
+            fixed (byte* ptr = &b[0])
+            {
+                var buffer = new CircularBuffer(ptr, b.Length);
+                buffer.Read(offset, length).All(i => i==1).Should().BeTrue();
+                buffer.ZeroBlock(offset, length);
+                buffer.Read(offset, length).All(i => i==0).Should().BeTrue();
+            }
+        }
     }
 }
