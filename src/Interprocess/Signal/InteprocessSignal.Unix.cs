@@ -7,14 +7,14 @@ namespace Cloudtoid.Interprocess
     internal partial class InteprocessSignal
     {
         // internal for testing
-        internal sealed class LinuxSignal : InteprocessSignal
+        internal sealed class UnixSignal : InteprocessSignal
         {
             private const string FileExtension = ".fw";
             private readonly string filePath;
             private readonly AutoResetEvent handle;
             private readonly FileSystemWatcher watcher;
 
-            internal LinuxSignal(string queueName, string path)
+            internal UnixSignal(string queueName, string path)
             {
                 var fileName = queueName + FileExtension;
                 filePath = Path.Combine(path, fileName);

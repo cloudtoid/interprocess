@@ -14,7 +14,7 @@ namespace Cloudtoid.Interprocess
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return new WindowsSignal(queueName);
 
-            return new LinuxSignal(queueName, path);
+            return new UnixSignal(queueName, path);
         }
     }
-}   
+}

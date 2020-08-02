@@ -54,7 +54,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task CanReadAfterProducerIsDisposedButFileNotDeleted()
+        public async Task CannotReadAfterProducerIsDisposed()
         {
             var p = CreatePublisher(24, createOrOverride: true);
             p.TryEnqueue(byteArray3).Should().BeTrue();
@@ -64,8 +64,7 @@ namespace Cloudtoid.Interprocess.Tests
             using (CreatePublisher(24))
             using (var s = CreateSubscriber(24))
             {
-                (await s.TryDequeueAsync(default, out var message)).Should().BeTrue();
-                message.ToArray().Should().BeEquivalentTo(byteArray3);
+                (await s.TryDequeueAsync(default, out var message)).Should().BeFalse();
             }
         }
 

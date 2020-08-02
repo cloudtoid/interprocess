@@ -6,7 +6,7 @@ namespace Cloudtoid.Interprocess
     internal abstract class Queue : IDisposable
     {
         private readonly InteprocessSignal receiversSignal;
-        protected readonly SharedMemoryView view;
+        protected readonly MemoryFile view;
         protected readonly CircularBuffer buffer;
 
         protected unsafe Queue(QueueOptions options)
@@ -17,7 +17,7 @@ namespace Cloudtoid.Interprocess
             try
             {
                 receiversSignal = InteprocessSignal.Create(options.QueueName, options.Path);
-                view = new SharedMemoryView(options);
+                view = new MemoryFile(options);
                 buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);
             }
             catch

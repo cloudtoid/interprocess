@@ -11,7 +11,5 @@
 
   <ItemGroup>
     <Folder Include="Queue\" />
-    <Folder Include="Memory\" />
-    <Folder Include="Signal\" />
   </ItemGroup>
 </Project>
