@@ -69,7 +69,8 @@ namespace Cloudtoid.Interprocess
             }
         }
 
-        public async ValueTask<ReadOnlyMemory<byte>> WaitDequeueAsync(CancellationToken cancellationToken)
+        public async ValueTask<ReadOnlyMemory<byte>> DequeueAsync(
+            CancellationToken cancellationToken)
         {
             bool shouldWait = false;
 

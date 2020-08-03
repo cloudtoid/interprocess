@@ -19,11 +19,11 @@ namespace Cloudtoid.Interprocess.Tests
             using (var s = CreateSubscriber(24))
             {
                 p.TryEnqueue(byteArray3).Should().BeTrue();
-                var message = await s.WaitDequeueAsync(default);
+                var message = await s.DequeueAsync(default);
                 message.ToArray().Should().BeEquivalentTo(byteArray3);
 
                 p.TryEnqueue(byteArray3).Should().BeTrue();
-                message = await s.WaitDequeueAsync(default);
+                message = await s.DequeueAsync(default);
                 message.ToArray().Should().BeEquivalentTo(byteArray3);
             }
         }
@@ -47,7 +47,7 @@ namespace Cloudtoid.Interprocess.Tests
             {
                 p.Dispose();
 
-                var message = await s.WaitDequeueAsync(default);
+                var message = await s.DequeueAsync(default);
                 message.ToArray().Should().BeEquivalentTo(byteArray3);
             }
         }
