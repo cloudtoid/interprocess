@@ -7,18 +7,18 @@ namespace Cloudtoid.Interprocess
         private sealed class WindowsSignal : InteprocessSignal
         {
             private const string HandleNamePrefix = "CT.IP.";
-            private readonly EventWaitHandle handle;
+            private readonly Semaphore handle;
 
             internal WindowsSignal(string queueName)
             {
-                handle = new EventWaitHandle(true, EventResetMode.AutoReset, HandleNamePrefix + queueName);
+                handle = new Semaphore(0, int.MaxValue, HandleNamePrefix + queueName);
             }
 
             public override void Dispose()
                 => handle.Dispose();
 
             internal override void Signal()
-                => handle.Set();
+               => handle.Release();
 
             internal override bool Wait(int millisecondsTimeout)
                 => handle.WaitOne(millisecondsTimeout);

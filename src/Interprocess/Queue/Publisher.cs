@@ -40,7 +40,7 @@ namespace Cloudtoid.Interprocess
                             tailOffset);
 
                         // signal the next receiver that there is a new message in the queue
-                        SignalReceiversIfNeeded();
+                        SignalReceivers();
                     }
                     catch
                     {

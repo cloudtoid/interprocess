@@ -43,15 +43,10 @@ namespace Cloudtoid.Interprocess
         /// <summary>
         /// Signals at most one receiver to attempt to see if there are any messages left in the queue.
         /// There are no guarantees that there are any messages left in the queue.
-        /// It will only send a signal if it thinks there are messages that need to be read.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected unsafe void SignalReceiversIfNeeded()
-        {
-            var header = Header;
-            if (header->HeadOffset != header->TailOffset)
-                receiversSignal.Signal();
-        }
+        protected unsafe void SignalReceivers()
+            => receiversSignal.Signal();
 
         /// <summary>
         /// Waits the maximum of <paramref name="millisecondsTimeout"/> for a signal that there might be

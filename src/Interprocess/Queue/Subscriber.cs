@@ -16,7 +16,7 @@ namespace Cloudtoid.Interprocess
         {
         }
 
-        public unsafe Task<bool> TryDequeueAsync(
+        public unsafe ValueTask<bool> TryDequeueAsync(
             CancellationToken cancellationToken,
             out ReadOnlyMemory<byte> message)
         {
@@ -31,7 +31,7 @@ namespace Cloudtoid.Interprocess
                 if (headOffset == header->TailOffset)
                 {
                     message = ReadOnlyMemory<byte>.Empty;
-                    return Task.FromResult(false);
+                    return new ValueTask<bool>(false);
                 }
 
                 var state = (long*)buffer.GetPointer(headOffset);
@@ -65,14 +65,11 @@ namespace Cloudtoid.Interprocess
                 var currentHeadOffset = (long*)header;
                 Interlocked.Exchange(ref *currentHeadOffset, newHeadOffset);
 
-                // signal the receivers to try and read the next message (if one is available)
-                SignalReceiversIfNeeded();
-
-                return Task.FromResult(true);
+                return new ValueTask<bool>(true);
             }
         }
 
-        public async Task<ReadOnlyMemory<byte>> WaitDequeueAsync(CancellationToken cancellationToken)
+        public async ValueTask<ReadOnlyMemory<byte>> WaitDequeueAsync(CancellationToken cancellationToken)
         {
             bool shouldWait = false;
 
