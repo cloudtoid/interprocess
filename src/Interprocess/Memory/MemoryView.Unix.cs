@@ -8,13 +8,14 @@ namespace Cloudtoid.Interprocess
     {
         private sealed class UnixMemoryFile : IMemoryFile
         {
+            private const string Folder = ".cloudtoid/interprocess/mmf";
             private const string FileExtension = ".qu";
             private readonly string filePath;
             private readonly bool mustDeleteFileOnDispose;
 
             internal UnixMemoryFile(QueueOptions options)
             {
-                filePath = Path.Combine(options.Path, options.QueueName + FileExtension);
+                filePath = Path.Combine(options.Path, Folder, options.QueueName + FileExtension);
                 FileStream stream;
 
                 try

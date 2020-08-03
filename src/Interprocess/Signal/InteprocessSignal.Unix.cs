@@ -9,6 +9,7 @@ namespace Cloudtoid.Interprocess
         // internal for testing
         internal sealed class UnixSignal : InteprocessSignal
         {
+            private const string Folder = ".cloudtoid/interprocess/signal";
             private const string FileExtension = ".fw";
             private readonly string filePath;
             private readonly AutoResetEvent handle;
@@ -16,6 +17,9 @@ namespace Cloudtoid.Interprocess
 
             internal UnixSignal(string queueName, string path)
             {
+                filePath = Path.Combine(path, Folder);
+                Directory.CreateDirectory(filePath);
+
                 var fileName = queueName + FileExtension;
                 filePath = Path.Combine(path, fileName);
 
@@ -32,6 +36,7 @@ namespace Cloudtoid.Interprocess
 
             public override void Dispose()
             {
+                watcher.EnableRaisingEvents = false;
                 watcher.Dispose();
                 handle.Dispose();
             }

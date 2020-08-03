@@ -10,14 +10,15 @@ namespace Cloudtoid.Interprocess.Tests
         private const string DefaultQueueName = "queue-name";
 
         [Fact]
-        public void LinuxSignalTests()
+        public void UnixSignalTests()
         {
-            using(var signal = new UnixSignal(DefaultQueueName, Environment.CurrentDirectory))
+            using (var signal = new UnixSignal(DefaultQueueName, Environment.CurrentDirectory))
             {
                 signal.Wait(1).Should().BeTrue();
                 signal.Wait(1).Should().BeFalse();
 
                 signal.Signal();
+
                 signal.Wait(100).Should().BeTrue();
                 signal.Wait(1).Should().BeFalse();
             }
