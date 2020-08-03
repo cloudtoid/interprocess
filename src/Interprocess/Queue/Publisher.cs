@@ -15,7 +15,7 @@ namespace Cloudtoid.Interprocess
             var bodyLength = message.Length;
             while (true)
             {
-                var header = *(QueueHeader*)view.Pointer;
+                var header = *Header;
                 var tailOffset = header.TailOffset;
 
                 long messageLength = GetMessageLength(bodyLength);
@@ -26,7 +26,7 @@ namespace Cloudtoid.Interprocess
                 var newTailOffset = SafeIncrementMessageOffset(tailOffset, messageLength);
 
                 // try to atomically update the tail-offset that is stored in the queue header
-                var currentTailOffset = ((long*)view.Pointer) + 1;
+                var currentTailOffset = ((long*)Header) + 1;
                 if (Interlocked.CompareExchange(ref *currentTailOffset, newTailOffset, tailOffset) == tailOffset)
                 {
                     try

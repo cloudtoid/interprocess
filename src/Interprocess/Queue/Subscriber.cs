@@ -24,11 +24,11 @@ namespace Cloudtoid.Interprocess
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var header = *(QueueHeader*)view.Pointer;
-                var headOffset = header.HeadOffset;
+                var header = Header;
+                var headOffset = header->HeadOffset;
 
                 // is this is an empty queue?
-                if (headOffset == header.TailOffset)
+                if (headOffset == header->TailOffset)
                 {
                     message = ReadOnlyMemory<byte>.Empty;
                     return Task.FromResult(false);
@@ -62,7 +62,7 @@ namespace Cloudtoid.Interprocess
 
                 // updating the queue header to point the head of the queue to the next available message 
                 var newHeadOffset = SafeIncrementMessageOffset(headOffset, messageLength);
-                var currentHeadOffset = (long*)view.Pointer;
+                var currentHeadOffset = (long*)header;
                 Interlocked.Exchange(ref *currentHeadOffset, newHeadOffset);
 
                 // signal the receivers to try and read the next message (if one is available)

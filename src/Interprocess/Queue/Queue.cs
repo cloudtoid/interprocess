@@ -6,7 +6,7 @@ namespace Cloudtoid.Interprocess
     internal abstract class Queue : IDisposable
     {
         private readonly InteprocessSignal receiversSignal;
-        protected readonly MemoryView view;
+        private readonly MemoryView view;
         protected readonly CircularBuffer buffer;
 
         protected unsafe Queue(QueueOptions options)
@@ -28,6 +28,12 @@ namespace Cloudtoid.Interprocess
             }
         }
 
+        public unsafe QueueHeader* Header
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => (QueueHeader*)view.Pointer;
+        }
+
         public virtual void Dispose()
         {
             view.Dispose();
@@ -40,7 +46,9 @@ namespace Cloudtoid.Interprocess
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected void SignalReceivers()
-            => receiversSignal.Signal();
+        {
+            receiversSignal.Signal();
+        }
 
         /// <summary>
         /// Waits the maximum of <paramref name="millisecondsTimeout"/> for a signal that there might be
