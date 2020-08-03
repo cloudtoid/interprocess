@@ -37,7 +37,10 @@ namespace Cloudtoid.Interprocess
             }
 
             internal override void Signal()
-                => File.SetLastAccessTimeUtc(filePath, DateTime.UtcNow);
+            {
+                File.SetLastAccessTimeUtc(filePath, DateTime.UtcNow);
+                handle.Set();
+            }
 
             internal override bool Wait(int millisecondsTimeout)
                 => handle.WaitOne(millisecondsTimeout);
