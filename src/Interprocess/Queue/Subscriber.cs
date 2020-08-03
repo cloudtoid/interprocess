@@ -66,7 +66,7 @@ namespace Cloudtoid.Interprocess
                 Interlocked.Exchange(ref *currentHeadOffset, newHeadOffset);
 
                 // signal the receivers to try and read the next message (if one is available)
-                SignalReceivers();
+                SignalReceiversIfNeeded();
 
                 return Task.FromResult(true);
             }
