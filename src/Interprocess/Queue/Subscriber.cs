@@ -85,7 +85,6 @@ namespace Cloudtoid.Interprocess
 
                 if (await TryDequeueAsync(cancellationToken, out var message))
                     return message;
-
             }
         }
 
