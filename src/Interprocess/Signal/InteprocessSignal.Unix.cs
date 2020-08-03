@@ -21,7 +21,7 @@ namespace Cloudtoid.Interprocess
                 Directory.CreateDirectory(filePath);
 
                 var fileName = queueName + FileExtension;
-                filePath = Path.Combine(path, fileName);
+                filePath = Path.Combine(filePath, fileName);
 
                 if (!File.Exists(filePath))
                     File.WriteAllText(filePath, "interprocess sync file");

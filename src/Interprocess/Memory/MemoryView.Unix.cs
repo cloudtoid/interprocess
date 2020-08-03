@@ -15,7 +15,10 @@ namespace Cloudtoid.Interprocess
 
             internal UnixMemoryFile(QueueOptions options)
             {
-                filePath = Path.Combine(options.Path, Folder, options.QueueName + FileExtension);
+                filePath = Path.Combine(options.Path, Folder);
+                Directory.CreateDirectory(filePath);
+                filePath = Path.Combine(filePath, options.QueueName + FileExtension);
+
                 FileStream stream;
 
                 try
