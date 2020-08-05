@@ -6,7 +6,7 @@ namespace Cloudtoid.Interprocess
 {
     internal abstract class Queue : IDisposable
     {
-        private readonly InteprocessSignal receiversSignal;
+        private readonly InterprocessSemaphore receiversSignal;
         private readonly MemoryView view;
         protected readonly CircularBuffer buffer;
 
@@ -18,7 +18,7 @@ namespace Cloudtoid.Interprocess
             try
             {
                 var identifier = new SharedAssetsIdentifier(options.QueueName, options.Path);
-                receiversSignal = new InteprocessSignal(identifier);
+                receiversSignal = new InterprocessSemaphore(identifier);
                 view = new MemoryView(options);
                 buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);
             }
@@ -48,7 +48,7 @@ namespace Cloudtoid.Interprocess
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected ValueTask SignalReceivers()
-            => receiversSignal.SignalAsync();
+            => receiversSignal.ReleaseAsync();
 
         /// <summary>
         /// Waits the maximum of <paramref name="millisecondsTimeout"/> for a signal that there might be
@@ -57,7 +57,7 @@ namespace Cloudtoid.Interprocess
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected void WaitForReceiverSignal(int millisecondsTimeout)
-            => receiversSignal.Wait(millisecondsTimeout);
+            => receiversSignal.WaitOne(millisecondsTimeout);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected unsafe long GetMessageBodyOffset(long messageHeaderOffset)

@@ -5,9 +5,9 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-namespace Cloudtoid.Interprocess.Signal.Unix
+namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
-    internal partial class UnixSignal
+    internal partial class UnixSemaphore
     {
         // internal for testing
         internal sealed class Server : IDisposable

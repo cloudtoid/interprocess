@@ -2,12 +2,14 @@
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-namespace Cloudtoid.Interprocess.Signal.Unix
+namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
-    // internal for testing
-    internal sealed partial class UnixSignal : IInteprocessSignal
+    /// <summary>
+    /// 
+    /// </summary>
+    internal sealed partial class UnixSemaphore : IInterprocessSemaphore
     {
-        private const string PathSuffix = ".cloudtoid/interprocess/signal";
+        private const string PathSuffix = ".cloudtoid/interprocess/sem";
         private const string Extension = ".socket";
 
         private readonly object serverLockObject = new object();
@@ -15,7 +17,7 @@ namespace Cloudtoid.Interprocess.Signal.Unix
         private readonly Client client;
         private Server? server;
 
-        internal UnixSignal(SharedAssetsIdentifier identifier)
+        internal UnixSemaphore(SharedAssetsIdentifier identifier)
         {
             var path = Path.Combine(identifier.Path, PathSuffix);
             Directory.CreateDirectory(path);
@@ -30,10 +32,10 @@ namespace Cloudtoid.Interprocess.Signal.Unix
             client.Dispose();
         }
 
-        public bool Wait(int millisecondsTimeout)
+        public bool WaitOne(int millisecondsTimeout)
             => client.Wait(millisecondsTimeout);
 
-        public ValueTask SignalAsync()
+        public ValueTask ReleaseAsync()
         {
             if (server is null)
             {
