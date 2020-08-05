@@ -11,19 +11,19 @@ namespace Cloudtoid.Interprocess.Tests
         private static readonly string path = string.Empty;
 
         [Fact]
-        public async Task UnixDomainSocketServerTests()
+        public async Task CanDisposeUnixServer()
         {
             // simple create and dispose
-            using (var server = new Server(DefaultQueueName, path))
+            using (var server = new UnixSignal.Server(new SharedAssetsIdentifier(DefaultQueueName, path)))
             {
             }
 
-            using (var server = new Server(DefaultQueueName, path))
+            using (var server = new UnixSignal.Server(new SharedAssetsIdentifier(DefaultQueueName, path)))
             {
                 await server.SignalAsync();
             }
 
-            using (var server = new Server(DefaultQueueName, path))
+            using (var server = new UnixSignal.Server(new SharedAssetsIdentifier(DefaultQueueName, path)))
             {
                 await server.SignalAsync();
                 await Task.Delay(500);
@@ -31,9 +31,28 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
+        public void CanDisposeUnixClient()
+        {
+            // simple create and dispose
+            using (var server = new UnixSignal.Client(new SharedAssetsIdentifier(DefaultQueueName, path)))
+            {
+            }
+
+            using (var server = new UnixSignal.Client(new SharedAssetsIdentifier(DefaultQueueName, path)))
+            {
+                server.Wait(1).Should().BeFalse();
+            }
+
+            using (var server = new UnixSignal.Client(new SharedAssetsIdentifier(DefaultQueueName, path)))
+            {
+                server.Wait(500).Should().BeFalse();
+            }
+        }
+
+        [Fact]
         public async Task UnixSignalTests()
         {
-            using (var signal = new UnixSignal(DefaultQueueName, path))
+            using (var signal = new UnixSignal(new SharedAssetsIdentifier(DefaultQueueName, path)))
             {
                 signal.Wait(1).Should().BeTrue();
                 signal.Wait(1).Should().BeFalse();

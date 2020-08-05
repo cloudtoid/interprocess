@@ -8,7 +8,7 @@ namespace Cloudtoid.Interprocess
         /// Creates an instance of <see cref="QueueOptions"/>
         /// </summary>
         /// <param name="queueName">The unique name of the queue.</param>
-        /// <param name="path">The path to the directory/folder in which the memory mapped file is stored in</param>
+        /// <param name="path">The path to the directory/folder in which the memory mapped and other files are stored in</param>
         /// <param name="capacity">The maximum capacity of the queue in bytes</param>
         /// <param name="createOrOverride">Specifies whether the backing shared memory storage for a queue
         /// with the same <paramref name="queueName"/> in the same <paramref name="path"/> should be overwritten.</param>
@@ -37,7 +37,7 @@ namespace Cloudtoid.Interprocess
         public string QueueName { get; }
 
         /// <summary>
-        /// Gets the path to the directory/folder in which the memory mapped file is stored in.
+        /// Gets the path to the directory/folder in which the memory mapped and other files are stored in.
         /// </summary>
         public string Path { get; }
 

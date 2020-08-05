@@ -17,7 +17,8 @@ namespace Cloudtoid.Interprocess
 
             try
             {
-                receiversSignal = new InteprocessSignal(options.QueueName, options.Path);
+                var identifier = new SharedAssetsIdentifier(options.QueueName, options.Path);
+                receiversSignal = new InteprocessSignal(identifier);
                 view = new MemoryView(options);
                 buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);
             }

@@ -7,7 +7,7 @@ using Cloudtoid.Interprocess.Memory.Windows;
 namespace Cloudtoid.Interprocess
 {
     // This class manages the underlying Memory Mapped File
-    internal partial class MemoryView : IDisposable
+    internal class MemoryView : IDisposable
     {
         private readonly IMemoryFile file;
         private readonly MemoryMappedViewAccessor view;

@@ -1,28 +1,37 @@
-﻿using System.Threading.Tasks;
+﻿using System.IO;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess.Signal.Unix
 {
     // internal for testing
     internal sealed partial class UnixSignal : IInteprocessSignal
     {
-        private readonly string queueName;
-        private readonly string path;
+        private const string PathSuffix = ".cloudtoid/interprocess/signal";
+        private const string Extension = ".socket";
+
         private readonly object serverLockObject = new object();
+        private readonly SharedAssetsIdentifier identifier;
+        private readonly Client client;
         private Server? server;
 
-        internal UnixSignal(string queueName, string path)
+        internal UnixSignal(SharedAssetsIdentifier identifier)
         {
-            this.queueName = queueName;
-            this.path = path;
+            var path = Path.Combine(identifier.Path, PathSuffix);
+            Directory.CreateDirectory(path);
+
+            this.identifier = new SharedAssetsIdentifier(identifier.Name, path);
+            client = new Client(identifier);
         }
 
         public void Dispose()
-            => server?.Dispose();
+        {
+            server?.Dispose();
+            client.Dispose();
+        }
 
         public bool Wait(int millisecondsTimeout)
-        {
-            return false;
-        }
+            => client.Wait(millisecondsTimeout);
 
         public ValueTask SignalAsync()
         {
@@ -31,11 +40,23 @@ namespace Cloudtoid.Interprocess.Signal.Unix
                 lock (serverLockObject)
                 {
                     if (server is null)
-                        server = new Server(queueName, path);
+                        server = new Server(identifier);
                 }
             }
 
             return server.SignalAsync();
+        }
+    }
+
+    internal static class Extensions
+    {
+        internal static void SafeDispose(this Socket? socket)
+        {
+            try
+            {
+                socket?.Dispose();
+            }
+            catch { }
         }
     }
 }

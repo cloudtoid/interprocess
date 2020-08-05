@@ -9,11 +9,11 @@ namespace Cloudtoid.Interprocess
     {
         private readonly IInteprocessSignal signal;
 
-        internal InteprocessSignal(string queueName, string path)
+        internal InteprocessSignal(SharedAssetsIdentifier identifier)
         {
             signal = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new WindowsSignal(queueName)
-                : (IInteprocessSignal)new UnixSignal(queueName, path);
+                ? new WindowsSignal(identifier)
+                : (IInteprocessSignal)new UnixSignal(identifier);
         }
 
         public void Dispose()

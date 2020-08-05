@@ -8,9 +8,9 @@ namespace Cloudtoid.Interprocess.Signal.Windows
         private const string HandleNamePrefix = "CT.IP.";
         private readonly EventWaitHandle handle;
 
-        internal WindowsSignal(string queueName)
+        internal WindowsSignal(SharedAssetsIdentifier identifier)
         {
-            handle = new EventWaitHandle(true, EventResetMode.AutoReset, HandleNamePrefix + queueName);
+            handle = new EventWaitHandle(true, EventResetMode.AutoReset, HandleNamePrefix + identifier.Name);
         }
 
         public void Dispose()
