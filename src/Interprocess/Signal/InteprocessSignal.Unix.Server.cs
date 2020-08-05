@@ -3,7 +3,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess.Signal.Unix
@@ -14,61 +13,31 @@ namespace Cloudtoid.Interprocess.Signal.Unix
         private const string Extension = ".socket";
         private static readonly byte[] message = new byte[] { 1 };
 
-        private readonly ManualResetEvent stoppedWaitHandle = new ManualResetEvent(false);
-        private readonly Socket listener;
-        private readonly string file;
+        private Socket? listener;
         private Socket?[] clients = Array.Empty<Socket>();
         private volatile bool disposed;
 
         public Server(string queueName, string path)
         {
-            (listener, file) = StartServer(queueName, path);
+            _ = StartServerAsync(queueName, path);
         }
 
         ~Server()
-            => Dispose(false);
+            => DisposeInternal();
 
         public void Dispose()
         {
-            Dispose(true);
+            DisposeInternal();
             GC.SuppressFinalize(this);
         }
 
-        private void Dispose(bool disposing)
+        private void DisposeInternal()
         {
-            try
-            {
-                if (disposing)
-                {
-                    // cancel all currently running background activities
-                    disposed = true;
+            if (disposed)
+                return;
 
-                    try
-                    {
-                        listener.Dispose();
-                        stoppedWaitHandle.WaitOne(2000);
-                    }
-                    finally
-                    {
-                        foreach (var client in clients)
-                        {
-                            try
-                            {
-                                client?.Dispose();
-                            }
-                            catch { }
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                try
-                {
-                    File.Delete(file);
-                }
-                catch { }
-            }
+            disposed = true; // stops the listening loop
+            listener?.Dispose(); // stops the call to listener.AcceptAsync
         }
 
         internal async ValueTask SignalAsync()
@@ -100,70 +69,87 @@ namespace Cloudtoid.Interprocess.Signal.Unix
             }
         }
 
-        private (Socket, string File) StartServer(string queueName, string path)
+        private async Task StartServerAsync(string queueName, string path)
         {
-            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-            string file;
-
-            try
+            while (!disposed)
             {
-                var index = 0;
-                while (true)
+                try
                 {
-                    var fileName = queueName;
-                    if (index++ != 0)
-                        fileName += index.ToString(CultureInfo.InvariantCulture);
-
-                    file = Path.Combine(path, PathPrefix, fileName + Extension);
-                    var endpoint = new UnixDomainSocketEndPoint(file);
-                    try
-                    {
-                        socket.Bind(endpoint);
-                    }
-                    catch (SocketException se) when (se.ErrorCode == 48 || se.Message.Contains("in use", StringComparison.OrdinalIgnoreCase)) // socket in use
-                    {
-                        continue;
-                    }
-
-                    break;
+                    await ListenAsync(queueName, path);
                 }
-
-                socket.Listen(100);
-                _ = ServerLoopAsync(socket);
+                catch (SocketException) { }
             }
-            catch
-            {
-                socket.Dispose();
-                throw;
-            }
-
-            return (socket, file);
         }
 
-        private async Task ServerLoopAsync(Socket server)
+        private async Task ListenAsync(string queueName, string path)
+        {
+            string? file = null;
+            try
+            {
+                using (listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified))
+                {
+                    while (!disposed)
+                    {
+                        file = GetRandomEndPointFile(queueName, path);
+                        try
+                        {
+                            listener.Bind(new UnixDomainSocketEndPoint(file));
+                        }
+                        catch (SocketException se) when (IsSocketInUse(se)) // socket in use
+                        {
+                            continue;
+                        }
+
+                        break;
+                    }
+
+                    listener.Listen(100);
+                    await AcceptConnectionsAsync(listener);
+                }
+            }
+            finally
+            {
+                try
+                {
+                    if (file != null)
+                        File.Delete(file);
+                }
+                catch { }
+            }
+        }
+
+        private async Task AcceptConnectionsAsync(Socket listener)
         {
             try
             {
                 while (!disposed)
                 {
-                    var client = await server.AcceptAsync();
-                    var newClients = new Socket?[] { client };
-                    while (true)
-                    {
-                        var snapshot = clients;
-
-                        if (snapshot != null)
-                            newClients = snapshot.Concat(newClients).Where(c => c != null).ToArray();
-
-                        if (Interlocked.CompareExchange(ref clients, newClients, snapshot) == snapshot)
-                            break;
-                    }
+                    var client = await listener.AcceptAsync();
+                    clients = clients.Concat(new[] { client }).Where(c => c != null).ToArray();
                 }
             }
             finally
             {
-                stoppedWaitHandle.Set();
+                foreach (var client in clients)
+                {
+                    try
+                    {
+                        client?.Dispose();
+                    }
+                    catch { }
+                }
+                clients = Array.Empty<Socket>();
             }
         }
+
+        private static string GetRandomEndPointFile(string queueName, string path)
+        {
+            var index = (int)(Math.Abs(DateTime.Now.Ticks - DateTime.Today.Ticks) % 100000);
+            var fileName = queueName + index.ToString(CultureInfo.InvariantCulture) + Extension;
+            return Path.Combine(path, PathPrefix, fileName);
+        }
+
+        private static bool IsSocketInUse(SocketException se)
+            => se.ErrorCode == 48 || se.Message.Contains("in use", StringComparison.OrdinalIgnoreCase);
     }
 }
