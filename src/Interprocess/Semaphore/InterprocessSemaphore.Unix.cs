@@ -14,6 +14,10 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
     /// receivers; therefore, you will find some logic to utilize multiple named
     /// sockets. We also use a file system watcher to keep track of the addition
     /// and removal of signal publishers (unix named sockets use backing files).
+    ///
+    /// This whole class, as well as <see cref="Windows.WindowsSemaphore"/> should
+    /// be removed and replaced with <see cref="System.Threading.Semaphore"/> once
+    /// named semaphores are supported on all platforms.
     /// </summary>
     internal sealed partial class UnixSemaphore : IInterprocessSemaphore
     {
