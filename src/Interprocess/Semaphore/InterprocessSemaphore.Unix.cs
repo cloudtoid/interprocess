@@ -5,7 +5,15 @@ using System.Threading.Tasks;
 namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
     /// <summary>
+    /// .NET Core 3.1  and .NET 5 do not have support for named semaphores on
+    /// Unix type OSs (Linux, macOS, etc.). To replicate a named semaphore in
+    /// the most efficient possible way, we are using Unix Named Sockets to
+    /// send signals between processes.
     /// 
+    /// It is worth mentioning that we support multiple signal publishers and
+    /// receivers; therefore, you will find some logic to utilize multiple named
+    /// sockets. We also use a file system watcher to keep track of the addition
+    /// and removal of signal publishers (unix named sockets use backing files).
     /// </summary>
     internal sealed partial class UnixSemaphore : IInterprocessSemaphore
     {
@@ -36,6 +44,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             => client.Wait(millisecondsTimeout);
 
         public ValueTask ReleaseAsync()
+            => EnsureServer().SignalAsync();
+
+        private Server EnsureServer()
         {
             if (server is null)
             {
@@ -46,7 +57,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 }
             }
 
-            return server.SignalAsync();
+            return server;
         }
     }
 
