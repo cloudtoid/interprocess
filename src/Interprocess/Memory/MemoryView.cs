@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
+using Cloudtoid.Interprocess.Memory.Unix;
+using Cloudtoid.Interprocess.Memory.Windows;
 
 namespace Cloudtoid.Interprocess
 {
@@ -54,11 +56,6 @@ namespace Cloudtoid.Interprocess
                 throw new InvalidOperationException("Failed to acquire a pointer to the memory mapped file view.");
 
             return ptr;
-        }
-
-        private interface IMemoryFile : IDisposable
-        {
-            MemoryMappedFile MappedFile { get; }
         }
     }
 }

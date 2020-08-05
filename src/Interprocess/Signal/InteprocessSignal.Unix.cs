@@ -1,57 +1,42 @@
-﻿using System;
-using System.IO;
-using System.Threading;
+﻿using System.IO;
+using System.Threading.Tasks;
 
-namespace Cloudtoid.Interprocess
+namespace Cloudtoid.Interprocess.Signal.Unix
 {
-    internal partial class InteprocessSignal
+    // internal for testing
+    internal sealed partial class UnixSignal : IInteprocessSignal
     {
-        // internal for testing
-        internal sealed class UnixSignal : InteprocessSignal
+        private readonly string queueName;
+        private readonly string path;
+        private readonly object serverLockObject = new object();
+        private Server? server;
+
+        internal UnixSignal(string queueName, string path)
         {
-            private const string Folder = ".cloudtoid/interprocess/signal";
-            private const string FileExtension = ".fw";
-            private readonly string filePath;
-            private readonly AutoResetEvent handle;
-            private readonly FileSystemWatcher watcher;
+            this.queueName = queueName;
+            this.path = path;
+        }
 
-            internal UnixSignal(string queueName, string path)
+        public void Dispose()
+            => server?.Dispose();
+
+        public bool Wait(int millisecondsTimeout)
+        {
+            return false;
+        }
+
+        public ValueTask SignalAsync()
+        {
+            if (server is null)
             {
-                filePath = Path.Combine(path, Folder);
-                Directory.CreateDirectory(filePath);
-
-                var fileName = queueName + FileExtension;
-                filePath = Path.Combine(filePath, fileName);
-
-                if (!File.Exists(filePath))
-                    File.WriteAllText(filePath, "interprocess sync file");
-
-                handle = new AutoResetEvent(true);
-
-                watcher = new FileSystemWatcher(path, fileName);
-                watcher.NotifyFilter = NotifyFilters.LastAccess;
-                watcher.Changed += OnChanged;
-                watcher.EnableRaisingEvents = true;
+                lock (serverLockObject)
+                {
+                    if (server is null)
+                        server = new Server(queueName, path);
+                }
             }
 
-            public override void Dispose()
-            {
-                watcher.EnableRaisingEvents = false;
-                watcher.Dispose();
-                handle.Dispose();
-            }
-
-            internal override void Signal()
-            {
-                File.SetLastAccessTimeUtc(filePath, DateTime.UtcNow);
-                handle.Set();
-            }
-
-            internal override bool Wait(int millisecondsTimeout)
-                => handle.WaitOne(millisecondsTimeout);
-
-            private void OnChanged(object _, FileSystemEventArgs e)
-                => handle.Set();
+            return server.SignalAsync();
         }
     }
 }

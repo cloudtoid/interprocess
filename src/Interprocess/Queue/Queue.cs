@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess
 {
@@ -16,7 +17,7 @@ namespace Cloudtoid.Interprocess
 
             try
             {
-                receiversSignal = InteprocessSignal.Create(options.QueueName, options.Path);
+                receiversSignal = new InteprocessSignal(options.QueueName, options.Path);
                 view = new MemoryView(options);
                 buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);
             }
@@ -45,8 +46,8 @@ namespace Cloudtoid.Interprocess
         /// There are no guarantees that there are any messages left in the queue.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected unsafe void SignalReceivers()
-            => receiversSignal.Signal();
+        protected ValueTask SignalReceivers()
+            => receiversSignal.SignalAsync();
 
         /// <summary>
         /// Waits the maximum of <paramref name="millisecondsTimeout"/> for a signal that there might be
