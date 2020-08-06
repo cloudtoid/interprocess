@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess.Semaphore.Unix
@@ -47,8 +48,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         public bool WaitOne(int millisecondsTimeout)
             => client.Wait(millisecondsTimeout);
 
-        public ValueTask ReleaseAsync()
-            => EnsureServer().SignalAsync();
+        public Task ReleaseAsync(CancellationToken cancellation)
+            => EnsureServer().SignalAsync(cancellation);
 
         private Server EnsureServer()
         {
@@ -62,18 +63,6 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             }
 
             return server;
-        }
-    }
-
-    internal static class Extensions
-    {
-        internal static void SafeDispose(this Socket? socket)
-        {
-            try
-            {
-                socket?.Dispose();
-            }
-            catch { }
         }
     }
 }

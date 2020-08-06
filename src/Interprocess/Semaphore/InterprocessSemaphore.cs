@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Cloudtoid.Interprocess.Semaphore.Unix;
 using Cloudtoid.Interprocess.Semaphore.Windows;
@@ -23,8 +24,8 @@ namespace Cloudtoid.Interprocess
         public void Dispose()
             => semaphore.Dispose();
 
-        public ValueTask ReleaseAsync()
-            => semaphore.ReleaseAsync();
+        public Task ReleaseAsync(CancellationToken cancellation)
+            => semaphore.ReleaseAsync(cancellation);
 
         public bool WaitOne(int millisecondsTimeout)
             => semaphore.WaitOne(millisecondsTimeout);

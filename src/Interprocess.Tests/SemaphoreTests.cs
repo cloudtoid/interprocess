@@ -20,12 +20,12 @@ namespace Cloudtoid.Interprocess.Tests
 
             using (var server = new UnixSemaphore.Server(new SharedAssetsIdentifier(DefaultQueueName, path)))
             {
-                await server.SignalAsync();
+                await server.SignalAsync(default);
             }
 
             using (var server = new UnixSemaphore.Server(new SharedAssetsIdentifier(DefaultQueueName, path)))
             {
-                await server.SignalAsync();
+                await server.SignalAsync(default);
                 await Task.Delay(500);
             }
         }
@@ -57,7 +57,7 @@ namespace Cloudtoid.Interprocess.Tests
                 semaphore.WaitOne(1).Should().BeTrue();
                 semaphore.WaitOne(1).Should().BeFalse();
 
-                await semaphore.ReleaseAsync();
+                await semaphore.ReleaseAsync(default);
 
                 semaphore.WaitOne(100).Should().BeTrue();
                 semaphore.WaitOne(1).Should().BeFalse();

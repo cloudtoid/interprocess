@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
+using Cloudtoid.Interprocess.DomainSocket;
 
 namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
@@ -14,38 +17,20 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         {
             private static readonly byte[] message = new byte[] { 1 };
             private readonly SharedAssetsIdentifier identifier;
-            private Socket? listener;
+            private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
             private Socket?[] clients = Array.Empty<Socket>();
-            private volatile bool disposed;
 
             internal Server(SharedAssetsIdentifier identifier)
             {
                 this.identifier = identifier;
-                _ = Task.Run(StartServerAsync);
+                Task.Run(() => AcceptConnections(cancellationSource.Token));
             }
-
-            ~Server() => DisposeInternal(); // this is important to delete the socket file
 
             public void Dispose()
+                => cancellationSource.Cancel();
+
+            internal async Task SignalAsync(CancellationToken cancellation)
             {
-                DisposeInternal();
-                GC.SuppressFinalize(this);
-            }
-
-            private void DisposeInternal()
-            {
-                if (disposed)
-                    return;
-
-                disposed = true; // stops the listening loop
-                listener?.Dispose(); // stops/cancels the call to listener.AcceptAsync
-            }
-
-            internal async ValueTask SignalAsync()
-            {
-                if (disposed)
-                    throw new ObjectDisposedException(nameof(Server));
-
                 // take a snapshot as the ref to the array may change
                 var clients = this.clients;
 
@@ -53,101 +38,65 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 for (int i = 0; i < count; i++)
                 {
                     var client = clients[i];
-                    if (client != null)
+                    if (client == null)
+                        continue;
+
+                    try
+                    {
+                        var bytesSent = await client.SendAsync(
+                            message,
+                            SocketFlags.None,
+                            cancellation);
+
+                        Debug.Assert(bytesSent == message.Length);
+                    }
+                    catch
+                    {
+                        if (!client.Connected)
+                        {
+                            clients[i] = null;
+                            client.SafeDispose();
+                        }
+                    }
+                }
+            }
+
+            private void AcceptConnections(CancellationToken cancellation)
+            {
+                var server = CreateServer();
+
+                try
+                {
+                    while (!cancellation.IsCancellationRequested)
                     {
                         try
                         {
-                            await client.SendAsync(message, SocketFlags.None);
+                            var client = server.Accept(cancellation);
+                            clients = clients.Concat(new[] { client }).Where(c => c != null).ToArray();
                         }
-                        catch
+                        catch (SocketException)
                         {
-                            if (!client.Connected)
-                            {
-                                clients[i] = null;
-                                client.Dispose();
-                            }
+                            server.Dispose();
+                            server = CreateServer();
                         }
-                    }
-                }
-            }
-
-            private async Task StartServerAsync()
-            {
-                while (!disposed)
-                {
-                    try
-                    {
-                        await ListenAsync();
-                    }
-                    catch (SocketException) { }
-                }
-            }
-
-            private async Task ListenAsync()
-            {
-                string? file = null;
-                try
-                {
-                    using (listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified))
-                    {
-                        while (!disposed)
-                        {
-                            file = GetRandomEndPointFile();
-                            try
-                            {
-                                listener.Bind(new UnixDomainSocketEndPoint(file));
-                            }
-                            catch (SocketException se) when (IsSocketInUse(se)) // socket in use
-                            {
-                                continue;
-                            }
-
-                            break;
-                        }
-
-                        listener.Listen(100);
-                        await AcceptConnectionsAsync(listener);
-                    }
-                }
-                finally
-                {
-                    try
-                    {
-                        if (file != null)
-                            File.Delete(file);
-                    }
-                    catch { }
-                }
-            }
-
-            private async Task AcceptConnectionsAsync(Socket listener)
-            {
-                try
-                {
-                    while (!disposed)
-                    {
-                        var client = await listener.AcceptAsync();
-                        clients = clients.Concat(new[] { client }).Where(c => c != null).ToArray();
                     }
                 }
                 finally
                 {
                     foreach (var client in clients)
-                            client.SafeDispose();
+                        client.SafeDispose();
 
-                    clients = Array.Empty<Socket>();
+                    server.Dispose();
                 }
             }
 
-            private string GetRandomEndPointFile()
+            private UnixDomainSocketServer CreateServer()
             {
                 var index = (int)(Math.Abs(DateTime.Now.Ticks - DateTime.Today.Ticks) % 100000);
                 var fileName = identifier.Name + index.ToString(CultureInfo.InvariantCulture) + Extension;
-                return Path.Combine(identifier.Path, fileName);
+                var filePath = Path.Combine(identifier.Path, fileName);
+                return new UnixDomainSocketServer(filePath);
             }
-
-            private static bool IsSocketInUse(SocketException se)
-                => se.ErrorCode == 48 || se.Message.Contains("in use", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

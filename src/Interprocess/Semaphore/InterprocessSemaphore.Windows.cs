@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using WinSemaphore = System.Threading.Semaphore;
 
 namespace Cloudtoid.Interprocess.Semaphore.Windows
@@ -17,10 +18,10 @@ namespace Cloudtoid.Interprocess.Semaphore.Windows
         public void Dispose()
             => handle.Dispose();
 
-        public ValueTask ReleaseAsync()
+        public Task ReleaseAsync(CancellationToken cancellation)
         {
             handle.Release();
-            return new ValueTask();
+            return Task.CompletedTask;
         }
 
         public bool WaitOne(int millisecondsTimeout)

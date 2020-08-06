@@ -18,23 +18,23 @@ namespace Cloudtoid.Interprocess.Tests
             using (var p = CreatePublisher(24, createOrOverride: true))
             using (var s = CreateSubscriber(24))
             {
-                p.TryEnqueue(byteArray3).Should().BeTrue();
+                (await p.TryEnqueueAsync(byteArray3, default)).Should().BeTrue();
                 var message = await s.DequeueAsync(default);
                 message.ToArray().Should().BeEquivalentTo(byteArray3);
 
-                p.TryEnqueue(byteArray3).Should().BeTrue();
+                (await p.TryEnqueueAsync(byteArray3, default)).Should().BeTrue();
                 message = await s.DequeueAsync(default);
                 message.ToArray().Should().BeEquivalentTo(byteArray3);
             }
         }
 
         [Fact]
-        public void CannotEnqueuePastCapacity()
+        public async Task CannotEnqueuePastCapacity()
         {
             using (var p = CreatePublisher(24, createOrOverride: true))
             {
-                p.TryEnqueue(byteArray3).Should().BeTrue();
-                p.TryEnqueue(byteArray1).Should().BeFalse();
+                (await p.TryEnqueueAsync(byteArray3, default)).Should().BeTrue();
+                (await p.TryEnqueueAsync(byteArray1, default)).Should().BeFalse();
             }
         }
 
@@ -42,7 +42,7 @@ namespace Cloudtoid.Interprocess.Tests
         public async Task DisposeShouldNotThrow()
         {
             var p = CreatePublisher(24, createOrOverride: true);
-            p.TryEnqueue(byteArray3).Should().BeTrue();
+            (await p.TryEnqueueAsync(byteArray3, default)).Should().BeTrue();
             using (var s = CreateSubscriber(24))
             {
                 p.Dispose();
@@ -56,7 +56,7 @@ namespace Cloudtoid.Interprocess.Tests
         public async Task CannotReadAfterProducerIsDisposed()
         {
             var p = CreatePublisher(24, createOrOverride: true);
-            p.TryEnqueue(byteArray3).Should().BeTrue();
+            (await p.TryEnqueueAsync(byteArray3, default)).Should().BeTrue();
             using (var s = CreateSubscriber(24))
                 p.Dispose();
 

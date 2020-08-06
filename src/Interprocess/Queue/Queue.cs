@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess
@@ -47,8 +48,8 @@ namespace Cloudtoid.Interprocess
         /// There are no guarantees that there are any messages left in the queue.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected ValueTask SignalReceivers()
-            => receiversSignal.ReleaseAsync();
+        protected Task SignalReceiversAsync(CancellationToken cancellation)
+            => receiversSignal.ReleaseAsync(cancellation);
 
         /// <summary>
         /// Waits the maximum of <paramref name="millisecondsTimeout"/> for a signal that there might be

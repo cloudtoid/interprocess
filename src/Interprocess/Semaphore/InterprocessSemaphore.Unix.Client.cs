@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Cloudtoid.Interprocess.DomainSocket;
 
 namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
@@ -21,37 +21,29 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 ReturnSpecialDirectories = false,
             };
 
+            private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
             private readonly AutoResetEvent fileWatcherHandle = new AutoResetEvent(false);
             private readonly AutoResetEvent signalWaitHandle = new AutoResetEvent(false);
             private readonly SharedAssetsIdentifier identifier;
             private FileSystemWatcher? watcher;
-            private volatile bool disposed;
 
             internal Client(SharedAssetsIdentifier identifier)
             {
                 this.identifier = identifier;
-                Task.Run(StartClientsAsync);
+                Task.Run(() => StartClients(cancellationSource.Token));
                 StartFileWatcher();
             }
 
             public void Dispose()
             {
-                if (disposed)
-                    return;
-
-                disposed = true;
+                cancellationSource.Cancel();
                 StopFileWatcher();
                 signalWaitHandle.Dispose();
                 fileWatcherHandle.Dispose();
             }
 
             internal bool Wait(int millisecondsTimeout)
-            {
-                if (disposed)
-                    throw new ObjectDisposedException(nameof(Client));
-
-                return signalWaitHandle.WaitOne(millisecondsTimeout);
-            }
+                => signalWaitHandle.WaitOne(millisecondsTimeout);
 
             private void StartFileWatcher()
             {
@@ -94,47 +86,56 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             private void SocketFileAddedOrDeleted(object sender, FileSystemEventArgs e)
                 => fileWatcherHandle.Set();
 
-            private async Task StartClientsAsync()
+            private void StartClients(CancellationToken cancellation)
             {
                 var fileSearchPattern = identifier.Name + "*" + Extension;
-                var clients = new Dictionary<string, Socket>(StringComparer.OrdinalIgnoreCase);
+                var clients = new Dictionary<string, UnixDomainSocketClient>(StringComparer.OrdinalIgnoreCase);
                 try
                 {
-                    while (!disposed)
+                    while (!cancellation.IsCancellationRequested)
                     {
                         var files = Directory.GetFiles(identifier.Path, fileSearchPattern, enumerationOptions);
 
-                        // remove disconected or closed/removed clients
-                        var toRemove = clients.Where(c => !c.Value.Connected || !files.Contains(c.Key, StringComparer.OrdinalIgnoreCase));
+                        // remove disconected or closed clients
+                        var toRemove = clients.Where(c =>
+                            !c.Value.IsConnected || !files.Contains(c.Key, StringComparer.OrdinalIgnoreCase));
+
                         foreach (var remove in toRemove)
                         {
                             clients.Remove(remove.Key);
-                            remove.Value.SafeDispose();
+                            remove.Value.Dispose();
                         }
 
                         // new clients to add
                         foreach (var add in files.Where(f => !clients.ContainsKey(f)))
                         {
-                            var client = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-                            try
-                            {
-                                await client.ConnectAsync(new UnixDomainSocketEndPoint(add));
-                                clients.Add(add, client);
-                            }
-                            catch (SocketException)
-                            {
-                                client.SafeDispose();
-                            }
+                            _ = ReceiveAsync(add, cancellation);
                         }
 
-                        fileWatcherHandle.WaitOne(1000);
+                        fileWatcherHandle.WaitOne(20);
                     }
                 }
                 finally
                 {
                     foreach (var client in clients)
-                        client.Value.SafeDispose();
+                        client.Value.Dispose();
                 }
+            }
+
+            private async ValueTask ReceiveAsync(string file, CancellationToken cancellation)
+            {
+                var buffer = new byte[1];
+
+                try
+                {
+                    using var client = new UnixDomainSocketClient(file);
+                    while (!cancellation.IsCancellationRequested)
+                    {
+                        if (await client.ReceiveAsync(buffer, cancellation) > 0)
+                            signalWaitHandle.Set();
+                    }
+                }
+                catch { }
             }
         }
     }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess
 {
@@ -10,7 +11,9 @@ namespace Cloudtoid.Interprocess
         {
         }
 
-        public unsafe bool TryEnqueue(ReadOnlySpan<byte> message)
+        public unsafe Task<bool> TryEnqueueAsync(
+            ReadOnlySpan<byte> message,
+            CancellationToken cancellationToken)
         {
             var bodyLength = message.Length;
             while (true)
@@ -21,7 +24,7 @@ namespace Cloudtoid.Interprocess
                 long messageLength = GetMessageLength(bodyLength);
                 long capacity = buffer.Capacity - tailOffset + header.HeadOffset;
                 if (messageLength > capacity)
-                    return false;
+                    return Task.FromResult(false);
 
                 var newTailOffset = SafeIncrementMessageOffset(tailOffset, messageLength);
 
@@ -40,7 +43,8 @@ namespace Cloudtoid.Interprocess
                             tailOffset);
 
                         // signal the next receiver that there is a new message in the queue
-                        SignalReceivers();
+                        SignalReceiversAsync(cancellationToken).Wait();
+                        return Task.FromResult(true);
                     }
                     catch
                     {
@@ -48,8 +52,6 @@ namespace Cloudtoid.Interprocess
                         // treat this as a fatal exception and crash the process
                         Environment.FailFast("Publishing to the shared memory queue failed leaving the queue in a bad state.");
                     }
-
-                    return true;
                 }
             }
         }

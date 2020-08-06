@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess
 {
     public interface IPublisher : IDisposable
     {
-        bool TryEnqueue(ReadOnlySpan<byte> message);
+        Task<bool> TryEnqueueAsync(
+            ReadOnlySpan<byte> message,
+            CancellationToken cancellation);
     }
 }

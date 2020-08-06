@@ -11,5 +11,6 @@
 
   <ItemGroup>
     <Folder Include="Queue\" />
+    <Folder Include="DomainSocket\" />
   </ItemGroup>
 </Project>
