@@ -8,6 +8,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
 {
     internal sealed class UnixDomainSocketClient : IDisposable
     {
+        private const int ConnectMillisecondTimeout = 100;
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly UnixDomainSocketEndPoint endpoint;
         private Socket? socket;
@@ -20,62 +21,65 @@ namespace Cloudtoid.Interprocess.DomainSocket
         internal bool IsConnected
             => socket?.Connected ?? false;
 
+        public void Dispose()
+        {
+            cancellationSource.Cancel();
+            socket.SafeDispose();
+        }
+
         internal async ValueTask<int> ReceiveAsync(
             Memory<byte> buffer,
             CancellationToken cancellation)
         {
+            EnsureSocket();
+            Debug.Assert(socket != null);
+
             using var source = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationSource.Token,
                 cancellation);
 
-            try
-            {
-                EnsureSocket();
-                Connect(source.Token);
-                return await ReceiveCoreAsync(buffer, source.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                socket.SafeDispose();
-                socket = null;
-                throw;
-            }
+            await ConnectAsync(source.Token);
+            return await socket.ReceiveAsync(buffer, SocketFlags.None, source.Token);
         }
 
         private void EnsureSocket()
         {
+            if (socket != null && !socket.Connected)
+            {
+                socket.SafeDispose();
+                socket = null;
+            }
+
             if (socket is null)
+            {
                 socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
-
-            Debug.Assert(socket.Connected);
+                socket.Blocking = false;
+            }
         }
 
-        private void Connect(CancellationToken cancellationToken)
+        private async Task ConnectAsync(CancellationToken cancellation)
         {
             Debug.Assert(socket != null);
+            var startTime = DateTime.Now;
 
-            UnixDomainSocketUtil.SocketOperation(
-                callback => socket.BeginConnect(endpoint, callback, null),
-                token =>
+            while (true)
+            {
+                cancellation.ThrowIfCancellationRequested();
+
+                try
                 {
-                    socket.EndConnect(token);
-                    return true;
-                },
-                cancellationToken);
-        }
+                    socket.Connect(endpoint);
+                    return;
+                }
+                catch (SocketException se) when (se.SocketErrorCode == SocketError.WouldBlock)
+                {
+                    var duration = (DateTime.Now - startTime).Milliseconds;
+                    if (duration > ConnectMillisecondTimeout)
+                        throw new TimeoutException("Socket.Connect timeout expired.");
 
-        private async ValueTask<int> ReceiveCoreAsync(
-            Memory<byte> buffer,
-            CancellationToken cancellationToken)
-        {
-            Debug.Assert(socket != null);
-            return await socket.ReceiveAsync(buffer, SocketFlags.None, cancellationToken);
-        }
-
-        public void Dispose()
-        { 
-            cancellationSource.Cancel();
-            socket.SafeDispose();
+                    await Task.Delay(5, cancellation);
+                }
+            }
         }
     }
 }

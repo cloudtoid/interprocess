@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
@@ -8,7 +9,6 @@ namespace Cloudtoid.Interprocess.DomainSocket
 {
     internal sealed class UnixDomainSocketServer : IDisposable
     {
-        private readonly object cleanupLock = new object();
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly string file;
         private Socket? socket;
@@ -19,21 +19,40 @@ namespace Cloudtoid.Interprocess.DomainSocket
         }
 
         ~UnixDomainSocketServer()
-            => CleanUp();
+            => Dispose(false);
 
         public void Dispose()
         {
-            cancellationSource.Cancel();
-            CleanUp();
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
 
         internal async Task<Socket> AcceptAsync(CancellationToken cancellation)
         {
+            EnsureSocket();
+            Debug.Assert(socket != null);
+
             using var source = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationSource.Token,
                 cancellation);
 
+            while (true)
+            {
+                source.Token.ThrowIfCancellationRequested();
+
+                try
+                {
+                    return socket.Accept();
+                }
+                catch (SocketException se) when (se.SocketErrorCode == SocketError.WouldBlock)
+                {
+                    await Task.Delay(10, cancellation);
+                }
+            }
+        }
+
+        private void EnsureSocket()
+        {
             if (socket is null)
             {
                 socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
@@ -41,43 +60,22 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 socket.Bind(new UnixDomainSocketEndPoint(file));
                 socket.Listen(100);
             }
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                cancellationSource.Cancel();
+                socket.SafeDispose();
+                socket = null;
+            }
 
             try
             {
-                while (true)
-                {
-                    source.Token.ThrowIfCancellationRequested();
-
-                    try
-                    {
-                        return socket.Accept();
-                    }
-                    catch (SocketException se) when (se.SocketErrorCode == SocketError.WouldBlock)
-                    {
-                        await Task.Delay(10, cancellation);
-                    }
-                }
+                File.Delete(file);
             }
-            catch (OperationCanceledException)
-            {
-                CleanUp();
-                throw;
-            }
-        }
-
-        private void CleanUp()
-        {
-            lock (cleanupLock)
-            {
-                socket.SafeDispose();
-                socket = null;
-
-                try
-                {
-                    File.Delete(file);
-                }
-                catch { }
-            }
+            catch { }
         }
     }
 }

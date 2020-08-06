@@ -33,59 +33,6 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public void CanPerformSocketOperation()
-        {
-            UnixDomainSocketUtil.SocketOperation(
-                callback =>
-                {
-                    var r = new AsyncResult(true);
-                    callback(r);
-                    return r;
-                },
-                _ => true,
-                default).Should().BeTrue();
-        }
-
-        [Fact]
-        public void CanPerformSocketOperationCompletedSynchronously()
-        {
-            UnixDomainSocketUtil.SocketOperation(
-                _ => new AsyncResult(true),
-                _ => true,
-                default).Should().BeTrue();
-        }
-
-        [Fact]
-        public void CanSocketOperationTimeout()
-        {
-            using var source = new CancellationTokenSource();
-            source.CancelAfter(200);
-            Action action = () => UnixDomainSocketUtil.SocketOperation(
-                _ => new AsyncResult(false),
-                _ => true,
-                source.Token);
-
-            action.Should().ThrowExactly<OperationCanceledException>();
-        }
-
-        [Fact]
-        public void CanSocketOperationCatchAndRethrowException()
-        {
-            using var source = new CancellationTokenSource();
-            Action action = () => UnixDomainSocketUtil.SocketOperation<bool>(
-                callback =>
-                {
-                    var r = new AsyncResult(true);
-                    callback(r);
-                    return r;
-                },
-                _ => throw new NotSupportedException(),
-                source.Token);
-
-            action.Should().ThrowExactly<NotSupportedException>();
-        }
-
-        [Fact]
         public async Task CanAcceptConnections()
         {
             using var source = new CancellationTokenSource();
