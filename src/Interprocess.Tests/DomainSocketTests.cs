@@ -12,6 +12,8 @@ namespace Cloudtoid.Interprocess.Tests
 {
     public class DomainSocketTests
     {
+        private static readonly ReadOnlyMemory<byte> message = new byte[] { 1 };
+
         [Fact]
         public void CanCreateUnixDomainSocket()
         {
@@ -96,16 +98,39 @@ namespace Cloudtoid.Interprocess.Tests
             {
                 Task task;
                 using (var server = new UnixDomainSocketServer(file))
-                using (var client = UnixDomainSocketUtil.CreateUnixDomainSocket())
                 {
                     task = StartServerAsync(server, s => connections.Add(s), () => cancelled.Set(), source.Token);
-                    Thread.Sleep(100);
-                    client.Connect(endpoint);
-                    client.Connected.Should().BeTrue();
+
+                    using (var client = UnixDomainSocketUtil.CreateUnixDomainSocket())
+                    {
+                        client.Connect(endpoint);
+                        client.Connected.Should().BeTrue();
+                        await client.SendAsync(message, SocketFlags.None);
+                    }
+
+                    using (var client = UnixDomainSocketUtil.CreateUnixDomainSocket())
+                    {
+                        client.Connect(endpoint);
+                        client.Connected.Should().BeTrue();
+                    }
+
+                    using (var client1 = UnixDomainSocketUtil.CreateUnixDomainSocket())
+                    using (var client2 = UnixDomainSocketUtil.CreateUnixDomainSocket())
+                    {
+                        client1.Connect(endpoint);
+                        client1.Connected.Should().BeTrue();
+
+                        client2.Connect(endpoint);
+                        client2.Connected.Should().BeTrue();
+                    }
+
+                    while (connections.Count < 4)
+                        await Task.Delay(10);
                 }
 
                 cancelled.Wait(500).Should().BeTrue();
                 await task;
+                connections.Should().HaveCount(4);
             }
         }
 
