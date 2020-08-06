@@ -94,43 +94,76 @@ namespace Cloudtoid.Interprocess.Tests
             var endpoint = new UnixDomainSocketEndPoint(file);
 
             var connections = new List<Socket>();
-            using (var cancelled = new ManualResetEventSlim())
+            using var cancelled = new ManualResetEventSlim();
+
+            Task task;
+            using (var server = new UnixDomainSocketServer(file))
             {
-                Task task;
-                using (var server = new UnixDomainSocketServer(file))
+                task = StartServerAsync(server, s => connections.Add(s), () => cancelled.Set(), source.Token);
+
+                using (var client = UnixDomainSocketUtil.CreateUnixDomainSocket())
                 {
-                    task = StartServerAsync(server, s => connections.Add(s), () => cancelled.Set(), source.Token);
-
-                    using (var client = UnixDomainSocketUtil.CreateUnixDomainSocket())
-                    {
-                        client.Connect(endpoint);
-                        client.Connected.Should().BeTrue();
-                        await client.SendAsync(message, SocketFlags.None);
-                    }
-
-                    using (var client = UnixDomainSocketUtil.CreateUnixDomainSocket())
-                    {
-                        client.Connect(endpoint);
-                        client.Connected.Should().BeTrue();
-                    }
-
-                    using (var client1 = UnixDomainSocketUtil.CreateUnixDomainSocket())
-                    using (var client2 = UnixDomainSocketUtil.CreateUnixDomainSocket())
-                    {
-                        client1.Connect(endpoint);
-                        client1.Connected.Should().BeTrue();
-
-                        client2.Connect(endpoint);
-                        client2.Connected.Should().BeTrue();
-                    }
-
-                    while (connections.Count < 4)
-                        await Task.Delay(10);
+                    client.Connect(endpoint);
+                    client.Connected.Should().BeTrue();
+                    await client.SendAsync(message, SocketFlags.None);
                 }
 
-                cancelled.Wait(500).Should().BeTrue();
-                await task;
-                connections.Should().HaveCount(4);
+                using (var client = UnixDomainSocketUtil.CreateUnixDomainSocket())
+                {
+                    client.Connect(endpoint);
+                    client.Connected.Should().BeTrue();
+                }
+
+                using (var client1 = UnixDomainSocketUtil.CreateUnixDomainSocket())
+                using (var client2 = UnixDomainSocketUtil.CreateUnixDomainSocket())
+                {
+                    client1.Connect(endpoint);
+                    client1.Connected.Should().BeTrue();
+
+                    client2.Connect(endpoint);
+                    client2.Connected.Should().BeTrue();
+                }
+
+                while (connections.Count < 4)
+                    await Task.Delay(10);
+            }
+
+            cancelled.Wait(500).Should().BeTrue();
+            await task;
+            connections.Should().HaveCount(4);
+        }
+
+        [Fact]
+        public async Task CanAcceptConnectionsTimeout()
+        {
+            var file = GetRandomNonExistingFilePath();
+            var endpoint = new UnixDomainSocketEndPoint(file);
+
+            using (var source = new CancellationTokenSource())
+            using (var cancelled = new ManualResetEventSlim())
+            using (var server = new UnixDomainSocketServer(file))
+            {
+                source.Cancel();
+                await StartServerAsync(server, s => { }, () => cancelled.Set(), source.Token);
+                cancelled.Wait(5000).Should().BeTrue();
+            }
+
+            using (var source = new CancellationTokenSource())
+            using (var cancelled = new ManualResetEventSlim())
+            using (var server = new UnixDomainSocketServer(file))
+            {
+                source.CancelAfter(200);
+                await StartServerAsync(server, s => { }, () => cancelled.Set(), source.Token);
+                cancelled.Wait(5000).Should().BeTrue();
+            }
+
+            using (var source = new CancellationTokenSource())
+            using (var cancelled = new ManualResetEventSlim())
+            using (var server = new UnixDomainSocketServer(file))
+            {
+                source.CancelAfter(1000);
+                await StartServerAsync(server, s => { }, () => cancelled.Set(), source.Token);
+                cancelled.Wait(5000).Should().BeTrue();
             }
         }
 

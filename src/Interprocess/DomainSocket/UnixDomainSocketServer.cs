@@ -42,20 +42,27 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 socket.Listen(100);
             }
 
-            while (!source.Token.IsCancellationRequested)
+            try
             {
-                try
+                while (true)
                 {
-                    return socket.Accept();
-                }
-                catch (SocketException se) when (se.SocketErrorCode == SocketError.WouldBlock)
-                {
-                    await Task.Delay(10);
+                    source.Token.ThrowIfCancellationRequested();
+
+                    try
+                    {
+                        return socket.Accept();
+                    }
+                    catch (SocketException se) when (se.SocketErrorCode == SocketError.WouldBlock)
+                    {
+                        await Task.Delay(10, cancellation);
+                    }
                 }
             }
-
-            CleanUp();
-            throw new OperationCanceledException();
+            catch (OperationCanceledException)
+            {
+                CleanUp();
+                throw;
+            }
         }
 
         private void CleanUp()
