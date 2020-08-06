@@ -135,9 +135,46 @@ namespace Cloudtoid.Interprocess.Tests
                     client.Connect(endpoint);
                     client.Connected.Should().BeTrue();
                 }
-            }
 
+                File.Exists(file).Should().BeTrue();
+            }
+            File.Exists(file).Should().BeFalse();
             await task;
+        }
+
+        [Fact]
+        public void DoesNotCreateFile()
+        {
+            var file = GetRandomNonExistingFilePath();
+            using (var server = new UnixDomainSocketServer(file))
+            {
+                File.Exists(file).Should().BeFalse();
+            }
+        }
+
+        [Fact]
+        public async Task CanReceiveAsync()
+        {
+            var file = GetRandomNonExistingFilePath();
+            var endpoint = new UnixDomainSocketEndPoint(file);
+
+            using (var server = new UnixDomainSocketServer(file))
+            using (var client = new UnixDomainSocketClient(file))
+            {
+                Socket socket;
+                var task = Task.Run(async () =>
+                {
+                    socket = await server.AcceptAsync(default);
+                    var c = await socket.SendAsync(message, default);
+                    c.Should().Be(1);
+                });
+
+                await Task.Delay(200);
+                var buffer = new byte[1];
+                var count = await client.ReceiveAsync(buffer, default);
+                count.Should().Be(1);
+                buffer[0].Should().Be(1);
+            }
         }
 
         private async Task AcceptLoopAsync(

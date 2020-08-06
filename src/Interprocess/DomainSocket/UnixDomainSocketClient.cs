@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,11 +10,13 @@ namespace Cloudtoid.Interprocess.DomainSocket
         private const int ConnectMillisecondTimeout = 100;
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly UnixDomainSocketEndPoint endpoint;
-        private Socket? socket;
+        private Socket socket;
 
         internal UnixDomainSocketClient(string file)
         {
             endpoint = new UnixDomainSocketEndPoint(file);
+            socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
+            socket.Blocking = false;
         }
 
         internal bool IsConnected
@@ -31,37 +32,39 @@ namespace Cloudtoid.Interprocess.DomainSocket
             Memory<byte> buffer,
             CancellationToken cancellation)
         {
-            EnsureSocket();
-            Debug.Assert(socket != null);
-
             using var source = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationSource.Token,
                 cancellation);
 
-            await ConnectAsync(source.Token);
-            return await socket.ReceiveAsync(buffer, SocketFlags.None, source.Token);
-        }
 
-        private void EnsureSocket()
-        {
-            if (socket != null && !socket.Connected)
+            await EnsureConnectedAsync(source.Token);
+
+            try
             {
-                socket.SafeDispose();
-                socket = null;
+                return await socket.ReceiveAsync(buffer, SocketFlags.None, source.Token);
             }
-
-            if (socket is null)
+            catch
             {
-                socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
-                socket.Blocking = false;
+                if (!socket.Connected)
+                    ResetSocket();
+
+                throw;
             }
         }
 
-        private async Task ConnectAsync(CancellationToken cancellation)
+        private void ResetSocket()
         {
-            Debug.Assert(socket != null);
+            socket.SafeDispose();
+            socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
+            socket.Blocking = false;
+        }
+
+        private async Task EnsureConnectedAsync(CancellationToken cancellation)
+        {
+            if (socket.Connected)
+                return;
+
             var startTime = DateTime.Now;
-
             while (true)
             {
                 cancellation.ThrowIfCancellationRequested();
