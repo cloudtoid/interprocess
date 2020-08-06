@@ -45,7 +45,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
         private void EnsureSocket()
         {
             if (socket is null)
-                socket = UnixDmainSocketUtil.CreateUnixDomainSocket();
+                socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
 
             Debug.Assert(socket.Connected);
         }
@@ -54,7 +54,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
         {
             Debug.Assert(socket != null);
 
-            UnixDmainSocketUtil.SocketOperation(
+            UnixDomainSocketUtil.SocketOperation(
                 callback => socket.ConnectAsync(endpoint),
                 token =>
                 {

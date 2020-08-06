@@ -33,14 +33,14 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
             if (socket is null)
             {
-                socket = UnixDmainSocketUtil.CreateUnixDomainSocket();
+                socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
                 socket.Bind(new UnixDomainSocketEndPoint(file));
                 socket.Listen(100);
             }
 
             try
             {
-                return UnixDmainSocketUtil.SocketOperation(
+                return UnixDomainSocketUtil.SocketOperation(
                     callback => socket.BeginAccept(callback, null),
                     token => socket.EndAccept(token),
                     source.Token);

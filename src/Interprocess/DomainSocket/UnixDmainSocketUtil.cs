@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace Cloudtoid.Interprocess.DomainSocket
 {
-    internal static class UnixDmainSocketUtil
+    internal static class UnixDomainSocketUtil
     {
         internal static Socket CreateUnixDomainSocket()
             => new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
