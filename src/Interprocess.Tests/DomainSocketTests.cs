@@ -99,13 +99,12 @@ namespace Cloudtoid.Interprocess.Tests
             Task task;
             using (var server = new UnixDomainSocketServer(file))
             {
-                task = StartServerAsync(server, s => connections.Add(s), () => cancelled.Set(), source.Token);
+                task = AcceptLoopAsync(server, s => connections.Add(s), () => cancelled.Set(), source.Token);
 
                 using (var client = UnixDomainSocketUtil.CreateUnixDomainSocket())
                 {
                     client.Connect(endpoint);
                     client.Connected.Should().BeTrue();
-                    await client.SendAsync(message, SocketFlags.None);
                 }
 
                 using (var client = UnixDomainSocketUtil.CreateUnixDomainSocket())
@@ -144,8 +143,8 @@ namespace Cloudtoid.Interprocess.Tests
             using (var server = new UnixDomainSocketServer(file))
             {
                 source.Cancel();
-                await StartServerAsync(server, s => { }, () => cancelled.Set(), source.Token);
-                cancelled.Wait(5000).Should().BeTrue();
+                await AcceptLoopAsync(server, s => { }, () => cancelled.Set(), source.Token);
+                cancelled.Wait(1).Should().BeTrue();
             }
 
             using (var source = new CancellationTokenSource())
@@ -153,8 +152,8 @@ namespace Cloudtoid.Interprocess.Tests
             using (var server = new UnixDomainSocketServer(file))
             {
                 source.CancelAfter(200);
-                await StartServerAsync(server, s => { }, () => cancelled.Set(), source.Token);
-                cancelled.Wait(5000).Should().BeTrue();
+                await AcceptLoopAsync(server, s => { }, () => cancelled.Set(), source.Token);
+                cancelled.Wait(1).Should().BeTrue();
             }
 
             using (var source = new CancellationTokenSource())
@@ -162,12 +161,39 @@ namespace Cloudtoid.Interprocess.Tests
             using (var server = new UnixDomainSocketServer(file))
             {
                 source.CancelAfter(1000);
-                await StartServerAsync(server, s => { }, () => cancelled.Set(), source.Token);
-                cancelled.Wait(5000).Should().BeTrue();
+                await AcceptLoopAsync(server, s => { }, () => cancelled.Set(), source.Token);
+                cancelled.Wait(1).Should().BeTrue();
             }
         }
 
-        private async Task StartServerAsync(
+        [Fact]
+        public async Task CanAcceptConnectionsRecoverFromTimeout()
+        {
+            var file = GetRandomNonExistingFilePath();
+            var endpoint = new UnixDomainSocketEndPoint(file);
+            Task task;
+
+            using (var source = new CancellationTokenSource())
+            using (var source2 = new CancellationTokenSource())
+            using (var cancelled = new ManualResetEventSlim())
+            using (var server = new UnixDomainSocketServer(file))
+            {
+                source.Cancel();
+                await AcceptLoopAsync(server, s => { }, () => cancelled.Set(), source.Token);
+                cancelled.Wait(1).Should().BeTrue();
+
+                task = AcceptLoopAsync(server, s => { }, () => cancelled.Set(), source2.Token);
+                using (var client = UnixDomainSocketUtil.CreateUnixDomainSocket())
+                {
+                    client.Connect(endpoint);
+                    client.Connected.Should().BeTrue();
+                }
+            }
+
+            await task;
+        }
+
+        private async Task AcceptLoopAsync(
             UnixDomainSocketServer server,
             Action<Socket> onNewConnection,
             Action onCancelled,
@@ -183,7 +209,7 @@ namespace Cloudtoid.Interprocess.Tests
                 catch (OperationCanceledException)
                 {
                     onCancelled();
-                    break;
+                    return;
                 }
                 onNewConnection(socket);
             }
