@@ -55,7 +55,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
             Debug.Assert(socket != null);
 
             UnixDomainSocketUtil.SocketOperation(
-                callback => socket.ConnectAsync(endpoint),
+                callback => socket.BeginConnect(endpoint, callback, null),
                 token =>
                 {
                     socket.EndConnect(token);

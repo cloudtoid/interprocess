@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Net.Sockets;
-using System.Runtime.ExceptionServices;
 using System.Threading;
 
 namespace Cloudtoid.Interprocess.DomainSocket
@@ -11,37 +10,18 @@ namespace Cloudtoid.Interprocess.DomainSocket
             => new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
 
         internal static T SocketOperation<T>(
-            Action<AsyncCallback> begin,
+            Func<AsyncCallback, IAsyncResult> begin,
             Func<IAsyncResult, T> end,
             CancellationToken cancellationToken)
         {
-            ExceptionDispatchInfo? exceptionInfo = null;
-            T result = default;
+            using var waitHandle = new ManualResetEventSlim(false);
 
-            using (var handle = new ManualResetEventSlim(false))
-            {
-                begin(
-                    new AsyncCallback(token =>
-                    {
-                        try
-                        {
-                            result = end(token);
-                        }
-                        catch (Exception ex)
-                        {
-                            exceptionInfo = ExceptionDispatchInfo.Capture(ex);
-                        }
-                        finally
-                        {
-                            handle.Set();
-                        }
-                    }));
+            var token = begin(_ => waitHandle.Set());
 
-                handle.Wait(cancellationToken);
-            }
+            if(!token.IsCompleted)
+                waitHandle.Wait(cancellationToken);
 
-            exceptionInfo?.Throw();
-            return result!;
+            return end(token);
         }
 
         internal static void SafeDispose(this Socket? socket)

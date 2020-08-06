@@ -23,7 +23,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             internal Server(SharedAssetsIdentifier identifier)
             {
                 this.identifier = identifier;
-                Task.Run(() => AcceptConnections(cancellationSource.Token));
+                Task.Run(() => AcceptConnectionsAsync(cancellationSource.Token));
             }
 
             public void Dispose()
@@ -61,7 +61,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 }
             }
 
-            private void AcceptConnections(CancellationToken cancellation)
+            private async Task AcceptConnectionsAsync(CancellationToken cancellation)
             {
                 var server = CreateServer();
 
@@ -71,7 +71,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     {
                         try
                         {
-                            var client = server.Accept(cancellation);
+                            var client = await server.AcceptAsync(cancellation);
                             clients = clients.Concat(new[] { client }).Where(c => c != null).ToArray();
                         }
                         catch (SocketException)
