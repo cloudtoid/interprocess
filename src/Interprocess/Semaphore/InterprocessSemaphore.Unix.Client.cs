@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cloudtoid.Interprocess.DomainSocket;
+using SysSemaphoree = System.Threading.Semaphore;
 
 namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
@@ -24,7 +25,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
             private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
             private readonly AutoResetEvent fileWatcherHandle = new AutoResetEvent(false);
-            private readonly AutoResetEvent signalWaitHandle = new AutoResetEvent(false);
+            private readonly SysSemaphoree semaphore = new SysSemaphoree(0, int.MaxValue);
             private readonly ManualResetEvent stoppedWaitHandle = new ManualResetEvent(false);
             private readonly SharedAssetsIdentifier identifier;
             private FileSystemWatcher? watcher;
@@ -42,19 +43,19 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 cancellationSource.Cancel();
                 stoppedWaitHandle.WaitOne();
                 stoppedWaitHandle.Dispose();
-                signalWaitHandle.Dispose();
+                semaphore.Dispose();
                 fileWatcherHandle.Dispose();
             }
 
             internal bool Wait(int millisecondsTimeout)
-                => signalWaitHandle.WaitOne(millisecondsTimeout);
+                => semaphore.WaitOne(millisecondsTimeout);
 
             private void StartFileWatcher()
             {
                 watcher = new FileSystemWatcher(identifier.Path, identifier.Name + "*" + Extension);
                 watcher.Error += OnWatcherError;
-                watcher.Created += SocketFileAddedOrDeleted;
-                watcher.Deleted += SocketFileAddedOrDeleted;
+                watcher.Created += OnSocketFileAddedOrDeleted;
+                watcher.Deleted += OnSocketFileAddedOrDeleted;
                 watcher.EnableRaisingEvents = true;
             }
 
@@ -70,8 +71,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     {
                         snapshot.EnableRaisingEvents = false;
                         snapshot.Error -= OnWatcherError;
-                        snapshot.Created -= SocketFileAddedOrDeleted;
-                        snapshot.Deleted -= SocketFileAddedOrDeleted;
+                        snapshot.Created -= OnSocketFileAddedOrDeleted;
+                        snapshot.Deleted -= OnSocketFileAddedOrDeleted;
                     }
                 }
                 catch
@@ -89,7 +90,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 StartFileWatcher();
             }
 
-            private void SocketFileAddedOrDeleted(object sender, FileSystemEventArgs e)
+            private void OnSocketFileAddedOrDeleted(object sender, FileSystemEventArgs e)
                 => fileWatcherHandle.Set();
 
             private void StartClients(CancellationToken cancellation)
@@ -152,7 +153,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                                 return;
                             }
 
-                            signalWaitHandle.Set();
+                            semaphore.Release();
                         }
                     }
                     catch (SocketException se) when (se.SocketErrorCode == SocketError.ConnectionRefused)

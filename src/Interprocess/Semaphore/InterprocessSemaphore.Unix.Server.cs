@@ -29,7 +29,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
             // used for testing
             internal int ClientCount
-                => clients.Length;
+                => clients.Count(c => c != null);
 
             public void Dispose()
                 => cancellationSource.Cancel();
