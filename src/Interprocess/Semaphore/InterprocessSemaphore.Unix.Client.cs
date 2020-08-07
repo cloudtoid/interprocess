@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cloudtoid.Interprocess.DomainSocket;
@@ -24,6 +25,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
             private readonly AutoResetEvent fileWatcherHandle = new AutoResetEvent(false);
             private readonly AutoResetEvent signalWaitHandle = new AutoResetEvent(false);
+            private readonly ManualResetEvent stoppedWaitHandle = new ManualResetEvent(false);
             private readonly SharedAssetsIdentifier identifier;
             private FileSystemWatcher? watcher;
 
@@ -36,8 +38,10 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
             public void Dispose()
             {
-                cancellationSource.Cancel();
                 StopFileWatcher();
+                cancellationSource.Cancel();
+                stoppedWaitHandle.WaitOne();
+                stoppedWaitHandle.Dispose();
                 signalWaitHandle.Dispose();
                 fileWatcherHandle.Dispose();
             }
@@ -47,11 +51,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
             private void StartFileWatcher()
             {
-                var path = identifier.Path;
-                if (!Path.IsPathRooted(path))
-                    path = Path.Combine(Environment.CurrentDirectory, path);
-
-                watcher = new FileSystemWatcher(path, identifier.Name + "*" + Extension);
+                watcher = new FileSystemWatcher(identifier.Path, identifier.Name + "*" + Extension);
                 watcher.Error += OnWatcherError;
                 watcher.Created += SocketFileAddedOrDeleted;
                 watcher.Deleted += SocketFileAddedOrDeleted;
@@ -74,11 +74,17 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         snapshot.Deleted -= SocketFileAddedOrDeleted;
                     }
                 }
-                catch { }
+                catch
+                {
+                    Console.WriteLine("Failed to fully dispose an old file watcher.");
+                }
             }
 
             private void OnWatcherError(object sender, ErrorEventArgs e)
             {
+                if (cancellationSource.Token.IsCancellationRequested)
+                    return;
+
                 StopFileWatcher();
                 StartFileWatcher();
             }
@@ -96,9 +102,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     {
                         var files = Directory.GetFiles(identifier.Path, fileSearchPattern, enumerationOptions);
 
-                        // remove disconected or closed clients
-                        var toRemove = clients.Where(c =>
-                            !c.Value.IsConnected || !files.Contains(c.Key, StringComparer.OrdinalIgnoreCase));
+                        // remove closed clients
+                        var toRemove = clients.Where(c => !files.Contains(c.Key, StringComparer.OrdinalIgnoreCase));
 
                         foreach (var remove in toRemove)
                         {
@@ -109,33 +114,45 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         // new clients to add
                         foreach (var add in files.Where(f => !clients.ContainsKey(f)))
                         {
-                            _ = ReceiveAsync(add, cancellation);
+                            var client = new UnixDomainSocketClient(add);
+                            clients.Add(add, client);
+                            Task.Run(() => ReceiveAsync(add, client, cancellation), cancellation);
                         }
 
-                        fileWatcherHandle.WaitOne(20);
+                        fileWatcherHandle.WaitOne(100);
                     }
                 }
                 finally
                 {
                     foreach (var client in clients)
                         client.Value.Dispose();
+
+                    stoppedWaitHandle.Set();
                 }
             }
 
-            private async ValueTask ReceiveAsync(string file, CancellationToken cancellation)
+            private async ValueTask ReceiveAsync(
+                string file,
+                UnixDomainSocketClient client,
+                CancellationToken cancellation)
             {
                 var buffer = new byte[1];
-
-                try
+                using (client)
                 {
-                    using var client = new UnixDomainSocketClient(file);
-                    while (!cancellation.IsCancellationRequested)
+                    try
                     {
-                        if (await client.ReceiveAsync(buffer, cancellation) > 0)
-                            signalWaitHandle.Set();
+                        while (!cancellation.IsCancellationRequested)
+                        {
+                            if (await client.ReceiveAsync(buffer, cancellation) > 0)
+                                signalWaitHandle.Set();
+                        }
                     }
+                    catch (SocketException se) when (se.SocketErrorCode == SocketError.ConnectionRefused)
+                    {
+                        Util.TryDeleteFile(file);
+                    }
+                    catch { }
                 }
-                catch { }
             }
         }
     }

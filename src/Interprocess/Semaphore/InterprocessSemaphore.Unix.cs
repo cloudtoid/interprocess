@@ -23,7 +23,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
     internal sealed partial class UnixSemaphore : IInterprocessSemaphore
     {
         private const string PathSuffix = ".cloudtoid/interprocess/sem";
-        private const string Extension = ".socket";
+        private const string Extension = ".soc";
 
         private readonly object serverLockObject = new object();
         private readonly SharedAssetsIdentifier identifier;

@@ -26,6 +26,10 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 Task.Run(() => AcceptConnectionsAsync(cancellationSource.Token));
             }
 
+            // used for testing
+            internal int ClientCount
+                => clients.Length;
+
             public void Dispose()
                 => cancellationSource.Cancel();
 

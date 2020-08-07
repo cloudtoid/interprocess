@@ -10,53 +10,48 @@ namespace Cloudtoid.Interprocess.DomainSocket
         private const int ConnectMillisecondTimeout = 100;
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly UnixDomainSocketEndPoint endpoint;
-        private Socket socket;
+        private Socket? socket;
 
         internal UnixDomainSocketClient(string file)
         {
             endpoint = new UnixDomainSocketEndPoint(file);
-            socket = CreateSocket();
+            socket = Util.CreateUnixDomainSocket(blocking: false);
         }
-
-        internal bool IsConnected
-            => socket?.Connected ?? false;
 
         public void Dispose()
         {
             cancellationSource.Cancel();
-            socket.SafeDispose();
+            Interlocked.Exchange(ref socket, null).SafeDispose();
         }
 
         internal async ValueTask<int> ReceiveAsync(
             Memory<byte> buffer,
             CancellationToken cancellation)
         {
+            cancellation.ThrowIfCancellationRequested();
+
             using var source = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationSource.Token,
                 cancellation);
 
-            await EnsureConnectedAsync(source.Token);
-
+            var socket = GetSocket();
             try
             {
+                await EnsureConnectedAsync(socket, source.Token);
                 return await socket.ReceiveAsync(buffer, SocketFlags.None, source.Token);
             }
             catch
             {
                 if (!socket.Connected)
-                    ResetSocket();
+                    Interlocked.CompareExchange(ref this.socket, null, socket).SafeDispose();
 
                 throw;
             }
         }
 
-        private void ResetSocket()
-        {
-            socket.SafeDispose();
-            socket = CreateSocket();
-        }
-
-        private async Task EnsureConnectedAsync(CancellationToken cancellation)
+        private async Task EnsureConnectedAsync(
+            Socket socket,
+            CancellationToken cancellation)
         {
             if (socket.Connected)
                 return;
@@ -82,11 +77,18 @@ namespace Cloudtoid.Interprocess.DomainSocket
             }
         }
 
-        private static Socket CreateSocket()
+        private Socket GetSocket()
         {
-            var socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
-            socket.Blocking = false;
-            return socket;
+            while (true)
+            {
+                var snapshot = socket;
+                if (snapshot != null)
+                    return snapshot;
+
+                var newSocket = Util.CreateUnixDomainSocket(blocking: false);
+                if (Interlocked.CompareExchange(ref socket, newSocket, null) == null)
+                    return newSocket;
+            }
         }
     }
 }

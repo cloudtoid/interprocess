@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -57,7 +56,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
         {
             if (socket is null)
             {
-                socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
+                socket = Util.CreateUnixDomainSocket();
                 socket.Blocking = false;
                 socket.Bind(new UnixDomainSocketEndPoint(file));
                 socket.Listen(connectionQueueSize);
@@ -73,11 +72,8 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 socket = null;
             }
 
-            try
-            {
-                File.Delete(file);
-            }
-            catch { }
+            if(!Util.TryDeleteFile(file))
+                Console.WriteLine("Failed to delete a socket's backing file.");
         }
     }
 }

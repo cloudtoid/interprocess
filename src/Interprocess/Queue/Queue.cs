@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +19,8 @@ namespace Cloudtoid.Interprocess
 
             try
             {
-                var identifier = new SharedAssetsIdentifier(options.QueueName, options.Path);
+                var path = Util.GetAbsolutePath(options.Path);
+                var identifier = new SharedAssetsIdentifier(options.QueueName, path);
                 receiversSignal = new InterprocessSemaphore(identifier);
                 view = new MemoryView(options);
                 buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);
