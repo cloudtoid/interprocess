@@ -146,11 +146,13 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     {
                         while (!cancellation.IsCancellationRequested)
                         {
-                            var count = await client.ReceiveAsync(buffer, cancellation);
-                            if (count == 1)
-                                signalWaitHandle.Set();
-                            else
-                                Console.WriteLine($"Received {count} bytes that is unexpected");
+                            if (await client.ReceiveAsync(buffer, cancellation) == 0)
+                            {
+                                Console.WriteLine("Looks like the server is shutting down.");
+                                return;
+                            }
+
+                            signalWaitHandle.Set();
                         }
                     }
                     catch (SocketException se) when (se.SocketErrorCode == SocketError.ConnectionRefused)
@@ -158,9 +160,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         Console.WriteLine("Found an orphaned semaphore lock file");
                         Util.TryDeleteFile(file);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        Console.WriteLine("Receive loop stopped");
+                        Console.WriteLine("Receive loop stopped - " + ex.Message);
                     }
                 }
             }

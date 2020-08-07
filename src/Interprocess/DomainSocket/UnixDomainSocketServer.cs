@@ -65,6 +65,8 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
         private void Dispose(bool disposing)
         {
+            Console.WriteLine("Disposing a domain socket server");
+
             if (disposing)
             {
                 cancellationSource.Cancel();

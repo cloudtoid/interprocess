@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -33,20 +34,29 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             public void Dispose()
                 => cancellationSource.Cancel();
 
-            internal Task SignalAsync(CancellationToken cancellation)
+            internal async Task SignalAsync(CancellationToken cancellation)
             {
                 // take a snapshot as the ref to the array may change
                 var clients = this.clients;
 
                 var count = clients.Length;
-                var tasks = new Task[count];
-                for (int i = 0; i < count; i++)
-                    tasks[i] = SignalAsync(clients, i, cancellation);
+                var tasks = ArrayPool<ValueTask>.Shared.Rent(count);
 
-                return Task.WhenAll(tasks);
+                try
+                {
+                    for (int i = 0; i < count; i++)
+                        tasks[i] = SignalAsync(clients, i, cancellation);
+
+                    for (int i = 0; i < count; i++)
+                        await tasks[i];
+                }
+                finally
+                {
+                    ArrayPool<ValueTask>.Shared.Return(tasks);
+                }
             }
 
-            private static async Task SignalAsync(Socket?[] clients, int i, CancellationToken cancellation)
+            private static async ValueTask SignalAsync(Socket?[] clients, int i, CancellationToken cancellation)
             {
                 var client = clients[i];
                 if (client == null)
@@ -61,7 +71,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
                     Debug.Assert(bytesSent == message.Length);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Console.WriteLine("Failed to send a signal. " + ex.Message);
 

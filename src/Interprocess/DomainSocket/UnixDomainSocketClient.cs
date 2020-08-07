@@ -20,6 +20,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
         public void Dispose()
         {
+            Console.WriteLine("Disposing a domain socket client");
             cancellationSource.Cancel();
             Interlocked.Exchange(ref socket, null).SafeDispose();
         }
@@ -50,7 +51,10 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 Console.WriteLine("Socket receive failed unexpectedly. " + ex.Message);
 
                 if (!socket.Connected)
+                {
+                    Console.WriteLine("Disposing an inner client socket because it is no longer connected");
                     Interlocked.CompareExchange(ref this.socket, null, socket).SafeDispose();
+                }
 
                 throw;
             }
