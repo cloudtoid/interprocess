@@ -11,11 +11,13 @@ namespace Cloudtoid.Interprocess.DomainSocket
     {
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly string file;
+        private readonly int connectionQueueSize;
         private Socket? socket;
 
-        internal UnixDomainSocketServer(string file)
+        internal UnixDomainSocketServer(string file, int connectionQueueSize = 100)
         {
             this.file = file;
+            this.connectionQueueSize = connectionQueueSize;
         }
 
         ~UnixDomainSocketServer()
@@ -58,7 +60,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
                 socket.Blocking = false;
                 socket.Bind(new UnixDomainSocketEndPoint(file));
-                socket.Listen(100);
+                socket.Listen(connectionQueueSize);
             }
         }
 

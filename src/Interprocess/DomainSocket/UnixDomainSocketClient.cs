@@ -15,8 +15,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
         internal UnixDomainSocketClient(string file)
         {
             endpoint = new UnixDomainSocketEndPoint(file);
-            socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
-            socket.Blocking = false;
+            socket = CreateSocket();
         }
 
         internal bool IsConnected
@@ -36,7 +35,6 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 cancellationSource.Token,
                 cancellation);
 
-
             await EnsureConnectedAsync(source.Token);
 
             try
@@ -55,8 +53,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
         private void ResetSocket()
         {
             socket.SafeDispose();
-            socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
-            socket.Blocking = false;
+            socket = CreateSocket();
         }
 
         private async Task EnsureConnectedAsync(CancellationToken cancellation)
@@ -83,6 +80,13 @@ namespace Cloudtoid.Interprocess.DomainSocket
                     await Task.Delay(5, cancellation);
                 }
             }
+        }
+
+        private static Socket CreateSocket()
+        {
+            var socket = UnixDomainSocketUtil.CreateUnixDomainSocket();
+            socket.Blocking = false;
+            return socket;
         }
     }
 }

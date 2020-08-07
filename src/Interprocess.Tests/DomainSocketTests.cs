@@ -143,11 +143,34 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public void DoesNotCreateFile()
+        public void ServerDoesNotCreateFile()
         {
             var file = GetRandomNonExistingFilePath();
-            using (var server = new UnixDomainSocketServer(file))
+            using (new UnixDomainSocketServer(file))
             {
+                File.Exists(file).Should().BeFalse();
+            }
+        }
+
+        [Fact]
+        public void ClientDoesNotCreateFile()
+        {
+            var file = GetRandomNonExistingFilePath();
+            using (new UnixDomainSocketClient(file))
+            {
+                File.Exists(file).Should().BeFalse();
+            }
+        }
+
+        [Fact]
+        public async Task ClientUnableToConnectWithoutServer()
+        {
+            var file = GetRandomNonExistingFilePath();
+            using (var client = new UnixDomainSocketClient(file))
+            {
+                Func<Task<int>> action = async () => await client.ReceiveAsync(new byte[1], default);
+                var ex = await action.Should().ThrowAsync<SocketException>();
+                ex.Where(se => se.SocketErrorCode == SocketError.AddressNotAvailable);
                 File.Exists(file).Should().BeFalse();
             }
         }
