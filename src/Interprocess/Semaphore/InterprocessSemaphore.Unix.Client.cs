@@ -134,7 +134,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 }
             }
 
-            private async ValueTask ReceiveAsync(
+            private async Task ReceiveAsync(
                 string file,
                 UnixDomainSocketClient client,
                 CancellationToken cancellation)

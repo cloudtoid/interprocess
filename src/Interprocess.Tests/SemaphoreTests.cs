@@ -64,8 +64,8 @@ namespace Cloudtoid.Interprocess.Tests
                 while (server1.ClientCount != 2)
                     await Task.Delay(5);
 
-                client1.Wait(10).Should().BeFalse();
-                client2.Wait(10).Should().BeFalse();
+                client1.Wait(1).Should().BeFalse();
+                client2.Wait(1).Should().BeFalse();
 
                 var start = DateTime.Now;
                 await server1.SignalAsync(default);
@@ -74,14 +74,13 @@ namespace Cloudtoid.Interprocess.Tests
                 client2.Wait(1000).Should().BeTrue();
                 Console.WriteLine("Signal 1 - " + (DateTime.Now - start).TotalMilliseconds);
 
-                client1.Wait(10).Should().BeFalse();
-                client2.Wait(10).Should().BeFalse();
+                client1.Wait(1).Should().BeFalse();
+                client2.Wait(1).Should().BeFalse();
 
                 start = DateTime.Now;
                 await server1.SignalAsync(default);
 
                 client1.Wait(1000).Should().BeTrue();
-                Console.WriteLine("Signal 2(1) - " + (DateTime.Now - start).TotalMilliseconds);
                 client2.Wait(1000).Should().BeTrue();
                 Console.WriteLine("Signal 2 - " + (DateTime.Now - start).TotalMilliseconds);
 
@@ -90,9 +89,9 @@ namespace Cloudtoid.Interprocess.Tests
                     while (server1.ClientCount != 3)
                         await Task.Delay(5);
 
-                    client1.Wait(10).Should().BeFalse();
-                    client2.Wait(10).Should().BeFalse();
-                    client3.Wait(10).Should().BeFalse();
+                    client1.Wait(1).Should().BeFalse();
+                    client2.Wait(1).Should().BeFalse();
+                    client3.Wait(1).Should().BeFalse();
 
                     start = DateTime.Now;
                     await server1.SignalAsync(default);
@@ -107,9 +106,9 @@ namespace Cloudtoid.Interprocess.Tests
                         while (server2.ClientCount != 3)
                             await Task.Delay(5);
 
-                        client1.Wait(10).Should().BeFalse();
-                        client2.Wait(10).Should().BeFalse();
-                        client3.Wait(10).Should().BeFalse();
+                        client1.Wait(1).Should().BeFalse();
+                        client2.Wait(1).Should().BeFalse();
+                        client3.Wait(1).Should().BeFalse();
 
                         start = DateTime.Now;
                         await server2.SignalAsync(default);
@@ -119,40 +118,48 @@ namespace Cloudtoid.Interprocess.Tests
                         client3.Wait(1000).Should().BeTrue();
                         Console.WriteLine("Signal 4 - " + (DateTime.Now - start).TotalMilliseconds);
 
-                        client1.Wait(10).Should().BeFalse();
-                        client2.Wait(10).Should().BeFalse();
-                        client3.Wait(10).Should().BeFalse();
+                        client1.Wait(1).Should().BeFalse();
+                        client2.Wait(1).Should().BeFalse();
+                        client3.Wait(1).Should().BeFalse();
 
-                        start = DateTime.Now;
-                        await server1.SignalAsync(default);
+                        try
+                        {
+                            start = DateTime.Now;
+                            for (int i = 0; i < 10000; i++)
+                            {
+                                await server1.SignalAsync(default);
 
-                        client1.Wait(1000).Should().BeTrue();
-                        client2.Wait(1000).Should().BeTrue();
-                        client3.Wait(1000).Should().BeTrue();
-                        Console.WriteLine("Signal 5 - " + (DateTime.Now - start).TotalMilliseconds);
+                                client1.Wait(1000).Should().BeTrue();
+                                client2.Wait(1000).Should().BeTrue();
+                                client3.Wait(1000).Should().BeTrue();
+                            }
+                            Console.WriteLine("Signal 5 (Average) - " + (DateTime.Now - start).TotalMilliseconds / 10000);
 
-                        client1.Wait(10).Should().BeFalse();
-                        client2.Wait(10).Should().BeFalse();
-                        client3.Wait(10).Should().BeFalse();
+                            client1.Wait(1).Should().BeFalse();
+                            client2.Wait(1).Should().BeFalse();
+                            client3.Wait(1).Should().BeFalse();
 
-                        start = DateTime.Now;
-                        await server1.SignalAsync(default);
-                        await server2.SignalAsync(default);
+                            start = DateTime.Now;
+                            await server1.SignalAsync(default);
+                            await server2.SignalAsync(default);
 
-                        client1.Wait(1000).Should().BeTrue("1");
-                        client2.Wait(1000).Should().BeTrue("2");
-                        client3.Wait(1000).Should().BeTrue("3");
+                            client1.Wait(1000).Should().BeTrue("1");
+                            client2.Wait(1000).Should().BeTrue("2");
+                            client3.Wait(1000).Should().BeTrue("3");
 
-                        client1.Wait(1000).Should().BeTrue("4");
-                        client2.Wait(1000).Should().BeTrue("5");
-                        client3.Wait(1000).Should().BeTrue("6");
-                        Console.WriteLine("Signal 6 - " + (DateTime.Now - start).TotalMilliseconds);
+                            client1.Wait(1000).Should().BeTrue("4");
+                            client2.Wait(1000).Should().BeTrue("5");
+                            client3.Wait(1000).Should().BeTrue("6");
+                            Console.WriteLine("Signal 6 - " + (DateTime.Now - start).TotalMilliseconds);
 
-                        client1.Wait(10).Should().BeFalse();
-                        client2.Wait(10).Should().BeFalse();
-                        client3.Wait(10).Should().BeFalse();
-
-                        Console.WriteLine("Disposing all");
+                            client1.Wait(1).Should().BeFalse();
+                            client2.Wait(1).Should().BeFalse();
+                            client3.Wait(1).Should().BeFalse();
+                        }
+                        finally
+                        {
+                            Console.WriteLine("Disposing all");
+                        }
                     }
                 }
             }

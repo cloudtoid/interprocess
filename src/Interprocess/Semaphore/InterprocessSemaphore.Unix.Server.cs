@@ -56,7 +56,10 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 }
             }
 
-            private static async ValueTask SignalAsync(Socket?[] clients, int i, CancellationToken cancellation)
+            private static async ValueTask SignalAsync(
+                Socket?[] clients,
+                int i,
+                CancellationToken cancellation)
             {
                 var client = clients[i];
                 if (client == null)
