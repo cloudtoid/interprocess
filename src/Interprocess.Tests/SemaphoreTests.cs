@@ -78,6 +78,22 @@ namespace Cloudtoid.Interprocess.Tests
 
                 client1.Wait(1000).Should().BeTrue();
                 client2.Wait(1000).Should().BeTrue();
+
+                using (var client3 = new UnixSemaphore.Client(defaultIdentifier))
+                {
+                    while (server.ClientCount != 3)
+                        await Task.Delay(5);
+
+                    client1.Wait(10).Should().BeFalse();
+                    client2.Wait(10).Should().BeFalse();
+                    client3.Wait(10).Should().BeFalse();
+
+                    await server.SignalAsync(default);
+
+                    client1.Wait(1000).Should().BeTrue();
+                    client2.Wait(1000).Should().BeTrue();
+                    client3.Wait(1000).Should().BeTrue();
+                }
             }
         }
 
