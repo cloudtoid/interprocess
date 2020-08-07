@@ -70,6 +70,14 @@ namespace Cloudtoid.Interprocess.Tests
 
                 client1.Wait(1000).Should().BeTrue();
                 client2.Wait(1000).Should().BeTrue();
+
+                client1.Wait(10).Should().BeFalse();
+                client2.Wait(10).Should().BeFalse();
+
+                await server.SignalAsync(default);
+
+                client1.Wait(1000).Should().BeTrue();
+                client2.Wait(1000).Should().BeTrue();
             }
         }
 
