@@ -110,13 +110,16 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanSupportManyClients()
         {
-            const int Count = 10;
+            const int Count = 20;
 
             using var server = new UnixSemaphore.Server(defaultIdentifier);
             var clients = new UnixSemaphore.Client[Count];
 
             for (int i = 0; i < Count; i++)
+            {
+                Console.WriteLine(i);
                 clients[i] = new UnixSemaphore.Client(defaultIdentifier);
+            }
 
             await WaitForClientCount(server, Count);
             await server.SignalAsync(default);

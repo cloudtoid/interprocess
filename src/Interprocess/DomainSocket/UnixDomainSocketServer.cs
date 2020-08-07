@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess.DomainSocket
 {
@@ -28,7 +27,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
             GC.SuppressFinalize(this);
         }
 
-        internal async Task<Socket> AcceptAsync(CancellationToken cancellation)
+        internal Socket Accept(CancellationToken cancellation)
         {
             EnsureSocket();
             Debug.Assert(socket != null);
@@ -47,7 +46,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 }
                 catch (SocketException se) when (se.SocketErrorCode == SocketError.WouldBlock)
                 {
-                    await Task.Delay(10, cancellation);
+                    Thread.Sleep(5);
                 }
             }
         }
@@ -75,7 +74,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
             }
 
             if(!Util.TryDeleteFile(file))
-                Console.WriteLine("Failed to delete a socket's backing file.");
+                Console.WriteLine("Failed to delete a socket's backing file");
         }
     }
 }

@@ -33,7 +33,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             internal Client(SharedAssetsIdentifier identifier)
             {
                 this.identifier = identifier;
-                Task.Run(() => StartClients(cancellationSource.Token));
+                StartClients();
                 StartFileWatcher();
             }
 
@@ -93,8 +93,17 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             private void OnSocketFileAddedOrDeleted(object sender, FileSystemEventArgs e)
                 => fileWatcherHandle.Set();
 
-            private void StartClients(CancellationToken cancellation)
+            private void StartClients()
             {
+                // using a dedicated thread as this is a very long blocking call
+                var thread = new Thread(StartClientsCore);
+                thread.IsBackground = true;
+                thread.Start();
+            }
+
+            private void StartClientsCore()
+            {
+                var cancellation = cancellationSource.Token;
                 var fileSearchPattern = identifier.Name + "*" + Extension;
                 var clients = new Dictionary<string, UnixDomainSocketClient>(StringComparer.OrdinalIgnoreCase);
                 try
@@ -126,6 +135,13 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         fileWatcherHandle.WaitOne(100);
                     }
                 }
+                catch when (cancellation.IsCancellationRequested) { }
+                catch
+                {
+                    // if there is an error here, we are in a bad state.
+                    // treat this as a fatal exception and crash the process
+                    Environment.FailFast("Unix domain socket client failed leaving the application in a bad state.");
+                }
                 finally
                 {
                     foreach (var client in clients)
@@ -141,30 +157,34 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 CancellationToken cancellation)
             {
                 var buffer = new byte[1];
-                using (client)
-                {
-                    try
-                    {
-                        while (!cancellation.IsCancellationRequested)
-                        {
-                            if (await client.ReceiveAsync(buffer, cancellation) == 0)
-                            {
-                                Console.WriteLine("Looks like the server is shutting down.");
-                                return;
-                            }
 
-                            semaphore.Release();
+                try
+                {
+                    using (client)
+                    {
+                        try
+                        {
+                            while (!cancellation.IsCancellationRequested)
+                            {
+                                if (await client.ReceiveAsync(buffer, cancellation) == 0)
+                                {
+                                    Console.WriteLine("Looks like the server is shutting down.");
+                                    return;
+                                }
+
+                                semaphore.Release();
+                            }
+                        }
+                        catch (SocketException se) when (se.SocketErrorCode == SocketError.ConnectionRefused)
+                        {
+                            Console.WriteLine("Found an orphaned semaphore lock file");
+                            Util.TryDeleteFile(file);
                         }
                     }
-                    catch (SocketException se) when (se.SocketErrorCode == SocketError.ConnectionRefused)
-                    {
-                        Console.WriteLine("Found an orphaned semaphore lock file");
-                        Util.TryDeleteFile(file);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("Receive loop stopped - " + ex.Message);
-                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Receive loop stopped - " + ex.Message);
                 }
             }
         }

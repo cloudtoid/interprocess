@@ -24,7 +24,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             internal Server(SharedAssetsIdentifier identifier)
             {
                 this.identifier = identifier;
-                Task.Run(() => AcceptConnectionsAsync(cancellationSource.Token));
+                StartServer();
             }
 
             // used for testing
@@ -86,9 +86,18 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 }
             }
 
-            private async Task AcceptConnectionsAsync(CancellationToken cancellation)
+            private void StartServer()
+            {
+                // using a dedicated thread as this is a very long blocking call
+                var thread = new Thread(StartServerCore);
+                thread.IsBackground = true;
+                thread.Start();
+            }
+
+            private void StartServerCore()
             {
                 var server = CreateServer();
+                var cancellation = cancellationSource.Token;
 
                 try
                 {
@@ -96,7 +105,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     {
                         try
                         {
-                            var client = await server.AcceptAsync(cancellation);
+                            var client = server.Accept(cancellation);
                             clients = clients.Concat(new[] { client }).Where(c => c != null).ToArray();
                         }
                         catch (SocketException)
@@ -107,6 +116,13 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                             server = CreateServer();
                         }
                     }
+                }
+                catch when (cancellation.IsCancellationRequested) { }
+                catch
+                {
+                    // if there is an error here, we are in a bad state.
+                    // treat this as a fatal exception and crash the process
+                    Environment.FailFast("Unix domain socket server failed leaving the application in a bad state.");
                 }
                 finally
                 {
