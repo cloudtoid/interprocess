@@ -149,9 +149,13 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     }
                     catch (SocketException se) when (se.SocketErrorCode == SocketError.ConnectionRefused)
                     {
+                        Console.WriteLine("Found an orphaned semaphore lock file");
                         Util.TryDeleteFile(file);
                     }
-                    catch { }
+                    catch
+                    {
+                        Console.WriteLine("Receive loop stopped");
+                    }
                 }
             }
         }

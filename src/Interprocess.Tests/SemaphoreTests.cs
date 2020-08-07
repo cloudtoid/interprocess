@@ -1,5 +1,6 @@
 ﻿using Cloudtoid.Interprocess.Semaphore.Unix;
 using FluentAssertions;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using Xunit;
@@ -52,47 +53,107 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task CanConnectMultipleClientsToOneServer()
+        public async Task CanConnectMultipleClientsToMultipleServer()
         {
-            using (var server = new UnixSemaphore.Server(defaultIdentifier))
+            using (var server1 = new UnixSemaphore.Server(defaultIdentifier))
             using (var client1 = new UnixSemaphore.Client(defaultIdentifier))
             using (var client2 = new UnixSemaphore.Client(defaultIdentifier))
             {
                 // wait a while for the server to start and the clients
                 // to connect to the server
-                while (server.ClientCount != 2)
+                while (server1.ClientCount != 2)
                     await Task.Delay(5);
 
                 client1.Wait(10).Should().BeFalse();
                 client2.Wait(10).Should().BeFalse();
 
-                await server.SignalAsync(default);
+                var start = DateTime.Now;
+                await server1.SignalAsync(default);
 
                 client1.Wait(1000).Should().BeTrue();
                 client2.Wait(1000).Should().BeTrue();
+                Console.WriteLine("Signal 1 - " + (DateTime.Now - start).TotalMilliseconds);
 
                 client1.Wait(10).Should().BeFalse();
                 client2.Wait(10).Should().BeFalse();
 
-                await server.SignalAsync(default);
+                start = DateTime.Now;
+                await server1.SignalAsync(default);
 
                 client1.Wait(1000).Should().BeTrue();
+                Console.WriteLine("Signal 2(1) - " + (DateTime.Now - start).TotalMilliseconds);
                 client2.Wait(1000).Should().BeTrue();
+                Console.WriteLine("Signal 2 - " + (DateTime.Now - start).TotalMilliseconds);
 
                 using (var client3 = new UnixSemaphore.Client(defaultIdentifier))
                 {
-                    while (server.ClientCount != 3)
+                    while (server1.ClientCount != 3)
                         await Task.Delay(5);
 
                     client1.Wait(10).Should().BeFalse();
                     client2.Wait(10).Should().BeFalse();
                     client3.Wait(10).Should().BeFalse();
 
-                    await server.SignalAsync(default);
+                    start = DateTime.Now;
+                    await server1.SignalAsync(default);
 
                     client1.Wait(1000).Should().BeTrue();
                     client2.Wait(1000).Should().BeTrue();
                     client3.Wait(1000).Should().BeTrue();
+                    Console.WriteLine("Signal 3 - " + (DateTime.Now - start).TotalMilliseconds);
+
+                    using (var server2 = new UnixSemaphore.Server(defaultIdentifier))
+                    {
+                        while (server2.ClientCount != 3)
+                            await Task.Delay(5);
+
+                        client1.Wait(10).Should().BeFalse();
+                        client2.Wait(10).Should().BeFalse();
+                        client3.Wait(10).Should().BeFalse();
+
+                        start = DateTime.Now;
+                        await server2.SignalAsync(default);
+
+                        client1.Wait(1000).Should().BeTrue();
+                        client2.Wait(1000).Should().BeTrue();
+                        client3.Wait(1000).Should().BeTrue();
+                        Console.WriteLine("Signal 4 - " + (DateTime.Now - start).TotalMilliseconds);
+
+                        client1.Wait(10).Should().BeFalse();
+                        client2.Wait(10).Should().BeFalse();
+                        client3.Wait(10).Should().BeFalse();
+
+                        start = DateTime.Now;
+                        await server1.SignalAsync(default);
+
+                        client1.Wait(1000).Should().BeTrue();
+                        client2.Wait(1000).Should().BeTrue();
+                        client3.Wait(1000).Should().BeTrue();
+                        Console.WriteLine("Signal 5 - " + (DateTime.Now - start).TotalMilliseconds);
+
+                        client1.Wait(10).Should().BeFalse();
+                        client2.Wait(10).Should().BeFalse();
+                        client3.Wait(10).Should().BeFalse();
+
+                        start = DateTime.Now;
+                        await server1.SignalAsync(default);
+                        await server2.SignalAsync(default);
+
+                        client1.Wait(1000).Should().BeTrue("1");
+                        client2.Wait(1000).Should().BeTrue("2");
+                        client3.Wait(1000).Should().BeTrue("3");
+
+                        client1.Wait(1000).Should().BeTrue("4");
+                        client2.Wait(1000).Should().BeTrue("5");
+                        client3.Wait(1000).Should().BeTrue("6");
+                        Console.WriteLine("Signal 6 - " + (DateTime.Now - start).TotalMilliseconds);
+
+                        client1.Wait(10).Should().BeFalse();
+                        client2.Wait(10).Should().BeFalse();
+                        client3.Wait(10).Should().BeFalse();
+
+                        Console.WriteLine("Disposing all");
+                    }
                 }
             }
         }

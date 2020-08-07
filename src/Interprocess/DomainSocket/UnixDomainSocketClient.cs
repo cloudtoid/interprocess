@@ -40,8 +40,15 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 await EnsureConnectedAsync(socket, source.Token);
                 return await socket.ReceiveAsync(buffer, SocketFlags.None, source.Token);
             }
-            catch
+            catch (OperationCanceledException)
             {
+                Console.WriteLine("Socket receive operation cancelled.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Socket receive failed unexpectedly. " + ex.Message);
+
                 if (!socket.Connected)
                     Interlocked.CompareExchange(ref this.socket, null, socket).SafeDispose();
 

@@ -33,34 +33,42 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             public void Dispose()
                 => cancellationSource.Cancel();
 
-            internal async Task SignalAsync(CancellationToken cancellation)
+            internal Task SignalAsync(CancellationToken cancellation)
             {
                 // take a snapshot as the ref to the array may change
                 var clients = this.clients;
 
                 var count = clients.Length;
+                var tasks = new Task[count];
                 for (int i = 0; i < count; i++)
+                    tasks[i] = SignalAsync(clients, i, cancellation);
+
+                return Task.WhenAll(tasks);
+            }
+
+            private static async Task SignalAsync(Socket?[] clients, int i, CancellationToken cancellation)
+            {
+                var client = clients[i];
+                if (client == null)
+                    return;
+
+                try
                 {
-                    var client = clients[i];
-                    if (client == null)
-                        continue;
+                    var bytesSent = await client.SendAsync(
+                        message,
+                        SocketFlags.None,
+                        cancellation);
 
-                    try
-                    {
-                        var bytesSent = await client.SendAsync(
-                            message,
-                            SocketFlags.None,
-                            cancellation);
+                    Debug.Assert(bytesSent == message.Length);
+                }
+                catch
+                {
+                    Console.WriteLine("Failed to send a signal");
 
-                        Debug.Assert(bytesSent == message.Length);
-                    }
-                    catch
+                    if (!client.Connected)
                     {
-                        if (!client.Connected)
-                        {
-                            clients[i] = null;
-                            client.SafeDispose();
-                        }
+                        clients[i] = null;
+                        client.SafeDispose();
                     }
                 }
             }
@@ -80,6 +88,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         }
                         catch (SocketException)
                         {
+                            Console.WriteLine("Socket accept failed unexpectedly");
+
                             server.Dispose();
                             server = CreateServer();
                         }
