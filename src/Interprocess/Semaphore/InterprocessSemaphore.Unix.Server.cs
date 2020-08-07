@@ -61,9 +61,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
                     Debug.Assert(bytesSent == message.Length);
                 }
-                catch
+                catch(Exception ex)
                 {
-                    Console.WriteLine("Failed to send a signal");
+                    Console.WriteLine("Failed to send a signal. " + ex.Message);
 
                     if (!client.Connected)
                     {

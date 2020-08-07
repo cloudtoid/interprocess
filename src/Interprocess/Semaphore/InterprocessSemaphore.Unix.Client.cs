@@ -109,6 +109,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         {
                             clients.Remove(remove.Key);
                             remove.Value.Dispose();
+
+                            Console.WriteLine("removed a client: " + remove.Key);
                         }
 
                         // new clients to add
@@ -116,6 +118,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         {
                             var client = new UnixDomainSocketClient(add);
                             clients.Add(add, client);
+                            Console.WriteLine("Added a client: " + add);
                             Task.Run(() => ReceiveAsync(add, client, cancellation), cancellation);
                         }
 
@@ -143,8 +146,11 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     {
                         while (!cancellation.IsCancellationRequested)
                         {
-                            if (await client.ReceiveAsync(buffer, cancellation) > 0)
+                            var count = await client.ReceiveAsync(buffer, cancellation);
+                            if (count == 1)
                                 signalWaitHandle.Set();
+                            else
+                                Console.WriteLine($"Received {count} bytes that is unexpected");
                         }
                     }
                     catch (SocketException se) when (se.SocketErrorCode == SocketError.ConnectionRefused)
