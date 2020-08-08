@@ -10,10 +10,12 @@ namespace Cloudtoid.Interprocess
         private const long BeingCreated = (long)MessageState.BeingCreated;
         private const long LockedToBeConsumed = (long)MessageState.LockedToBeConsumed;
         private const long ReadyToBeConsumed = (long)MessageState.ReadyToBeConsumed;
+        private readonly IInterprocessSemaphoreWaiter signal;
 
         internal Subscriber(QueueOptions options)
             : base(options)
         {
+            signal = InterprocessSemaphore.CreateWaiter(CreateIdentifier());
         }
 
         public unsafe ValueTask<bool> TryDequeueAsync(
@@ -77,7 +79,7 @@ namespace Cloudtoid.Interprocess
             while (true)
             {
                 if (shouldWait)
-                    WaitForReceiverSignal(millisecondsTimeout: 100);
+                    signal.WaitOne(millisecondsTimeout: 100);
                 else
                     shouldWait = true;
 

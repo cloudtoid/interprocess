@@ -1,11 +1,17 @@
 ﻿using System;
 using System.IO;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 
 namespace Cloudtoid.Interprocess
 {
     internal static class Util
     {
+        internal static bool IsUnixBased { get; } =
+            RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+            || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+            || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD);
+
         internal static Socket CreateUnixDomainSocket(bool blocking = true)
         {
             var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);

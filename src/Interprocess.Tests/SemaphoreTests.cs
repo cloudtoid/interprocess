@@ -4,7 +4,6 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Xunit;
-using static Cloudtoid.Interprocess.Semaphore.Unix.UnixSemaphore;
 
 namespace Cloudtoid.Interprocess.Tests
 {
@@ -18,18 +17,18 @@ namespace Cloudtoid.Interprocess.Tests
         public async Task CanDisposeUnixServer()
         {
             // simple create and dispose
-            using (new Server(defaultIdentifier))
+            using (new UnixSemaphoreReleaser(defaultIdentifier))
             {
             }
 
-            using (var server = new Server(defaultIdentifier))
+            using (var server = new UnixSemaphoreReleaser(defaultIdentifier))
             {
-                await server.SignalAsync(default);
+                await server.ReleaseAsync(default);
             }
 
-            using (var server = new Server(defaultIdentifier))
+            using (var server = new UnixSemaphoreReleaser(defaultIdentifier))
             {
-                await server.SignalAsync(default);
+                await server.ReleaseAsync(default);
                 await Task.Delay(500);
             }
         }
@@ -38,109 +37,109 @@ namespace Cloudtoid.Interprocess.Tests
         public void CanDisposeUnixClient()
         {
             // simple create and dispose
-            using (new Client(defaultIdentifier))
+            using (new UnixSemaphoreWaiter(defaultIdentifier))
             {
             }
 
-            using (var client = new Client(defaultIdentifier))
+            using (var client = new UnixSemaphoreWaiter(defaultIdentifier))
             {
-                client.Wait(50).Should().BeFalse();
+                client.WaitOne(50).Should().BeFalse();
             }
 
-            using (var client = new Client(defaultIdentifier))
+            using (var client = new UnixSemaphoreWaiter(defaultIdentifier))
             {
-                client.Wait(500).Should().BeFalse();
+                client.WaitOne(500).Should().BeFalse();
             }
         }
 
         [Fact]
         public async Task CanSignalMultipleClients()
         {
-            using var server = new Server(defaultIdentifier);
-            using var client1 = new Client(defaultIdentifier);
-            using var client2 = new Client(defaultIdentifier);
+            using var server = new UnixSemaphoreReleaser(defaultIdentifier);
+            using var client1 = new UnixSemaphoreWaiter(defaultIdentifier);
+            using var client2 = new UnixSemaphoreWaiter(defaultIdentifier);
 
             await WaitForClientCount(server, 2);
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
 
             const int Count = 10000;
             var start = DateTime.Now;
             for (int i = 0; i < Count; i++)
             {
-                await server.SignalAsync(default);
+                await server.ReleaseAsync(default);
 
-                client1.Wait(1000).Should().BeTrue();
-                client2.Wait(1000).Should().BeTrue();
+                client1.WaitOne(1000).Should().BeTrue();
+                client2.WaitOne(1000).Should().BeTrue();
             }
             Console.WriteLine("Latency - " + (DateTime.Now - start).TotalMilliseconds / Count);
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
         }
 
         [Fact]
         public async Task CanReceiveSignalsAtDifferentPaces()
         {
-            using var server = new Server(defaultIdentifier);
-            using var client1 = new Client(defaultIdentifier);
-            using var client2 = new Client(defaultIdentifier);
+            using var server = new UnixSemaphoreReleaser(defaultIdentifier);
+            using var client1 = new UnixSemaphoreWaiter(defaultIdentifier);
+            using var client2 = new UnixSemaphoreWaiter(defaultIdentifier);
 
             await WaitForClientCount(server, 2);
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
 
             const int Count = 10000;
             var start = DateTime.Now;
             for (int i = 0; i < Count; i++)
             {
-                await server.SignalAsync(default);
-                client1.Wait(1000).Should().BeTrue();
+                await server.ReleaseAsync(default);
+                client1.WaitOne(1000).Should().BeTrue();
             }
             Console.WriteLine("Send and receive latency - " + (DateTime.Now - start).TotalMilliseconds / Count);
 
-            client1.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
 
             start = DateTime.Now;
             for (int i = 0; i < Count; i++)
-                client2.Wait(1000).Should().BeTrue();
+                client2.WaitOne(1000).Should().BeTrue();
 
             Console.WriteLine("Receive latency - " + (DateTime.Now - start).TotalMilliseconds / Count);
 
-            client2.Wait(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
         }
 
         [Fact]
         public async Task CanAddClientLater()
         {
-            using var server = new Server(defaultIdentifier);
-            using var client1 = new Client(defaultIdentifier);
-            using var client2 = new Client(defaultIdentifier);
+            using var server = new UnixSemaphoreReleaser(defaultIdentifier);
+            using var client1 = new UnixSemaphoreWaiter(defaultIdentifier);
+            using var client2 = new UnixSemaphoreWaiter(defaultIdentifier);
 
             await WaitForClientCount(server, 2);
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
 
-            await server.SignalAsync(default);
+            await server.ReleaseAsync(default);
 
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
 
-            using var client3 = new Client(defaultIdentifier);
+            using var client3 = new UnixSemaphoreWaiter(defaultIdentifier);
             await WaitForClientCount(server, 3);
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
-            client3.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
+            client3.WaitOne(50).Should().BeFalse();
 
-            await server.SignalAsync(default);
+            await server.ReleaseAsync(default);
 
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
-            client3.Wait(1000).Should().BeTrue();
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
+            client3.WaitOne(1000).Should().BeTrue();
         }
 
         [Fact]
@@ -148,61 +147,61 @@ namespace Cloudtoid.Interprocess.Tests
         {
             const int Count = 20;
 
-            using var server = new Server(defaultIdentifier);
-            var clients = new Client[Count];
+            using var server = new UnixSemaphoreReleaser(defaultIdentifier);
+            var clients = new UnixSemaphoreWaiter[Count];
 
             for (int i = 0; i < Count; i++)
             {
                 Console.WriteLine(i);
-                clients[i] = new Client(defaultIdentifier);
+                clients[i] = new UnixSemaphoreWaiter(defaultIdentifier);
             }
 
             await WaitForClientCount(server, Count);
-            await server.SignalAsync(default);
+            await server.ReleaseAsync(default);
 
             for (int i = 0; i < Count; i++)
                 clients[i].Dispose();
 
-            await server.SignalAsync(default);
+            await server.ReleaseAsync(default);
             await WaitForClientCount(server, 0);
         }
 
         [Fact]
         public async Task CanSupporrtMultipleServersAndClients()
         {
-            using var server1 = new Server(defaultIdentifier);
-            using var client1 = new Client(defaultIdentifier);
-            using var client2 = new Client(defaultIdentifier);
+            using var server1 = new UnixSemaphoreReleaser(defaultIdentifier);
+            using var client1 = new UnixSemaphoreWaiter(defaultIdentifier);
+            using var client2 = new UnixSemaphoreWaiter(defaultIdentifier);
 
             await WaitForClientCount(server1, 2);
 
-            await server1.SignalAsync(default);
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
+            await server1.ReleaseAsync(default);
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
 
-            using var server2 = new Server(defaultIdentifier);
+            using var server2 = new UnixSemaphoreReleaser(defaultIdentifier);
             await WaitForClientCount(server2, 2);
 
-            await server1.SignalAsync(default);
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
+            await server1.ReleaseAsync(default);
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
 
-            await server2.SignalAsync(default);
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
+            await server2.ReleaseAsync(default);
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
 
-            await server1.SignalAsync(default);
-            await server2.SignalAsync(default);
-            client1.Wait(1000).Should().BeTrue();
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
+            await server1.ReleaseAsync(default);
+            await server2.ReleaseAsync(default);
+            client1.WaitOne(1000).Should().BeTrue();
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
         }
 
         // this is complex test that sends and receives many times in a variety
@@ -211,129 +210,129 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanPerformManyActions()
         {
-            using var server1 = new Server(defaultIdentifier);
-            using var client1 = new Client(defaultIdentifier);
-            using var client2 = new Client(defaultIdentifier);
+            using var server1 = new UnixSemaphoreReleaser(defaultIdentifier);
+            using var client1 = new UnixSemaphoreWaiter(defaultIdentifier);
+            using var client2 = new UnixSemaphoreWaiter(defaultIdentifier);
 
             await WaitForClientCount(server1, 2);
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
 
             var start = DateTime.Now;
-            await server1.SignalAsync(default);
+            await server1.ReleaseAsync(default);
 
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
             Console.WriteLine("Signal 1 - " + (DateTime.Now - start).TotalMilliseconds);
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
 
             start = DateTime.Now;
-            await server1.SignalAsync(default);
+            await server1.ReleaseAsync(default);
 
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
             Console.WriteLine("Signal 2 - " + (DateTime.Now - start).TotalMilliseconds);
 
-            using var client3 = new Client(defaultIdentifier);
+            using var client3 = new UnixSemaphoreWaiter(defaultIdentifier);
             await WaitForClientCount(server1, 3);
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
-            client3.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
+            client3.WaitOne(50).Should().BeFalse();
 
             start = DateTime.Now;
-            await server1.SignalAsync(default);
+            await server1.ReleaseAsync(default);
 
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
-            client3.Wait(1000).Should().BeTrue();
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
+            client3.WaitOne(1000).Should().BeTrue();
             Console.WriteLine("Signal 3 - " + (DateTime.Now - start).TotalMilliseconds);
 
-            using var server2 = new Server(defaultIdentifier);
+            using var server2 = new UnixSemaphoreReleaser(defaultIdentifier);
             await WaitForClientCount(server2, 3);
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
-            client3.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
+            client3.WaitOne(50).Should().BeFalse();
 
             start = DateTime.Now;
-            await server2.SignalAsync(default);
+            await server2.ReleaseAsync(default);
 
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
-            client3.Wait(1000).Should().BeTrue();
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
+            client3.WaitOne(1000).Should().BeTrue();
             Console.WriteLine("Signal 4 - " + (DateTime.Now - start).TotalMilliseconds);
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
-            client3.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
+            client3.WaitOne(50).Should().BeFalse();
 
             start = DateTime.Now;
             for (int i = 0; i < 10000; i++)
             {
-                await server1.SignalAsync(default);
+                await server1.ReleaseAsync(default);
 
-                client1.Wait(1000).Should().BeTrue();
-                client2.Wait(1000).Should().BeTrue();
-                client3.Wait(1000).Should().BeTrue();
+                client1.WaitOne(1000).Should().BeTrue();
+                client2.WaitOne(1000).Should().BeTrue();
+                client3.WaitOne(1000).Should().BeTrue();
             }
             Console.WriteLine("Signal 5 (Average) - " + (DateTime.Now - start).TotalMilliseconds / 10000);
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
-            client3.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
+            client3.WaitOne(50).Should().BeFalse();
 
             start = DateTime.Now;
-            await server1.SignalAsync(default);
-            await server1.SignalAsync(default);
+            await server1.ReleaseAsync(default);
+            await server1.ReleaseAsync(default);
 
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
-            client3.Wait(1000).Should().BeTrue();
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
+            client3.WaitOne(1000).Should().BeTrue();
 
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
-            client3.Wait(1000).Should().BeTrue();
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
+            client3.WaitOne(1000).Should().BeTrue();
             Console.WriteLine("Signal 6 - " + (DateTime.Now - start).TotalMilliseconds);
 
             start = DateTime.Now;
-            await server1.SignalAsync(default);
-            await server2.SignalAsync(default);
+            await server1.ReleaseAsync(default);
+            await server2.ReleaseAsync(default);
 
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
-            client3.Wait(1000).Should().BeTrue();
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
+            client3.WaitOne(1000).Should().BeTrue();
 
-            client1.Wait(1000).Should().BeTrue();
-            client2.Wait(1000).Should().BeTrue();
-            client3.Wait(1000).Should().BeTrue();
+            client1.WaitOne(1000).Should().BeTrue();
+            client2.WaitOne(1000).Should().BeTrue();
+            client3.WaitOne(1000).Should().BeTrue();
             Console.WriteLine("Signal 7 - " + (DateTime.Now - start).TotalMilliseconds);
 
-            client1.Wait(50).Should().BeFalse();
-            client2.Wait(50).Should().BeFalse();
-            client3.Wait(50).Should().BeFalse();
+            client1.WaitOne(50).Should().BeFalse();
+            client2.WaitOne(50).Should().BeFalse();
+            client3.WaitOne(50).Should().BeFalse();
 
             Console.WriteLine("Disposing all");
         }
 
-        [Fact]
-        public async Task UnixSignalTests()
-        {
-            using (var semaphore = new UnixSemaphore(defaultIdentifier))
-            {
-                semaphore.WaitOne(50).Should().BeFalse();
+        //[Fact]
+        //public async Task UnixSignalTests()
+        //{
+        //    using (var semaphore = new UnixSemaphore(defaultIdentifier))
+        //    {
+        //        semaphore.WaitOne(50).Should().BeFalse();
 
-                await semaphore.ReleaseAsync(default);
+        //        await semaphore.ReleaseAsync(default);
 
-                semaphore.WaitOne(5000).Should().BeTrue();
-                semaphore.WaitOne(50).Should().BeFalse();
-            }
-        }
+        //        semaphore.WaitOne(5000).Should().BeTrue();
+        //        semaphore.WaitOne(50).Should().BeFalse();
+        //    }
+        //}
 
-        private static async Task WaitForClientCount(Server server, int count)
+        private static async Task WaitForClientCount(UnixSemaphoreReleaser server, int count)
         {
             while (server.ClientCount != count)
                 await Task.Delay(5);

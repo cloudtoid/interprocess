@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.IO;
 using Cloudtoid.Interprocess.Semaphore.Unix;
 using Cloudtoid.Interprocess.Semaphore.Windows;
 
@@ -10,24 +8,36 @@ namespace Cloudtoid.Interprocess
     /// This is a platform agnostic named semaphore. Named semaphores are synchronization
     /// constructs accessible across processes.
     /// </summary>
-    internal sealed class InterprocessSemaphore : IInterprocessSemaphore
+    internal static class InterprocessSemaphore
     {
-        private readonly IInterprocessSemaphore semaphore;
-
-        internal InterprocessSemaphore(SharedAssetsIdentifier identifier)
+        internal static IInterprocessSemaphoreWaiter CreateWaiter(SharedAssetsIdentifier identifier)
         {
-            semaphore = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new WindowsSemaphore(identifier)
-                : (IInterprocessSemaphore)new UnixSemaphore(identifier);
+            if (Util.IsUnixBased)
+            {
+                identifier = CreateUnixIdentifier(identifier);
+                return new UnixSemaphoreWaiter(identifier);
+            }
+
+            return new WindowsSemaphore(identifier);
         }
 
-        public void Dispose()
-            => semaphore.Dispose();
+        internal static IInterprocessSemaphoreReleaser CreateReleaser(SharedAssetsIdentifier identifier)
+        {
+            if (Util.IsUnixBased)
+            {
+                identifier = CreateUnixIdentifier(identifier);
+                return new UnixSemaphoreReleaser(identifier);
+            }
 
-        public Task ReleaseAsync(CancellationToken cancellation)
-            => semaphore.ReleaseAsync(cancellation);
+            return new WindowsSemaphore(identifier);
+        }
 
-        public bool WaitOne(int millisecondsTimeout)
-            => semaphore.WaitOne(millisecondsTimeout);
+        private static SharedAssetsIdentifier CreateUnixIdentifier(this SharedAssetsIdentifier identifier)
+        {
+            const string PathSuffix = ".cloudtoid/interprocess/sem";
+            var path = Path.Combine(identifier.Path, PathSuffix);
+            Directory.CreateDirectory(path);
+            return new SharedAssetsIdentifier(identifier.Name, path);
+        }
     }
 }

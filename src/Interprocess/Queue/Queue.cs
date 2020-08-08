@@ -1,33 +1,26 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess
 {
     internal abstract class Queue : IDisposable
     {
-        private readonly InterprocessSemaphore receiversSignal;
+        private readonly QueueOptions options;
         private readonly MemoryView view;
         protected readonly CircularBuffer buffer;
 
         protected unsafe Queue(QueueOptions options)
         {
-            if (options is null)
-                throw new ArgumentNullException(nameof(options));
+            this.options = options ?? throw new ArgumentNullException(nameof(options));
 
+            view = new MemoryView(options);
             try
             {
-                var path = Util.GetAbsolutePath(options.Path);
-                var identifier = new SharedAssetsIdentifier(options.QueueName, path);
-                receiversSignal = new InterprocessSemaphore(identifier);
-                view = new MemoryView(options);
                 buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);
             }
             catch
             {
-                view?.Dispose();
-                receiversSignal?.Dispose();
+                view.Dispose();
                 throw;
             }
         }
@@ -39,27 +32,7 @@ namespace Cloudtoid.Interprocess
         }
 
         public virtual void Dispose()
-        {
-            view.Dispose();
-            receiversSignal.Dispose();
-        }
-
-        /// <summary>
-        /// Signals at most one receiver to attempt to see if there are any messages left in the queue.
-        /// There are no guarantees that there are any messages left in the queue.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Task SignalReceiversAsync(CancellationToken cancellation)
-            => receiversSignal.ReleaseAsync(cancellation);
-
-        /// <summary>
-        /// Waits the maximum of <paramref name="millisecondsTimeout"/> for a signal that there might be
-        /// more messages in the queue ready to be processed.
-        /// NOTE: There are no guarantees that there are any messages left in the queue.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void WaitForReceiverSignal(int millisecondsTimeout)
-            => receiversSignal.WaitOne(millisecondsTimeout);
+            => view.Dispose();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected unsafe long GetMessageBodyOffset(long messageHeaderOffset)
@@ -80,6 +53,12 @@ namespace Cloudtoid.Interprocess
 
             // Round up to the closest integer divisible by 8. This will add the [padding] if one is needed.
             return 8 * (long)Math.Ceiling(length / 8.0);
+        }
+
+        protected SharedAssetsIdentifier CreateIdentifier()
+        {
+            var path = Util.GetAbsolutePath(options.Path);
+            return new SharedAssetsIdentifier(options.QueueName, path);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -6,9 +6,12 @@ namespace Cloudtoid.Interprocess
 {
     internal sealed class Publisher : Queue, IPublisher
     {
+        private readonly IInterprocessSemaphoreReleaser signal;
+
         internal Publisher(QueueOptions options)
             : base(options)
         {
+            signal = InterprocessSemaphore.CreateReleaser(CreateIdentifier());
         }
 
         public unsafe Task<bool> TryEnqueueAsync(
@@ -43,7 +46,7 @@ namespace Cloudtoid.Interprocess
                             tailOffset);
 
                         // signal the next receiver that there is a new message in the queue
-                        SignalReceiversAsync(cancellationToken).Wait();
+                        signal.ReleaseAsync(cancellationToken).Wait();
                         return Task.FromResult(true);
                     }
                     catch

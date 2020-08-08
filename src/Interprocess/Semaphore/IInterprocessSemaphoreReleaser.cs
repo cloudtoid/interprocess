@@ -4,9 +4,8 @@ using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess
 {
-    internal interface IInterprocessSemaphore : IDisposable
+    internal interface IInterprocessSemaphoreReleaser : IDisposable
     {
         Task ReleaseAsync(CancellationToken cancellation);
-        bool WaitOne(int millisecondsTimeout);
     }
 }

@@ -1,18 +1,20 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using WinSemaphore = System.Threading.Semaphore;
+using SysSemaphore = System.Threading.Semaphore;
 
 namespace Cloudtoid.Interprocess.Semaphore.Windows
 {
     // just a wrapper over the Windows named semaphore
-    internal sealed class WindowsSemaphore : IInterprocessSemaphore
+    internal sealed class WindowsSemaphore :
+        IInterprocessSemaphoreWaiter,
+        IInterprocessSemaphoreReleaser
     {
         private const string HandleNamePrefix = "CT.IP.";
-        private readonly WinSemaphore handle;
+        private readonly SysSemaphore handle;
 
         internal WindowsSemaphore(SharedAssetsIdentifier identifier)
         {
-            handle = new WinSemaphore(0, int.MaxValue, HandleNamePrefix + identifier.Name);
+            handle = new SysSemaphore(0, int.MaxValue, HandleNamePrefix + identifier.Name);
         }
 
         public void Dispose()
