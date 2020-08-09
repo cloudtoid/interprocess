@@ -83,7 +83,15 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             if (cancellationSource.Token.IsCancellationRequested)
                 return;
 
-            StopFileWatcher();
+            try
+            {
+                StopFileWatcher();
+            }
+            catch
+            {
+                Console.WriteLine("Failed to stop a file watcher.");
+            }
+
             StartFileWatcher();
         }
 
