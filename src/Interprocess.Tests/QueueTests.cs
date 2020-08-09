@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using System;
 using System.Threading.Tasks;
 using Xunit;

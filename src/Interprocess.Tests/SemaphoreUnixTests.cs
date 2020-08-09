@@ -3,7 +3,6 @@ using FluentAssertions;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Xunit;
 
 namespace Cloudtoid.Interprocess.Tests
 {
@@ -13,7 +12,7 @@ namespace Cloudtoid.Interprocess.Tests
         private static readonly string path = Path.GetTempPath();
         private static readonly SharedAssetsIdentifier defaultIdentifier = new SharedAssetsIdentifier(DefaultQueueName, path);
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public async Task CanDisposeUnixServer()
         {
             // simple create and dispose
@@ -33,7 +32,7 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public void CanDisposeUnixClient()
         {
             // simple create and dispose
@@ -52,7 +51,7 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public async Task CanSignalMultipleClients()
         {
             using var server = new SemaphoreReleaser(defaultIdentifier);
@@ -79,7 +78,7 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(50).Should().BeFalse();
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public async Task CanReceiveSignalsAtDifferentPaces()
         {
             using var server = new SemaphoreReleaser(defaultIdentifier);
@@ -111,7 +110,7 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(50).Should().BeFalse();
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public async Task CanAddClientLater()
         {
             using var server = new SemaphoreReleaser(defaultIdentifier);
@@ -142,7 +141,7 @@ namespace Cloudtoid.Interprocess.Tests
             client3.WaitOne(1000).Should().BeTrue();
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public async Task CanSupportManyClients()
         {
             const int Count = 20;
@@ -166,7 +165,7 @@ namespace Cloudtoid.Interprocess.Tests
             await WaitForClientCount(server, 0);
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public async Task CanSupporrtMultipleServersAndClients()
         {
             using var server1 = new SemaphoreReleaser(defaultIdentifier);
@@ -207,7 +206,7 @@ namespace Cloudtoid.Interprocess.Tests
         // this is complex test that sends and receives many times in a variety
         // of manners. every single scenario has a separate unit test in this
         // file but here we combine many of them into a single test
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public async Task CanPerformManyActions()
         {
             using var server1 = new SemaphoreReleaser(defaultIdentifier);
@@ -318,7 +317,7 @@ namespace Cloudtoid.Interprocess.Tests
             Console.WriteLine("Disposing all");
         }
 
-        //[Fact]
+        //        [Fact(Platforms = Platform.UnixBased)] 
         //public async Task UnixSignalTests()
         //{
         //    using (var semaphore = new UnixSemaphore(defaultIdentifier))
