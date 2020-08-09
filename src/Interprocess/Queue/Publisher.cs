@@ -14,6 +14,12 @@ namespace Cloudtoid.Interprocess
             signal = InterprocessSemaphore.CreateReleaser(CreateIdentifier());
         }
 
+        public override void Dispose()
+        {
+            signal.Dispose();
+            base.Dispose();
+        }
+
         public unsafe Task<bool> TryEnqueueAsync(
             ReadOnlySpan<byte> message,
             CancellationToken cancellationToken)

@@ -1,7 +1,6 @@
 ﻿using FluentAssertions;
 using System;
 using System.Threading.Tasks;
-using Xunit;
 
 namespace Cloudtoid.Interprocess.Tests
 {

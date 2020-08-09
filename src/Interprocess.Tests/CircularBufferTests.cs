@@ -185,9 +185,9 @@ namespace Cloudtoid.Interprocess.Tests
             fixed (byte* ptr = &b[0])
             {
                 var buffer = new CircularBuffer(ptr, b.Length);
-                buffer.Read(offset, length).All(i => i==1).Should().BeTrue();
+                buffer.Read(offset, length).All(i => i == 1).Should().BeTrue();
                 buffer.ZeroBlock(offset, length);
-                buffer.Read(offset, length).All(i => i==0).Should().BeTrue();
+                buffer.Read(offset, length).All(i => i == 0).Should().BeTrue();
             }
         }
     }

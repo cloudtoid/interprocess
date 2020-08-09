@@ -63,7 +63,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 socket.SafeDispose();
             }
 
-            if(!Util.TryDeleteFile(file))
+            if (!Util.TryDeleteFile(file))
                 Console.WriteLine("Failed to delete a socket's backing file");
         }
     }
