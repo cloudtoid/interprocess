@@ -44,17 +44,19 @@ namespace Cloudtoid.Interprocess
                         buffer.Write(
                             new MessageHeader(MessageState.ReadyToBeConsumed, bodyLength),
                             tailOffset);
-
-                        // signal the next receiver that there is a new message in the queue
-                        signal.ReleaseAsync(cancellationToken).Wait();
-                        return Task.FromResult(true);
                     }
-                    catch
+                    catch (Exception ex)
                     {
                         // if there is an error here, we are in a bad state.
                         // treat this as a fatal exception and crash the process
-                        Environment.FailFast("Publishing to the shared memory queue failed leaving the queue in a bad state.");
+                        Environment.FailFast(
+                            "Publishing to the shared memory queue failed leaving the queue in a bad state. " +
+                            "The only option is to crash the application.", ex);
                     }
+
+                    // signal the next receiver that there is a new message in the queue
+                    signal.ReleaseAsync(cancellationToken).Wait();
+                    return Task.FromResult(true);
                 }
             }
         }

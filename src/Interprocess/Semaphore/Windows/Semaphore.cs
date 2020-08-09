@@ -5,14 +5,14 @@ using SysSemaphore = System.Threading.Semaphore;
 namespace Cloudtoid.Interprocess.Semaphore.Windows
 {
     // just a wrapper over the Windows named semaphore
-    internal sealed class WindowsSemaphore :
+    internal sealed class Semaphore :
         IInterprocessSemaphoreWaiter,
         IInterprocessSemaphoreReleaser
     {
         private const string HandleNamePrefix = "CT.IP.";
         private readonly SysSemaphore handle;
 
-        internal WindowsSemaphore(SharedAssetsIdentifier identifier)
+        internal Semaphore(SharedAssetsIdentifier identifier)
         {
             handle = new SysSemaphore(0, int.MaxValue, HandleNamePrefix + identifier.Name);
         }

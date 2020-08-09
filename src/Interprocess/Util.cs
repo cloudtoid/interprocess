@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -14,9 +15,17 @@ namespace Cloudtoid.Interprocess
 
         internal static Socket CreateUnixDomainSocket(bool blocking = true)
         {
-            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-            socket.Blocking = blocking;
-            return socket;
+            return new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified)
+            {
+                Blocking = blocking
+            };
+        }
+
+        internal static UnixDomainSocketEndPoint CreateUnixDomainSocketEndPoint(string file)
+        {
+            // the file path length limit is 104 on macOS. therefore, we try to
+            // get the shorter path of full and relative paths.
+            return new UnixDomainSocketEndPoint(ShortenPath(file));
         }
 
         internal static void SafeDispose(this Socket? socket)
@@ -45,7 +54,37 @@ namespace Cloudtoid.Interprocess
             }
         }
 
+        /// <summary>
+        /// Creates a unique file name in the <paramref name="path"/> ensuring that
+        /// such a file name does not exist. The path returned is the shorter of
+        /// absolute and relative paths to this new unique file.
+        /// </summary>
+        internal static string CreateShortUniqueFileName(
+            string path,
+            string fileName,
+            string fileExtension)
+        {
+            path = ShortenPath(path);
+            string filePath;
+            do
+            {
+                var index = DateTime.Now.Ticks % 0xFFFFF;
+                var name = fileName + index.ToString("X5", CultureInfo.InvariantCulture) + fileExtension;
+                filePath = Path.Combine(path, name);
+            }
+            while (File.Exists(filePath));
+
+            return filePath;
+        }
+
         internal static string GetAbsolutePath(string path)
             => Path.IsPathRooted(path) ? path : Path.Combine(Environment.CurrentDirectory, path);
+
+        // shortens a file path by choosing the shorter of absolute and relative paths
+        private static string ShortenPath(string path)
+        {
+            var relativePath = Path.GetRelativePath(Environment.CurrentDirectory, path);
+            return relativePath.Length < path.Length ? relativePath : path;
+        }
     }
 }

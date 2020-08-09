@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
 
@@ -9,13 +8,14 @@ namespace Cloudtoid.Interprocess.DomainSocket
     {
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly string file;
-        private readonly int connectionQueueSize;
-        private Socket? socket;
+        private readonly Socket socket;
 
         internal UnixDomainSocketServer(string file, int connectionQueueSize = 100)
         {
             this.file = file;
-            this.connectionQueueSize = connectionQueueSize;
+            socket = Util.CreateUnixDomainSocket(blocking: false);
+            socket.Bind(Util.CreateUnixDomainSocketEndPoint(file));
+            socket.Listen(connectionQueueSize);
         }
 
         ~UnixDomainSocketServer()
@@ -29,9 +29,6 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
         internal Socket Accept(CancellationToken cancellation)
         {
-            EnsureSocket();
-            Debug.Assert(socket != null);
-
             using var source = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationSource.Token,
                 cancellation);
@@ -48,17 +45,11 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 {
                     Thread.Sleep(5);
                 }
-            }
-        }
-
-        private void EnsureSocket()
-        {
-            if (socket is null)
-            {
-                socket = Util.CreateUnixDomainSocket();
-                socket.Blocking = false;
-                socket.Bind(new UnixDomainSocketEndPoint(file));
-                socket.Listen(connectionQueueSize);
+                catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
+                {
+                    Console.WriteLine("Socket accept operation cancelled.");
+                    throw new OperationCanceledException();
+                }
             }
         }
 
@@ -70,7 +61,6 @@ namespace Cloudtoid.Interprocess.DomainSocket
             {
                 cancellationSource.Cancel();
                 socket.SafeDispose();
-                socket = null;
             }
 
             if(!Util.TryDeleteFile(file))

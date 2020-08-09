@@ -10,24 +10,8 @@ using SysSemaphoree = System.Threading.Semaphore;
 
 namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
-    /// <summary>
-    /// .NET Core 3.1  and .NET 5 do not have support for named semaphores on
-    /// Unix type OSs (Linux, macOS, etc.). To replicate a named semaphore in
-    /// the most efficient possible way, we are using Unix Named Sockets to
-    /// send signals between processes.
-    /// 
-    /// It is worth mentioning that we support multiple signal publishers and
-    /// receivers; therefore, you will find some logic to utilize multiple named
-    /// sockets. We also use a file system watcher to keep track of the addition
-    /// and removal of signal publishers (unix named sockets use backing files).
-    ///
-    /// This whole class, as well as <see cref="Windows.WindowsSemaphore"/> should
-    /// be removed and replaced with <see cref="System.Threading.Semaphore"/> once
-    /// named semaphores are supported on all platforms.
-    /// </summary>
-    internal sealed class UnixSemaphoreWaiter : IInterprocessSemaphoreWaiter
+    internal sealed class SemaphoreWaiter : IInterprocessSemaphoreWaiter
     {
-        private const string Extension = ".soc";
         private static readonly EnumerationOptions enumerationOptions = new EnumerationOptions
         {
             IgnoreInaccessible = true,
@@ -43,7 +27,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private readonly SharedAssetsIdentifier identifier;
         private FileSystemWatcher? watcher;
 
-        internal UnixSemaphoreWaiter(SharedAssetsIdentifier identifier)
+        internal SemaphoreWaiter(SharedAssetsIdentifier identifier)
         {
             this.identifier = identifier;
             StartClients();
@@ -54,7 +38,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         {
             StopFileWatcher();
             cancellationSource.Cancel();
-            stoppedWaitHandle.WaitOne();
+            stoppedWaitHandle.WaitOne(); // wait for ClientsLoop to stop
             stoppedWaitHandle.Dispose();
             semaphore.Dispose();
             fileWatcherHandle.Dispose();
@@ -65,7 +49,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
         private void StartFileWatcher()
         {
-            watcher = new FileSystemWatcher(identifier.Path, identifier.Name + "*" + Extension);
+            watcher = new FileSystemWatcher(identifier.Path, identifier.Name + "*" + Constants.Extension);
             watcher.Error += OnWatcherError;
             watcher.Created += OnSocketFileAddedOrDeleted;
             watcher.Deleted += OnSocketFileAddedOrDeleted;
@@ -109,15 +93,15 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private void StartClients()
         {
             // using a dedicated thread as this is a very long blocking call
-            var thread = new Thread(StartClientsCore);
+            var thread = new Thread(ClientsLoop);
             thread.IsBackground = true;
             thread.Start();
         }
 
-        private void StartClientsCore()
+        private void ClientsLoop()
         {
             var cancellation = cancellationSource.Token;
-            var fileSearchPattern = identifier.Name + "*" + Extension;
+            var fileSearchPattern = identifier.Name + "*" + Constants.Extension;
             var clients = new Dictionary<string, UnixDomainSocketClient>(StringComparer.OrdinalIgnoreCase);
             try
             {
@@ -149,11 +133,13 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 }
             }
             catch when (cancellation.IsCancellationRequested) { }
-            catch
+            catch (Exception ex)
             {
                 // if there is an error here, we are in a bad state.
                 // treat this as a fatal exception and crash the process
-                Environment.FailFast("Unix domain socket client failed leaving the application in a bad state.");
+                Environment.FailFast(
+                    "Unix domain socket client failed leaving the application in a bad state. " +
+                    "The only option is to crash the application.", ex);
             }
             finally
             {

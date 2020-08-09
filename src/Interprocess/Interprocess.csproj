@@ -9,8 +9,4 @@
     <AssemblyName>Cloudtoid.Interprocess</AssemblyName>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Folder Include="Queue\" />
-    <Folder Include="DomainSocket\" />
-  </ItemGroup>
 </Project>

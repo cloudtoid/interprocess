@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Cloudtoid.Interprocess.Tests
 {
-    public class SemaphoreTests
+    public class SemaphoreUnixTests
     {
         private const string DefaultQueueName = "qn";
         private static readonly string path = Path.GetTempPath();
@@ -17,16 +17,16 @@ namespace Cloudtoid.Interprocess.Tests
         public async Task CanDisposeUnixServer()
         {
             // simple create and dispose
-            using (new UnixSemaphoreReleaser(defaultIdentifier))
+            using (new SemaphoreReleaser(defaultIdentifier))
             {
             }
 
-            using (var server = new UnixSemaphoreReleaser(defaultIdentifier))
+            using (var server = new SemaphoreReleaser(defaultIdentifier))
             {
                 await server.ReleaseAsync(default);
             }
 
-            using (var server = new UnixSemaphoreReleaser(defaultIdentifier))
+            using (var server = new SemaphoreReleaser(defaultIdentifier))
             {
                 await server.ReleaseAsync(default);
                 await Task.Delay(500);
@@ -37,16 +37,16 @@ namespace Cloudtoid.Interprocess.Tests
         public void CanDisposeUnixClient()
         {
             // simple create and dispose
-            using (new UnixSemaphoreWaiter(defaultIdentifier))
+            using (new SemaphoreWaiter(defaultIdentifier))
             {
             }
 
-            using (var client = new UnixSemaphoreWaiter(defaultIdentifier))
+            using (var client = new SemaphoreWaiter(defaultIdentifier))
             {
                 client.WaitOne(50).Should().BeFalse();
             }
 
-            using (var client = new UnixSemaphoreWaiter(defaultIdentifier))
+            using (var client = new SemaphoreWaiter(defaultIdentifier))
             {
                 client.WaitOne(500).Should().BeFalse();
             }
@@ -55,9 +55,9 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanSignalMultipleClients()
         {
-            using var server = new UnixSemaphoreReleaser(defaultIdentifier);
-            using var client1 = new UnixSemaphoreWaiter(defaultIdentifier);
-            using var client2 = new UnixSemaphoreWaiter(defaultIdentifier);
+            using var server = new SemaphoreReleaser(defaultIdentifier);
+            using var client1 = new SemaphoreWaiter(defaultIdentifier);
+            using var client2 = new SemaphoreWaiter(defaultIdentifier);
 
             await WaitForClientCount(server, 2);
 
@@ -82,9 +82,9 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanReceiveSignalsAtDifferentPaces()
         {
-            using var server = new UnixSemaphoreReleaser(defaultIdentifier);
-            using var client1 = new UnixSemaphoreWaiter(defaultIdentifier);
-            using var client2 = new UnixSemaphoreWaiter(defaultIdentifier);
+            using var server = new SemaphoreReleaser(defaultIdentifier);
+            using var client1 = new SemaphoreWaiter(defaultIdentifier);
+            using var client2 = new SemaphoreWaiter(defaultIdentifier);
 
             await WaitForClientCount(server, 2);
 
@@ -114,9 +114,9 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanAddClientLater()
         {
-            using var server = new UnixSemaphoreReleaser(defaultIdentifier);
-            using var client1 = new UnixSemaphoreWaiter(defaultIdentifier);
-            using var client2 = new UnixSemaphoreWaiter(defaultIdentifier);
+            using var server = new SemaphoreReleaser(defaultIdentifier);
+            using var client1 = new SemaphoreWaiter(defaultIdentifier);
+            using var client2 = new SemaphoreWaiter(defaultIdentifier);
 
             await WaitForClientCount(server, 2);
 
@@ -128,7 +128,7 @@ namespace Cloudtoid.Interprocess.Tests
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
 
-            using var client3 = new UnixSemaphoreWaiter(defaultIdentifier);
+            using var client3 = new SemaphoreWaiter(defaultIdentifier);
             await WaitForClientCount(server, 3);
 
             client1.WaitOne(50).Should().BeFalse();
@@ -147,13 +147,13 @@ namespace Cloudtoid.Interprocess.Tests
         {
             const int Count = 20;
 
-            using var server = new UnixSemaphoreReleaser(defaultIdentifier);
-            var clients = new UnixSemaphoreWaiter[Count];
+            using var server = new SemaphoreReleaser(defaultIdentifier);
+            var clients = new SemaphoreWaiter[Count];
 
             for (int i = 0; i < Count; i++)
             {
                 Console.WriteLine(i);
-                clients[i] = new UnixSemaphoreWaiter(defaultIdentifier);
+                clients[i] = new SemaphoreWaiter(defaultIdentifier);
             }
 
             await WaitForClientCount(server, Count);
@@ -169,9 +169,9 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanSupporrtMultipleServersAndClients()
         {
-            using var server1 = new UnixSemaphoreReleaser(defaultIdentifier);
-            using var client1 = new UnixSemaphoreWaiter(defaultIdentifier);
-            using var client2 = new UnixSemaphoreWaiter(defaultIdentifier);
+            using var server1 = new SemaphoreReleaser(defaultIdentifier);
+            using var client1 = new SemaphoreWaiter(defaultIdentifier);
+            using var client2 = new SemaphoreWaiter(defaultIdentifier);
 
             await WaitForClientCount(server1, 2);
 
@@ -179,7 +179,7 @@ namespace Cloudtoid.Interprocess.Tests
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
 
-            using var server2 = new UnixSemaphoreReleaser(defaultIdentifier);
+            using var server2 = new SemaphoreReleaser(defaultIdentifier);
             await WaitForClientCount(server2, 2);
 
             await server1.ReleaseAsync(default);
@@ -210,9 +210,9 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanPerformManyActions()
         {
-            using var server1 = new UnixSemaphoreReleaser(defaultIdentifier);
-            using var client1 = new UnixSemaphoreWaiter(defaultIdentifier);
-            using var client2 = new UnixSemaphoreWaiter(defaultIdentifier);
+            using var server1 = new SemaphoreReleaser(defaultIdentifier);
+            using var client1 = new SemaphoreWaiter(defaultIdentifier);
+            using var client2 = new SemaphoreWaiter(defaultIdentifier);
 
             await WaitForClientCount(server1, 2);
 
@@ -236,7 +236,7 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(1000).Should().BeTrue();
             Console.WriteLine("Signal 2 - " + (DateTime.Now - start).TotalMilliseconds);
 
-            using var client3 = new UnixSemaphoreWaiter(defaultIdentifier);
+            using var client3 = new SemaphoreWaiter(defaultIdentifier);
             await WaitForClientCount(server1, 3);
 
             client1.WaitOne(50).Should().BeFalse();
@@ -251,7 +251,7 @@ namespace Cloudtoid.Interprocess.Tests
             client3.WaitOne(1000).Should().BeTrue();
             Console.WriteLine("Signal 3 - " + (DateTime.Now - start).TotalMilliseconds);
 
-            using var server2 = new UnixSemaphoreReleaser(defaultIdentifier);
+            using var server2 = new SemaphoreReleaser(defaultIdentifier);
             await WaitForClientCount(server2, 3);
 
             client1.WaitOne(50).Should().BeFalse();
@@ -332,7 +332,7 @@ namespace Cloudtoid.Interprocess.Tests
         //    }
         //}
 
-        private static async Task WaitForClientCount(UnixSemaphoreReleaser server, int count)
+        private static async Task WaitForClientCount(SemaphoreReleaser server, int count)
         {
             while (server.ClientCount != count)
                 await Task.Delay(5);

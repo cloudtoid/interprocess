@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Diagnostics;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
@@ -11,32 +9,23 @@ using Cloudtoid.Interprocess.DomainSocket;
 
 namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
-    /// <summary>
-    /// .NET Core 3.1  and .NET 5 do not have support for named semaphores on
-    /// Unix type OSs (Linux, macOS, etc.). To replicate a named semaphore in
-    /// the most efficient possible way, we are using Unix Named Sockets to
-    /// send signals between processes.
-    /// 
-    /// It is worth mentioning that we support multiple signal publishers and
-    /// receivers; therefore, you will find some logic to utilize multiple named
-    /// sockets. We also use a file system watcher to keep track of the addition
-    /// and removal of signal publishers (unix named sockets use backing files).
-    ///
-    /// This whole class, as well as <see cref="Windows.WindowsSemaphore"/> should
-    /// be removed and replaced with <see cref="System.Threading.Semaphore"/> once
-    /// named semaphores are supported on all platforms.
-    /// </summary>
-    internal sealed class UnixSemaphoreReleaser : IInterprocessSemaphoreReleaser
+    internal sealed class SemaphoreReleaser : IInterprocessSemaphoreReleaser
     {
-        private const string Extension = ".soc";
         private static readonly byte[] message = new byte[] { 1 };
-        private readonly SharedAssetsIdentifier identifier;
+        private readonly string filePath;
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private Socket?[] clients = Array.Empty<Socket>();
 
-        internal UnixSemaphoreReleaser(SharedAssetsIdentifier identifier)
+        internal SemaphoreReleaser(SharedAssetsIdentifier identifier)
         {
-            this.identifier = identifier;
+            filePath = Util.CreateShortUniqueFileName(
+                identifier.Path,
+                identifier.Name,
+                Constants.Extension);
+
+            if (filePath.Length > 104)
+                throw new ArgumentException($"The queue path and queue name together are too long for this OS. File: '{filePath}'");
+
             StartServer();
         }
 
@@ -60,6 +49,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 for (int i = 0; i < count; i++)
                     tasks[i] = ReleaseAsync(clients, i, cancellation);
 
+                // do not use Task.WaitAll
                 for (int i = 0; i < count; i++)
                     await tasks[i];
             }
@@ -102,14 +92,14 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private void StartServer()
         {
             // using a dedicated thread as this is a very long blocking call
-            var thread = new Thread(StartServerCore);
+            var thread = new Thread(ServerLoop);
             thread.IsBackground = true;
             thread.Start();
         }
 
-        private void StartServerCore()
+        private void ServerLoop()
         {
-            var server = CreateServer();
+            var server = new UnixDomainSocketServer(filePath);
             var cancellation = cancellationSource.Token;
 
             try
@@ -126,16 +116,18 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         Console.WriteLine("Socket accept failed unexpectedly");
 
                         server.Dispose();
-                        server = CreateServer();
+                        server = new UnixDomainSocketServer(filePath);
                     }
                 }
             }
             catch when (cancellation.IsCancellationRequested) { }
-            catch
+            catch (Exception ex)
             {
                 // if there is an error here, we are in a bad state.
                 // treat this as a fatal exception and crash the process
-                Environment.FailFast("Unix domain socket server failed leaving the application in a bad state.");
+                Environment.FailFast(
+                    "Unix domain socket server failed leaving the application in a bad state. " +
+                    "The only option is to crash the application.", ex);
             }
             finally
             {
@@ -144,14 +136,6 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
                 server.Dispose();
             }
-        }
-
-        private UnixDomainSocketServer CreateServer()
-        {
-            var index = (int)(Math.Abs(DateTime.Now.Ticks - DateTime.Today.Ticks) % 100000);
-            var fileName = identifier.Name + index.ToString(CultureInfo.InvariantCulture) + Extension;
-            var filePath = Path.Combine(identifier.Path, fileName);
-            return new UnixDomainSocketServer(filePath);
         }
     }
 }

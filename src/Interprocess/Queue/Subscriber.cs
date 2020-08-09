@@ -43,11 +43,7 @@ namespace Cloudtoid.Interprocess
 
                 // is the message still being written/created?
                 if (*state != ReadyToBeConsumed)
-                {
-                    Task.Delay(1).Wait();
-                    if (*state != ReadyToBeConsumed)
-                        continue; // message is not ready to be consumed yet
-                }
+                    continue; // message is not ready to be consumed yet
 
                 // take a lock so no other thread can start processing this message
                 if (Interlocked.CompareExchange(ref *state, LockedToBeConsumed, ReadyToBeConsumed) != ReadyToBeConsumed)

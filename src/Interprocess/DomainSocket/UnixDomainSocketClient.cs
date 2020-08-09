@@ -14,7 +14,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
         internal UnixDomainSocketClient(string file)
         {
-            endpoint = new UnixDomainSocketEndPoint(file);
+            endpoint = Util.CreateUnixDomainSocketEndPoint(file);
             socket = Util.CreateUnixDomainSocket(blocking: false);
         }
 
@@ -40,6 +40,11 @@ namespace Cloudtoid.Interprocess.DomainSocket
             {
                 await EnsureConnectedAsync(socket, source.Token);
                 return await socket.ReceiveAsync(buffer, SocketFlags.None, source.Token);
+            }
+            catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
+            {
+                Console.WriteLine("Socket receive operation cancelled.");
+                throw new OperationCanceledException();
             }
             catch (OperationCanceledException)
             {
@@ -84,6 +89,11 @@ namespace Cloudtoid.Interprocess.DomainSocket
                         throw new TimeoutException("Socket.Connect timeout expired.");
 
                     await Task.Delay(5, cancellation);
+                }
+                catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
+                {
+                    Console.WriteLine("Socket connect operation cancelled.");
+                    throw new OperationCanceledException();
                 }
             }
         }

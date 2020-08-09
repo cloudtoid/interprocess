@@ -129,7 +129,7 @@ namespace Cloudtoid.Interprocess.Tests
                 AcceptLoop(server, s => { }, () => cancelled.Set(), source.Token);
                 cancelled.Wait(1).Should().BeTrue();
 
-                task = Task.Run(() => AcceptLoop(server, s => { }, () => cancelled.Set(), source2.Token));
+                task = Task.Run(() => AcceptLoop(server, s => { }, () => { }, source2.Token));
                 using (var client = Util.CreateUnixDomainSocket())
                 {
                     client.Connect(endpoint);
@@ -138,17 +138,17 @@ namespace Cloudtoid.Interprocess.Tests
 
                 File.Exists(file).Should().BeTrue();
             }
-            File.Exists(file).Should().BeFalse();
             await task;
+            File.Exists(file).Should().BeFalse();
         }
 
         [Fact]
-        public void ServerDoesNotCreateFile()
+        public void ServerCreatesFile()
         {
             var file = GetRandomNonExistingFilePath();
             using (new UnixDomainSocketServer(file))
             {
-                File.Exists(file).Should().BeFalse();
+                File.Exists(file).Should().BeTrue();
             }
         }
 
