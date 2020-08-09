@@ -15,7 +15,7 @@ namespace Cloudtoid.Interprocess
         internal Subscriber(QueueOptions options)
             : base(options)
         {
-            signal = InterprocessSemaphore.CreateWaiter(CreateIdentifier());
+            signal = InterprocessSemaphore.CreateWaiter(identifier);
         }
 
         public override void Dispose()
@@ -25,12 +25,12 @@ namespace Cloudtoid.Interprocess
         }
 
         public unsafe ValueTask<bool> TryDequeueAsync(
-            CancellationToken cancellationToken,
+            CancellationToken cancellation,
             out ReadOnlyMemory<byte> message)
         {
             while (true)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                cancellation.ThrowIfCancellationRequested();
 
                 var header = Header;
                 var headOffset = header->HeadOffset;
@@ -73,19 +73,18 @@ namespace Cloudtoid.Interprocess
             }
         }
 
-        public async ValueTask<ReadOnlyMemory<byte>> DequeueAsync(
-            CancellationToken cancellationToken)
+        public async ValueTask<ReadOnlyMemory<byte>> DequeueAsync(CancellationToken cancellation)
         {
-            bool shouldWait = false;
+            bool wait = false;
 
             while (true)
             {
-                if (shouldWait)
+                if (wait)
                     signal.WaitOne(millisecondsTimeout: 100);
                 else
-                    shouldWait = true;
+                    wait = true;
 
-                if (await TryDequeueAsync(cancellationToken, out var message))
+                if (await TryDequeueAsync(cancellation, out var message))
                     return message;
             }
         }

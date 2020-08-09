@@ -11,7 +11,7 @@ namespace Cloudtoid.Interprocess
         internal Publisher(QueueOptions options)
             : base(options)
         {
-            signal = InterprocessSemaphore.CreateReleaser(CreateIdentifier());
+            signal = InterprocessSemaphore.CreateReleaser(identifier);
         }
 
         public override void Dispose()
@@ -22,7 +22,7 @@ namespace Cloudtoid.Interprocess
 
         public unsafe Task<bool> TryEnqueueAsync(
             ReadOnlySpan<byte> message,
-            CancellationToken cancellationToken)
+            CancellationToken cancellation)
         {
             var bodyLength = message.Length;
             while (true)
@@ -61,7 +61,7 @@ namespace Cloudtoid.Interprocess
                     }
 
                     // signal the next receiver that there is a new message in the queue
-                    signal.ReleaseAsync(cancellationToken).Wait();
+                    signal.ReleaseAsync(cancellation).Wait();
                     return Task.FromResult(true);
                 }
             }

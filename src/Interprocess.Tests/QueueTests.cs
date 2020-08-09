@@ -44,8 +44,7 @@ namespace Cloudtoid.Interprocess.Tests
             using var s = CreateSubscriber(24);
             p.Dispose();
 
-            var message = await s.DequeueAsync(default);
-            message.ToArray().Should().BeEquivalentTo(byteArray3);
+            await s.DequeueAsync(default);
         }
 
         [Fact]

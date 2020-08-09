@@ -11,7 +11,7 @@ namespace Cloudtoid.Interprocess
         /// </summary>
         /// <returns>Returns <see langword="false"/> if the queue is empty.</returns>
         ValueTask<bool> TryDequeueAsync(
-            CancellationToken cancellationToken,
+            CancellationToken cancellation,
             out ReadOnlyMemory<byte> message);
 
         /// <summary>
@@ -19,6 +19,6 @@ namespace Cloudtoid.Interprocess
         /// it *waits* for the arrival of a new message.
         /// </summary>
         ValueTask<ReadOnlyMemory<byte>> DequeueAsync(
-            CancellationToken cancellationToken);
+            CancellationToken cancellation);
     }
 }

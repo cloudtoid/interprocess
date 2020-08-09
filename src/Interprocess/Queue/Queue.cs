@@ -5,13 +5,18 @@ namespace Cloudtoid.Interprocess
 {
     internal abstract class Queue : IDisposable
     {
-        private readonly QueueOptions options;
         private readonly MemoryView view;
         protected readonly CircularBuffer buffer;
+        protected readonly SharedAssetsIdentifier identifier;
 
         protected unsafe Queue(QueueOptions options)
         {
-            this.options = options ?? throw new ArgumentNullException(nameof(options));
+            if (options is null)
+                throw new ArgumentNullException(nameof(options));
+
+            identifier = new SharedAssetsIdentifier(
+                options.QueueName,
+                Util.GetAbsolutePath(options.Path));
 
             view = new MemoryView(options);
             try
@@ -53,12 +58,6 @@ namespace Cloudtoid.Interprocess
 
             // Round up to the closest integer divisible by 8. This will add the [padding] if one is needed.
             return 8 * (long)Math.Ceiling(length / 8.0);
-        }
-
-        protected SharedAssetsIdentifier CreateIdentifier()
-        {
-            var path = Util.GetAbsolutePath(options.Path);
-            return new SharedAssetsIdentifier(options.QueueName, path);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
