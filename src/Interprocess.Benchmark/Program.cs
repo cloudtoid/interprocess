@@ -15,6 +15,7 @@ namespace Cloudtoid.Interprocess.Benchmark
     }
 
     [SimpleJob(RuntimeMoniker.NetCoreApp31)]
+    [MemoryDiagnoser]
     public class QueueBenchmark
     {
         private static readonly byte[] shortMessage = new byte[] { 100, 110, 120 };
@@ -37,10 +38,17 @@ namespace Cloudtoid.Interprocess.Benchmark
             using (subscriber) { }
         }
 
+        // Expecting that there are NO managed heap allocations.
+        [Benchmark]
+        public async Task Enqueue()
+        {
+            await publisher!.TryEnqueueAsync(shortMessage, default);
+        }
+
         [Benchmark]
         public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueShortMessage()
         {
-            await publisher!.TryEnqueueAsync(longMessage, default);
+            await publisher!.TryEnqueueAsync(shortMessage, default);
             return await subscriber!.DequeueAsync(default);
         }
 

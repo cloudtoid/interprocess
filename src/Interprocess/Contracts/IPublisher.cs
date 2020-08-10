@@ -6,7 +6,7 @@ namespace Cloudtoid.Interprocess
 {
     public interface IPublisher : IDisposable
     {
-        Task<bool> TryEnqueueAsync(
+        ValueTask<bool> TryEnqueueAsync(
             ReadOnlySpan<byte> message,
             CancellationToken cancellation);
     }
