@@ -13,7 +13,7 @@ namespace Cloudtoid.Interprocess.Tests
     {
         private static readonly ReadOnlyMemory<byte> message = new byte[] { 1 };
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public void CanCreateUnixDomainSocket()
         {
             using var socket = Util.CreateUnixDomainSocket();
@@ -22,7 +22,7 @@ namespace Cloudtoid.Interprocess.Tests
             socket.ProtocolType.Should().Be(ProtocolType.Unspecified);
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public void CanSafeDispose()
         {
             var socket = Util.CreateUnixDomainSocket();
@@ -31,7 +31,7 @@ namespace Cloudtoid.Interprocess.Tests
             socket.SafeDispose();
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public async Task CanAcceptConnections()
         {
             using var source = new CancellationTokenSource();
@@ -78,7 +78,7 @@ namespace Cloudtoid.Interprocess.Tests
             connections.Should().HaveCount(4);
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public void CanAcceptConnectionsTimeout()
         {
             var file = GetRandomNonExistingFilePath();
@@ -112,7 +112,7 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public async Task CanAcceptConnectionsRecoverFromTimeout()
         {
             var file = GetRandomNonExistingFilePath();
@@ -142,7 +142,7 @@ namespace Cloudtoid.Interprocess.Tests
             File.Exists(file).Should().BeFalse();
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public void ServerCreatesFile()
         {
             var file = GetRandomNonExistingFilePath();
@@ -152,7 +152,7 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public void ClientDoesNotCreateFile()
         {
             var file = GetRandomNonExistingFilePath();
@@ -162,7 +162,7 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public async Task ClientUnableToConnectWithoutServer()
         {
             var file = GetRandomNonExistingFilePath();
@@ -175,7 +175,7 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
-        [Fact]
+        [Fact(Platforms = Platform.UnixBased)]
         public async Task CanReceiveAsync()
         {
             var file = GetRandomNonExistingFilePath();
