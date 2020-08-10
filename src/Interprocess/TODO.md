@@ -2,4 +2,5 @@
 - Perf benchmarks
 - Publish NuGet
 - Write ReadME
-- Creeate a sample application
+- Create a sample application
+- only x64?

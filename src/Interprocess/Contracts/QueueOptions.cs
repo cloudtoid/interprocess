@@ -9,7 +9,7 @@ namespace Cloudtoid.Interprocess
         /// </summary>
         /// <param name="queueName">The unique name of the queue.</param>
         /// <param name="path">The path to the directory/folder in which the memory mapped and other files are stored in</param>
-        /// <param name="capacity">The maximum capacity of the queue in bytes</param>
+        /// <param name="capacity">The maximum capacity of the queue in bytes. This should be at least 16 bytes long and in the multiples of 8</param>
         /// <param name="createOrOverride">Specifies whether the backing shared memory storage for a queue
         /// with the same <paramref name="queueName"/> in the same <paramref name="path"/> should be overwritten.</param>
         public QueueOptions(

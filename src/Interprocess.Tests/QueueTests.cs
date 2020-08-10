@@ -24,6 +24,10 @@ namespace Cloudtoid.Interprocess.Tests
             (await p.TryEnqueueAsync(byteArray3, default)).Should().BeTrue();
             message = await s.DequeueAsync(default);
             message.ToArray().Should().BeEquivalentTo(byteArray3);
+
+            (await p.TryEnqueueAsync(byteArray2, default)).Should().BeTrue();
+            message = await s.DequeueAsync(default);
+            message.ToArray().Should().BeEquivalentTo(byteArray2);
         }
 
         [Fact]
@@ -63,9 +67,11 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         private static IPublisher CreatePublisher(long capacity, bool createOrOverride = false)
-            => TestUtils.QueueFactory.CreatePublisher(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, capacity, createOrOverride));
+            => TestUtils.QueueFactory.CreatePublisher(
+                new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, capacity, createOrOverride));
 
         private static ISubscriber CreateSubscriber(long capacity, bool createOrOverride = false)
-            => TestUtils.QueueFactory.CreateSubscriber(new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, capacity, createOrOverride));
+            => TestUtils.QueueFactory.CreateSubscriber(
+                new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, capacity, createOrOverride));
     }
 }

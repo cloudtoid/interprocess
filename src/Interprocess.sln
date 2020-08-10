@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Interprocess", "Interproces
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Interprocess.Tests", "Interprocess.Tests\Interprocess.Tests.csproj", "{743B7E36-FCB8-427A-ADBA-9490C52BD4E0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Interprocess.Benchmark", "Interprocess.Benchmark\Interprocess.Benchmark.csproj", "{EA162596-E4DD-46AB-BDEA-90B31B4ED425}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{743B7E36-FCB8-427A-ADBA-9490C52BD4E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{743B7E36-FCB8-427A-ADBA-9490C52BD4E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{743B7E36-FCB8-427A-ADBA-9490C52BD4E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA162596-E4DD-46AB-BDEA-90B31B4ED425}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA162596-E4DD-46AB-BDEA-90B31B4ED425}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA162596-E4DD-46AB-BDEA-90B31B4ED425}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA162596-E4DD-46AB-BDEA-90B31B4ED425}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
