@@ -17,7 +17,8 @@ namespace Cloudtoid.Interprocess.Benchmark
     [SimpleJob(RuntimeMoniker.NetCoreApp31)]
     public class QueueBenchmark
     {
-        private static readonly byte[] byteArray3 = new byte[] { 100, 110, 120 };
+        private static readonly byte[] shortMessage = new byte[] { 100, 110, 120 };
+        private static readonly byte[] longMessage = new byte[50];
         private IPublisher? publisher;
         private ISubscriber? subscriber;
 
@@ -36,11 +37,35 @@ namespace Cloudtoid.Interprocess.Benchmark
             using (subscriber) { }
         }
 
+        //[Benchmark]
+        //public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueShortMessage()
+        //{
+        //    await publisher!.TryEnqueueAsync(longMessage, default);
+        //    return await subscriber!.DequeueAsync(default);
+        //}
+
+        //[Benchmark]
+        //public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueLongMessage()
+        //{
+        //    await publisher!.TryEnqueueAsync(longMessage, default);
+        //    return await subscriber!.DequeueAsync(default);
+        //}
+
         [Benchmark]
-        public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeue()
+        public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueMessageWrap()
         {
-            await publisher!.TryEnqueueAsync(byteArray3, default);
-            return await subscriber!.DequeueAsync(default);
+            try
+            {
+                await publisher!.TryEnqueueAsync(longMessage, default);
+                await subscriber!.DequeueAsync(default);
+                await publisher!.TryEnqueueAsync(longMessage, default);
+                return await subscriber!.DequeueAsync(default);
+            }
+            catch
+            {
+                Console.WriteLine("Failed");
+                throw;
+            }
         }
     }
 }

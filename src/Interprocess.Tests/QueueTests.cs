@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess.Tests
@@ -10,6 +11,7 @@ namespace Cloudtoid.Interprocess.Tests
         private static readonly byte[] byteArray1 = new byte[] { 100, };
         private static readonly byte[] byteArray2 = new byte[] { 100, 110 };
         private static readonly byte[] byteArray3 = new byte[] { 100, 110, 120 };
+        private static readonly byte[] byteArray50 = Enumerable.Range(1, 50).Select(i => (byte)i).ToArray();
 
         [Fact]
         public async Task CanEnqueueAndDequeue()
@@ -28,6 +30,25 @@ namespace Cloudtoid.Interprocess.Tests
             (await p.TryEnqueueAsync(byteArray2, default)).Should().BeTrue();
             message = await s.DequeueAsync(default);
             message.ToArray().Should().BeEquivalentTo(byteArray2);
+        }
+
+        [Fact]
+        public async Task CanEnqueueDequeueWrappedMessage()
+        {
+            using var p = CreatePublisher(128, createOrOverride: true);
+            using var s = CreateSubscriber(128);
+
+            (await p.TryEnqueueAsync(byteArray50, default)).Should().BeTrue();
+            var message = await s.DequeueAsync(default);
+            message.ToArray().Should().BeEquivalentTo(byteArray50);
+
+            (await p.TryEnqueueAsync(byteArray50, default)).Should().BeTrue();
+            message = await s.DequeueAsync(default);
+            message.ToArray().Should().BeEquivalentTo(byteArray50);
+
+            (await p.TryEnqueueAsync(byteArray50, default)).Should().BeTrue();
+            message = await s.DequeueAsync(default);
+            message.ToArray().Should().BeEquivalentTo(byteArray50);
         }
 
         [Fact]
