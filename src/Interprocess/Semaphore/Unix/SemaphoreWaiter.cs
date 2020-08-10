@@ -2,16 +2,17 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cloudtoid.Interprocess.DomainSocket;
+using Microsoft.Extensions.Logging;
 using SysSemaphoree = System.Threading.Semaphore;
 
 namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
     internal sealed class SemaphoreWaiter : IInterprocessSemaphoreWaiter
     {
+        private static readonly byte[] messageBuffer = new byte[] { 1 };
         private static readonly EnumerationOptions enumerationOptions = new EnumerationOptions
         {
             IgnoreInaccessible = true,
@@ -25,11 +26,16 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private readonly SysSemaphoree semaphore = new SysSemaphoree(0, int.MaxValue);
         private readonly ManualResetEvent stoppedWaitHandle = new ManualResetEvent(false);
         private readonly SharedAssetsIdentifier identifier;
+        private readonly ILogger logger;
         private FileSystemWatcher? watcher;
 
-        internal SemaphoreWaiter(SharedAssetsIdentifier identifier)
+        internal SemaphoreWaiter(
+            SharedAssetsIdentifier identifier,
+            ILogger logger)
         {
             this.identifier = identifier;
+            this.logger = logger;
+
             StartClients();
             StartFileWatcher();
         }
@@ -74,7 +80,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             }
             catch
             {
-                Console.WriteLine("Failed to fully dispose an old file watcher.");
+                logger.LogError("Failed to fully dispose an old file watcher.");
             }
         }
 
@@ -83,15 +89,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             if (cancellationSource.Token.IsCancellationRequested)
                 return;
 
-            try
-            {
-                StopFileWatcher();
-            }
-            catch
-            {
-                Console.WriteLine("Failed to stop a file watcher.");
-            }
-
+            StopFileWatcher();
             StartFileWatcher();
         }
 
@@ -124,17 +122,17 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     {
                         clients.Remove(remove.Key);
                         remove.Value.Dispose();
-
-                        Console.WriteLine("removed a client: " + remove.Key);
+                        logger.LogInformation(
+                            $"The Unix Domain Socket server on '{remove}' is no longer available and the client for it is now removed.");
                     }
 
                     // new clients to add
                     foreach (var add in files.Where(f => !clients.ContainsKey(f)))
                     {
-                        var client = new UnixDomainSocketClient(add);
+                        var client = new UnixDomainSocketClient(add, this.logger);
                         clients.Add(add, client);
-                        Console.WriteLine("Added a client: " + add);
-                        Task.Run(() => ReceiveAsync(add, client, cancellation), cancellation);
+                        logger.LogInformation($"A Unix Domain Socket server for '{add}' is discovered and a client is created for it.");
+                        Task.Run(() => ReceiveAsync(client, cancellation), cancellation);
                     }
 
                     fileWatcherHandle.WaitOne(100);
@@ -145,7 +143,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             {
                 // if there is an error here, we are in a bad state.
                 // treat this as a fatal exception and crash the process
-                Environment.FailFast(
+                logger.FailFast(
                     "Unix domain socket client failed leaving the application in a bad state. " +
                     "The only option is to crash the application.", ex);
             }
@@ -159,7 +157,6 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         }
 
         private async Task ReceiveAsync(
-            string file,
             UnixDomainSocketClient client,
             CancellationToken cancellation)
         {
@@ -169,29 +166,20 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             {
                 using (client)
                 {
-                    try
+                    while (!cancellation.IsCancellationRequested)
                     {
-                        while (!cancellation.IsCancellationRequested)
+                        if (await client.ReceiveAsync(buffer, cancellation) == 0)
                         {
-                            if (await client.ReceiveAsync(buffer, cancellation) == 0)
-                            {
-                                Console.WriteLine("Looks like the server is shutting down.");
-                                return;
-                            }
-
-                            semaphore.Release();
+                            logger.LogDebug("Looks like the server is shutting down.");
+                            return;
                         }
-                    }
-                    catch (SocketException se) when (se.SocketErrorCode == SocketError.ConnectionRefused)
-                    {
-                        Console.WriteLine("Found an orphaned semaphore lock file");
-                        Util.TryDeleteFile(file);
+
+                        semaphore.Release();
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine("Receive loop stopped - " + ex.Message);
             }
         }
     }

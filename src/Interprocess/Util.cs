@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Net.Sockets;
@@ -36,7 +37,7 @@ namespace Cloudtoid.Interprocess
             }
             catch
             {
-                Console.WriteLine("Failed to dispose a socket");
+                Console.WriteLine("Failed to dispose a socket.");
             }
         }
 
@@ -49,7 +50,6 @@ namespace Cloudtoid.Interprocess
             }
             catch
             {
-                Console.WriteLine("Failed to dispose a socket");
                 return false;
             }
         }
@@ -79,6 +79,15 @@ namespace Cloudtoid.Interprocess
 
         internal static string GetAbsolutePath(string path)
             => Path.IsPathRooted(path) ? path : Path.Combine(Environment.CurrentDirectory, path);
+
+        /// <summary>
+        /// Logs a critical error and then crashes the process
+        /// </summary>
+        internal static void FailFast(this ILogger logger, string message, Exception exception)
+        {
+            logger.LogCritical(exception, message);
+            Environment.FailFast(message);
+        }
 
         // shortens a file path by choosing the shorter of absolute and relative paths
         private static string ShortenPath(string path)

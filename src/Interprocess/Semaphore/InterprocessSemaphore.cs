@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using Cloudtoid.Interprocess.Semaphore.Unix;
+using Microsoft.Extensions.Logging;
 using WinSemaphore = Cloudtoid.Interprocess.Semaphore.Windows.Semaphore;
 
 namespace Cloudtoid.Interprocess
@@ -11,13 +12,13 @@ namespace Cloudtoid.Interprocess
     /// <remarks>
     /// .NET Core 3.1  and .NET 5 do not have support for named semaphores on
     /// Unix based OSs (Linux, macOS, etc.). To replicate a named semaphore in
-    /// the most efficient possible way, we are using Unix Named Sockets to send
+    /// the most efficient possible way, we are using Unix Domain Sockets to send
     /// signals between processes.
     /// 
     /// It is worth mentioning that we support multiple signal publishers and
     /// receivers; therefore, you will find some logic on Unix to utilize multiple
     /// named sockets. We also use a file system watcher to keep track of the
-    /// addition and removal of signal publishers (Unix Named Sockets use backing
+    /// addition and removal of signal publishers (Unix Domain Sockets use backing
     /// files).
     ///
     /// The domain socket implementation should be removed and replaced with
@@ -26,23 +27,27 @@ namespace Cloudtoid.Interprocess
     /// </remarks>
     internal static class InterprocessSemaphore
     {
-        internal static IInterprocessSemaphoreWaiter CreateWaiter(SharedAssetsIdentifier identifier)
+        internal static IInterprocessSemaphoreWaiter CreateWaiter(
+            SharedAssetsIdentifier identifier,
+            ILogger logger)
         {
             if (Util.IsUnixBased)
             {
                 identifier = CreateUnixIdentifier(identifier);
-                return new SemaphoreWaiter(identifier);
+                return new SemaphoreWaiter(identifier, logger);
             }
 
             return new WinSemaphore(identifier);
         }
 
-        internal static IInterprocessSemaphoreReleaser CreateReleaser(SharedAssetsIdentifier identifier)
+        internal static IInterprocessSemaphoreReleaser CreateReleaser(
+            SharedAssetsIdentifier identifier,
+            ILogger logger)
         {
             if (Util.IsUnixBased)
             {
                 identifier = CreateUnixIdentifier(identifier);
-                return new SemaphoreReleaser(identifier);
+                return new SemaphoreReleaser(identifier, logger);
             }
 
             return new WinSemaphore(identifier);

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,10 +9,10 @@ namespace Cloudtoid.Interprocess
     {
         private readonly IInterprocessSemaphoreReleaser signal;
 
-        internal Publisher(QueueOptions options)
-            : base(options)
+        internal Publisher(QueueOptions options, ILogger logger)
+            : base(options, logger)
         {
-            signal = InterprocessSemaphore.CreateReleaser(identifier);
+            signal = InterprocessSemaphore.CreateReleaser(identifier, logger);
         }
 
         public override void Dispose()
@@ -55,7 +56,7 @@ namespace Cloudtoid.Interprocess
                     {
                         // if there is an error here, we are in a bad state.
                         // treat this as a fatal exception and crash the process
-                        Environment.FailFast(
+                        logger.FailFast(
                             "Publishing to the shared memory queue failed leaving the queue in a bad state. " +
                             "The only option is to crash the application.", ex);
                     }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace Cloudtoid.Interprocess
@@ -8,17 +9,19 @@ namespace Cloudtoid.Interprocess
         private readonly MemoryView view;
         protected readonly CircularBuffer buffer;
         protected readonly SharedAssetsIdentifier identifier;
+        protected readonly ILogger logger;
 
-        protected unsafe Queue(QueueOptions options)
+        protected unsafe Queue(QueueOptions options, ILogger logger)
         {
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
+            this.logger = logger;
             identifier = new SharedAssetsIdentifier(
                 options.QueueName,
                 Util.GetAbsolutePath(options.Path));
 
-            view = new MemoryView(options);
+            view = new MemoryView(options, logger);
             try
             {
                 buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);

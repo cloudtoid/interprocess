@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cloudtoid.Interprocess.DomainSocket;
+using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
@@ -13,11 +14,14 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
     {
         private static readonly byte[] message = new byte[] { 1 };
         private readonly string filePath;
+        private readonly ILogger logger;
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private Socket?[] clients = Array.Empty<Socket>();
 
-        internal SemaphoreReleaser(SharedAssetsIdentifier identifier)
+        internal SemaphoreReleaser(SharedAssetsIdentifier identifier, ILogger logger)
         {
+            this.logger = logger;
+
             filePath = Util.CreateShortUniqueFileName(
                 identifier.Path,
                 identifier.Name,
@@ -59,7 +63,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             }
         }
 
-        private static async ValueTask ReleaseAsync(
+        private async ValueTask ReleaseAsync(
             Socket?[] clients,
             int i,
             CancellationToken cancellation)
@@ -79,7 +83,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Failed to send a signal. " + ex.Message);
+                logger.LogError(ex, "Sending a message to a Unix Domain Socket failed.");
 
                 if (!client.Connected)
                 {
@@ -99,7 +103,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
         private void ServerLoop()
         {
-            var server = new UnixDomainSocketServer(filePath);
+            var server = new UnixDomainSocketServer(filePath, logger);
             var cancellation = cancellationSource.Token;
 
             try
@@ -111,12 +115,11 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         var client = server.Accept(cancellation);
                         clients = clients.Concat(new[] { client }).Where(c => c != null).ToArray();
                     }
-                    catch (SocketException)
+                    catch (SocketException se)
                     {
-                        Console.WriteLine("Socket accept failed unexpectedly");
-
+                        logger.LogError(se, "Accepting a Unix Domain Socket connection failed unexpectedly.");
                         server.Dispose();
-                        server = new UnixDomainSocketServer(filePath);
+                        server = new UnixDomainSocketServer(filePath, logger);
                     }
                 }
             }
@@ -125,7 +128,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             {
                 // if there is an error here, we are in a bad state.
                 // treat this as a fatal exception and crash the process
-                Environment.FailFast(
+                logger.FailFast(
                     "Unix domain socket server failed leaving the application in a bad state. " +
                     "The only option is to crash the application.", ex);
             }

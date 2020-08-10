@@ -3,6 +3,7 @@ using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using Cloudtoid.Interprocess.Memory.Unix;
 using Cloudtoid.Interprocess.Memory.Windows;
+using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess
 {
@@ -12,14 +13,14 @@ namespace Cloudtoid.Interprocess
         private readonly IMemoryFile file;
         private readonly MemoryMappedViewAccessor view;
 
-        internal unsafe MemoryView(QueueOptions options)
+        internal unsafe MemoryView(QueueOptions options, ILogger logger)
         {
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new WindowsMemoryFile(options)
-                : (IMemoryFile)new UnixMemoryFile(options);
+                : (IMemoryFile)new UnixMemoryFile(options, logger);
 
             try
             {

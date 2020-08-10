@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 
@@ -10,9 +11,11 @@ namespace Cloudtoid.Interprocess.Memory.Unix
         private const string FileExtension = ".qu";
         private readonly string filePath;
         private readonly bool mustDeleteFileOnDispose;
+        private readonly ILogger logger;
 
-        internal UnixMemoryFile(QueueOptions options)
+        internal UnixMemoryFile(QueueOptions options, ILogger logger)
         {
+            this.logger = logger;
             filePath = Path.Combine(options.Path, Folder);
             Directory.CreateDirectory(filePath);
             filePath = Path.Combine(filePath, options.QueueName + FileExtension);
@@ -102,7 +105,7 @@ namespace Cloudtoid.Interprocess.Memory.Unix
         private void ResetBackingFile()
         {
             if (mustDeleteFileOnDispose && !Util.TryDeleteFile(filePath))
-                Console.WriteLine("Failed to delete queue's shared memory backing file.");
+                logger.LogError("Failed to delete queue's shared memory backing file.");
         }
     }
 }

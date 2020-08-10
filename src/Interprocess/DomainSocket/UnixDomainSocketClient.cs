@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,17 +11,21 @@ namespace Cloudtoid.Interprocess.DomainSocket
         private const int ConnectMillisecondTimeout = 100;
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly UnixDomainSocketEndPoint endpoint;
+        private readonly string file;
+        private readonly ILogger logger;
         private Socket? socket;
 
-        internal UnixDomainSocketClient(string file)
+        internal UnixDomainSocketClient(string file, ILogger logger)
         {
+            this.file = file;
+            this.logger = logger;
             endpoint = Util.CreateUnixDomainSocketEndPoint(file);
             socket = Util.CreateUnixDomainSocket(blocking: false);
         }
 
         public void Dispose()
         {
-            Console.WriteLine("Disposing a domain socket client");
+            logger.LogDebug("Disposing a domain socket client");
             cancellationSource.Cancel();
             Interlocked.Exchange(ref socket, null).SafeDispose();
         }
@@ -36,31 +41,44 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 cancellation);
 
             var socket = GetSocket();
+
             try
             {
                 await EnsureConnectedAsync(socket, source.Token);
-                return await socket.ReceiveAsync(buffer, SocketFlags.None, source.Token);
+                return await ReceiveAsync(socket, buffer, source.Token);
+            }
+            finally
+            {
+                if (!socket.Connected)
+                {
+                    logger.LogInformation("Disposing a Unix Domain Socket because it is no longer connected.");
+                    Interlocked.CompareExchange(ref this.socket, null, socket).SafeDispose();
+                }
+            }
+        }
+
+        private async ValueTask<int> ReceiveAsync(
+            Socket socket,
+            Memory<byte> buffer,
+            CancellationToken cancellation)
+        {
+            try
+            {
+                return await socket.ReceiveAsync(buffer, SocketFlags.None, cancellation);
             }
             catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
             {
-                Console.WriteLine("Socket receive operation cancelled.");
+                logger.LogInformation(se, "Reading from a Unix Domain Socket was cancelled.");
                 throw new OperationCanceledException();
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException oce)
             {
-                Console.WriteLine("Socket receive operation cancelled.");
+                logger.LogInformation(oce, "Reading from a Unix Domain Socket was cancelled.");
                 throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Socket receive failed unexpectedly. " + ex.Message);
-
-                if (!socket.Connected)
-                {
-                    Console.WriteLine("Disposing an inner client socket because it is no longer connected");
-                    Interlocked.CompareExchange(ref this.socket, null, socket).SafeDispose();
-                }
-
+                logger.LogError(ex, "Reading from a Unix Domain Socket failed unexpectedly.");
                 throw;
             }
         }
@@ -86,14 +104,37 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 {
                     var duration = (DateTime.Now - startTime).Milliseconds;
                     if (duration > ConnectMillisecondTimeout)
-                        throw new TimeoutException("Socket.Connect timeout expired.");
+                    {
+                        logger.LogError("A Unix Domain Socket client failed to connect to the server because the timeout expired.");
+                        throw new TimeoutException("A Unix Domain Socket client failed to connect to the server because the timeout expired.");
+                    }
 
                     await Task.Delay(5, cancellation);
                 }
+                catch (SocketException se) when (se.SocketErrorCode == SocketError.ConnectionRefused)
+                {
+                    logger.LogError(
+                        "Found an orphaned Unix Domain Socket backing file lock file. " +
+                        "This can only happen if an earlier process terminated without deleting the file. " +
+                        "This should be treated as a bug.");
+
+                    Util.TryDeleteFile(file);
+                    throw;
+                }
                 catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
                 {
-                    Console.WriteLine("Socket connect operation cancelled.");
+                    logger.LogInformation(se, "Connecting to a Unix Domain Socket was cancelled.");
                     throw new OperationCanceledException();
+                }
+                catch (OperationCanceledException oce)
+                {
+                    logger.LogInformation(oce, "Connecting to a Unix Domain Socket was cancelled.");
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Connecting to a Unix Domain Socket failed unexpectedly.");
+                    throw;
                 }
             }
         }

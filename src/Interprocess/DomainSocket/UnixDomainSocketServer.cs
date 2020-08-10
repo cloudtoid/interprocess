@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Net.Sockets;
 using System.Threading;
 
@@ -9,10 +10,15 @@ namespace Cloudtoid.Interprocess.DomainSocket
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly string file;
         private readonly Socket socket;
+        private readonly ILogger logger;
 
-        internal UnixDomainSocketServer(string file, int connectionQueueSize = 100)
+        internal UnixDomainSocketServer(
+            string file,
+            ILogger logger,
+            int connectionQueueSize = 100)
         {
             this.file = file;
+            this.logger = logger;
             socket = Util.CreateUnixDomainSocket(blocking: false);
             socket.Bind(Util.CreateUnixDomainSocketEndPoint(file));
             socket.Listen(connectionQueueSize);
@@ -47,15 +53,25 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 }
                 catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
                 {
-                    Console.WriteLine("Socket accept operation cancelled.");
+                    logger.LogInformation(se, "Accepting a Unix Domain Socket connection was cancelled.");
                     throw new OperationCanceledException();
+                }
+                catch (OperationCanceledException oce)
+                {
+                    logger.LogInformation(oce, "Accepting a Unix Domain Socket connection was cancelled.");
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Accepting a Unix Domain Socket connection failed unexpectedly.");
+                    throw;
                 }
             }
         }
 
         private void Dispose(bool disposing)
         {
-            Console.WriteLine("Disposing a domain socket server");
+            logger.LogDebug("Disposing a domain socket server");
 
             if (disposing)
             {
@@ -64,7 +80,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
             }
 
             if (!Util.TryDeleteFile(file))
-                Console.WriteLine("Failed to delete a socket's backing file");
+                logger.LogError("Failed to delete a Unix Domain Socket's backing file.");
         }
     }
 }
