@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess.Benchmark
 {
-    //[SimpleJob(RuntimeMoniker.NetCoreApp31)]
+    [SimpleJob(RuntimeMoniker.NetCoreApp31)]
     public class QueueThroughputBenchmark
     {
         private static readonly byte[] message = new byte[50];

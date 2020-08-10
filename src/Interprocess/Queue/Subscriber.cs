@@ -35,7 +35,7 @@ namespace Cloudtoid.Interprocess
             => TryDequeueAsync((Memory<byte>?)resultBuffer, cancellation, out message);
 
         public ValueTask<ReadOnlyMemory<byte>> DequeueAsync(CancellationToken cancellation)
-            => DequeueAsync(null, cancellation);
+            => DequeueAsync(default(Memory<byte>?), cancellation);
 
         public ValueTask<ReadOnlyMemory<byte>> DequeueAsync(Memory<byte> resultBuffer, CancellationToken cancellation)
             => DequeueAsync((Memory<byte>?)resultBuffer, cancellation);
