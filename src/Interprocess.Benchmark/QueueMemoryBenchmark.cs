@@ -31,20 +31,20 @@ namespace Cloudtoid.Interprocess.Benchmark
 
         // Expecting that there are NO managed heap allocations.
         [Benchmark]
-        public async Task Enqueue()
+        public ValueTask<bool> Enqueue()
         {
-            await publisher!.TryEnqueueAsync(message, default);
+            return publisher!.TryEnqueueAsync(message, default);
         }
 
         [Benchmark]
-        public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueShortMessage()
+        public async ValueTask<ReadOnlyMemory<byte>> EnqueueDequeue_WithResultArrayAllocation()
         {
             await publisher!.TryEnqueueAsync(message, default);
             return await subscriber!.DequeueAsync(default);
         }
 
         [Benchmark]
-        public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueNoAllocation()
+        public async ValueTask<ReadOnlyMemory<byte>> EnqueueAndDequeue_WithPooledResultArray()
         {
             await publisher!.TryEnqueueAsync(message, default);
             return await subscriber!.DequeueAsync(messageBuffer, default);
