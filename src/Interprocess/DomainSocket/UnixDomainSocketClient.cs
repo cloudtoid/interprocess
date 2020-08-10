@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
+using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -87,11 +88,8 @@ namespace Cloudtoid.Interprocess.DomainSocket
             Socket socket,
             CancellationToken cancellation)
         {
-            if (socket.Connected)
-                return;
-
             var startTime = DateTime.Now;
-            while (true)
+            while (!socket.Connected)
             {
                 cancellation.ThrowIfCancellationRequested();
 
@@ -111,14 +109,18 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
                     await Task.Delay(5, cancellation);
                 }
-                catch (SocketException se) when (se.SocketErrorCode == SocketError.ConnectionRefused)
+                catch (SocketException se) when (se.SocketErrorCode == SocketError.AddressNotAvailable || se.SocketErrorCode == SocketError.ConnectionRefused)
                 {
-                    logger.LogError(
-                        "Found an orphaned Unix Domain Socket backing file lock file. " +
-                        "This can only happen if an earlier process terminated without deleting the file. " +
-                        "This should be treated as a bug.");
+                    if (File.Exists(file))
+                    {
+                        logger.LogError(
+                            "Found an orphaned Unix Domain Socket backing file lock file. " +
+                            "This can only happen if an earlier process terminated without deleting the file. " +
+                            "This should be treated as a bug.");
 
-                    Util.TryDeleteFile(file);
+                        Util.TryDeleteFile(file);
+                    }
+
                     throw;
                 }
                 catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)

@@ -170,7 +170,7 @@ namespace Cloudtoid.Interprocess.Tests
             {
                 Func<Task<int>> action = async () => await client.ReceiveAsync(new byte[1], default);
                 var ex = await action.Should().ThrowAsync<SocketException>();
-                ex.Where(se => se.SocketErrorCode == SocketError.AddressNotAvailable);
+                ex.Where(se => se.SocketErrorCode == SocketError.AddressNotAvailable || se.SocketErrorCode == SocketError.ConnectionRefused);
                 File.Exists(file).Should().BeFalse();
             }
         }

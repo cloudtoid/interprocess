@@ -5,6 +5,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <nullable>enable</nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>Cloudtoid.Interprocess.Benchmark</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

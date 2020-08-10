@@ -9,7 +9,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Windows
         IInterprocessSemaphoreWaiter,
         IInterprocessSemaphoreReleaser
     {
-        private const string HandleNamePrefix = "CT.IP.";
+        private const string HandleNamePrefix = @"Global\CT.IP.";
         private readonly SysSemaphore handle;
 
         internal Semaphore(SharedAssetsIdentifier identifier)

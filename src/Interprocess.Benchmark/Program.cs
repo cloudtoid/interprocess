@@ -1,11 +1,10 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
-using Cloudtoid.Interprocess;
 using System;
 using System.Threading.Tasks;
 
-namespace Interprocess.Benchmark
+namespace Cloudtoid.Interprocess.Benchmark
 {
     public sealed class Program
     {
