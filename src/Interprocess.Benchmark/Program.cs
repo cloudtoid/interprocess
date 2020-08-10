@@ -37,35 +37,27 @@ namespace Cloudtoid.Interprocess.Benchmark
             using (subscriber) { }
         }
 
-        //[Benchmark]
-        //public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueShortMessage()
-        //{
-        //    await publisher!.TryEnqueueAsync(longMessage, default);
-        //    return await subscriber!.DequeueAsync(default);
-        //}
+        [Benchmark]
+        public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueShortMessage()
+        {
+            await publisher!.TryEnqueueAsync(longMessage, default);
+            return await subscriber!.DequeueAsync(default);
+        }
 
-        //[Benchmark]
-        //public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueLongMessage()
-        //{
-        //    await publisher!.TryEnqueueAsync(longMessage, default);
-        //    return await subscriber!.DequeueAsync(default);
-        //}
+        [Benchmark]
+        public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueLongMessage()
+        {
+            await publisher!.TryEnqueueAsync(longMessage, default);
+            return await subscriber!.DequeueAsync(default);
+        }
 
         [Benchmark]
         public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueMessageWrap()
         {
-            try
-            {
-                await publisher!.TryEnqueueAsync(longMessage, default);
-                await subscriber!.DequeueAsync(default);
-                await publisher!.TryEnqueueAsync(longMessage, default);
-                return await subscriber!.DequeueAsync(default);
-            }
-            catch
-            {
-                Console.WriteLine("Failed");
-                throw;
-            }
+            await publisher!.TryEnqueueAsync(longMessage, default);
+            await subscriber!.DequeueAsync(default);
+            await publisher!.TryEnqueueAsync(longMessage, default);
+            return await subscriber!.DequeueAsync(default);
         }
     }
 }
