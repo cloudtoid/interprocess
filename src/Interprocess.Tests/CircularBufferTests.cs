@@ -81,12 +81,19 @@ namespace Cloudtoid.Interprocess.Tests
         [InlineData(3, 3, new byte[] { 100, 110, 120 })]
         [InlineData(0, 4, new byte[] { 100, 110, 120, 100 })]
         [InlineData(1, 4, new byte[] { 110, 120, 100, 110 })]
-        public void CanRead(long offset, long length, byte[] expectedResult)
+        [InlineData(0, 0, new byte[] { }, 1)]
+        [InlineData(1, 4, new byte[] { 110 }, 1)]
+        [InlineData(1, 2, new byte[] { 110, 120 }, 6)]
+        public void CanRead(long offset, int length, byte[] expectedResult, int? bufferLength = null)
         {
             fixed (byte* bytesPtr = &byteArray3[0])
             {
                 var buffer = new CircularBuffer(bytesPtr, byteArray3.Length);
-                buffer.Read(offset, length).Should().BeEquivalentTo(expectedResult);
+                if (bufferLength is null)
+                    buffer.Read(offset, length).ToArray().Should().BeEquivalentTo(expectedResult);
+
+                var resultBuffer = new byte[bufferLength ?? length];
+                buffer.Read(offset, length, resultBuffer).ToArray().Should().BeEquivalentTo(expectedResult);
             }
         }
 
@@ -131,7 +138,7 @@ namespace Cloudtoid.Interprocess.Tests
             {
                 var buffer = new CircularBuffer(ptr, b.Length);
                 buffer.Write(bytes, offset);
-                buffer.Read(offset, length).Should().BeEquivalentTo(bytes);
+                buffer.Read(offset, length).ToArray().Should().BeEquivalentTo(bytes);
             }
         }
 
@@ -185,9 +192,9 @@ namespace Cloudtoid.Interprocess.Tests
             fixed (byte* ptr = &b[0])
             {
                 var buffer = new CircularBuffer(ptr, b.Length);
-                buffer.Read(offset, length).All(i => i == 1).Should().BeTrue();
+                buffer.Read(offset, length).ToArray().All(i => i == 1).Should().BeTrue();
                 buffer.ZeroBlock(offset, length);
-                buffer.Read(offset, length).All(i => i == 0).Should().BeTrue();
+                buffer.Read(offset, length).ToArray().All(i => i == 0).Should().BeTrue();
             }
         }
     }

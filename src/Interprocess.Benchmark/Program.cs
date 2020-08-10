@@ -1,8 +1,4 @@
-﻿using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
-using BenchmarkDotNet.Running;
-using System;
-using System.Threading.Tasks;
+﻿using BenchmarkDotNet.Running;
 
 namespace Cloudtoid.Interprocess.Benchmark
 {
@@ -10,62 +6,7 @@ namespace Cloudtoid.Interprocess.Benchmark
     {
         static void Main()
         {
-            _ = BenchmarkRunner.Run<QueueBenchmark>();
-        }
-    }
-
-    [SimpleJob(RuntimeMoniker.NetCoreApp31)]
-    [MemoryDiagnoser]
-    public class QueueBenchmark
-    {
-        private static readonly byte[] shortMessage = new byte[] { 100, 110, 120 };
-        private static readonly byte[] longMessage = new byte[50];
-        private IPublisher? publisher;
-        private ISubscriber? subscriber;
-
-        [GlobalSetup]
-        public void Setup()
-        {
-            var queueFactory = new QueueFactory();
-            publisher = queueFactory.CreatePublisher(new QueueOptions("qn", Environment.CurrentDirectory, 128, true));
-            subscriber = queueFactory.CreateSubscriber(new QueueOptions("qn", Environment.CurrentDirectory, 128, false));
-        }
-
-        [GlobalCleanup]
-        public void Cleanup()
-        {
-            using (publisher)
-            using (subscriber) { }
-        }
-
-        // Expecting that there are NO managed heap allocations.
-        [Benchmark]
-        public async Task Enqueue()
-        {
-            await publisher!.TryEnqueueAsync(shortMessage, default);
-        }
-
-        [Benchmark]
-        public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueShortMessage()
-        {
-            await publisher!.TryEnqueueAsync(shortMessage, default);
-            return await subscriber!.DequeueAsync(default);
-        }
-
-        [Benchmark]
-        public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueLongMessage()
-        {
-            await publisher!.TryEnqueueAsync(longMessage, default);
-            return await subscriber!.DequeueAsync(default);
-        }
-
-        [Benchmark]
-        public async Task<ReadOnlyMemory<byte>> EnqueueAndDequeueMessageWrap()
-        {
-            await publisher!.TryEnqueueAsync(longMessage, default);
-            await subscriber!.DequeueAsync(default);
-            await publisher!.TryEnqueueAsync(longMessage, default);
-            return await subscriber!.DequeueAsync(default);
+            _ = BenchmarkRunner.Run(typeof(Program).Assembly);
         }
     }
 }

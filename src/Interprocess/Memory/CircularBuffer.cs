@@ -39,27 +39,31 @@ namespace Cloudtoid.Interprocess
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal byte[] Read(long offset, long length)
+        internal ReadOnlyMemory<byte> Read(long offset, long length, Memory<byte>? resultBuffer = null)
         {
             if (length == 0)
-                return Array.Empty<byte>();
+                return ReadOnlyMemory<byte>.Empty;
+
+            var result = resultBuffer ?? new byte[length];
+            if (length > result.Length)
+                length = result.Length;
 
             AdjustedOffset(ref offset);
-
-            var result = new byte[length];
-            fixed (byte* resultPtr = &result[0])
+            using (var pinnedResultBuffer = result.Pin())
             {
+                var resultBuffeerPtr = (byte*)pinnedResultBuffer.Pointer;
                 var sourcePtr = buffer + offset;
 
                 var rightLength = Math.Min(Capacity - offset, length);
                 if (rightLength > 0)
-                    Buffer.MemoryCopy(sourcePtr, resultPtr, rightLength, rightLength);
+                    Buffer.MemoryCopy(sourcePtr, resultBuffeerPtr, rightLength, rightLength);
 
                 var leftLength = length - rightLength;
                 if (leftLength > 0)
-                    Buffer.MemoryCopy(buffer, resultPtr + rightLength, leftLength, leftLength);
+                    Buffer.MemoryCopy(buffer, resultBuffeerPtr + rightLength, leftLength, leftLength);
             }
-            return result;
+
+            return result.Slice(0, (int)length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -25,7 +25,23 @@ namespace Cloudtoid.Interprocess
             base.Dispose();
         }
 
-        public unsafe ValueTask<bool> TryDequeueAsync(
+        public ValueTask<bool> TryDequeueAsync(CancellationToken cancellation, out ReadOnlyMemory<byte> message)
+            => TryDequeueAsync(default(Memory<byte>?), cancellation, out message);
+
+        public ValueTask<bool> TryDequeueAsync(
+            Memory<byte> resultBuffer,
+            CancellationToken cancellation,
+            out ReadOnlyMemory<byte> message)
+            => TryDequeueAsync(default(Memory<byte>?), cancellation, out message);
+
+        public ValueTask<ReadOnlyMemory<byte>> DequeueAsync(CancellationToken cancellation)
+            => DequeueAsync(null, cancellation);
+
+        public ValueTask<ReadOnlyMemory<byte>> DequeueAsync(Memory<byte> resultBuffer, CancellationToken cancellation)
+            => DequeueAsync(default(Memory<byte>?), cancellation);
+
+        private unsafe ValueTask<bool> TryDequeueAsync(
+            Memory<byte>? resultBuffer,
             CancellationToken cancellation,
             out ReadOnlyMemory<byte> message)
         {
@@ -59,7 +75,7 @@ namespace Cloudtoid.Interprocess
                 // read the message body from the queue buffer
                 var bodyOffset = GetMessageBodyOffset(headOffset);
                 var bodyLength = ReadMessageBodyLength(headOffset);
-                message = buffer.Read(bodyOffset, bodyLength).AsMemory();
+                message = buffer.Read(bodyOffset, bodyLength, resultBuffer);
 
                 // zero out the entire message block
                 long messageLength = GetMessageLength(bodyLength);
@@ -74,7 +90,9 @@ namespace Cloudtoid.Interprocess
             }
         }
 
-        public async ValueTask<ReadOnlyMemory<byte>> DequeueAsync(CancellationToken cancellation)
+        private async ValueTask<ReadOnlyMemory<byte>> DequeueAsync(
+            Memory<byte>? resultBuffer,
+            CancellationToken cancellation)
         {
             bool wait = false;
 
@@ -83,9 +101,9 @@ namespace Cloudtoid.Interprocess
                 if (wait)
                     signal.WaitOne(millisecondsTimeout: 100);
                 else
-                    wait = true;
+                    wait = false;
 
-                if (await TryDequeueAsync(cancellation, out var message))
+                if (await TryDequeueAsync(resultBuffer, cancellation, out var message))
                     return message;
             }
         }

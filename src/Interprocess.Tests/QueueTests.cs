@@ -30,6 +30,10 @@ namespace Cloudtoid.Interprocess.Tests
             (await p.TryEnqueueAsync(byteArray2, default)).Should().BeTrue();
             message = await s.DequeueAsync(default);
             message.ToArray().Should().BeEquivalentTo(byteArray2);
+
+            (await p.TryEnqueueAsync(byteArray2, default)).Should().BeTrue();
+            message = await s.DequeueAsync(new byte[5], default);
+            message.ToArray().Should().BeEquivalentTo(byteArray2);
         }
 
         [Fact]
