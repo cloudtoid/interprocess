@@ -31,7 +31,6 @@ namespace Cloudtoid.Interprocess.Benchmark
 
         // Expecting that there are NO managed heap allocations.
         [Benchmark]
-
         public async Task Enqueue()
         {
             await publisher!.TryEnqueueAsync(message, default);
