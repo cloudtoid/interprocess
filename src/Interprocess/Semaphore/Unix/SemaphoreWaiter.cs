@@ -166,7 +166,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 {
                     while (!cancellation.IsCancellationRequested)
                     {
-                        if (await client.ReceiveAsync(messageBuffer, cancellation) == 0)
+                        if (await client.ReceiveAsync(messageBuffer, cancellation).ConfigureAwait(false) == 0)
                         {
                             logger.LogDebug("Looks like the server is shutting down.");
                             return;

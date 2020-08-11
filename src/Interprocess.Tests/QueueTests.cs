@@ -19,19 +19,19 @@ namespace Cloudtoid.Interprocess.Tests
             using var p = CreatePublisher(24, createOrOverride: true);
             using var s = CreateSubscriber(24);
 
-            (await p.TryEnqueueAsync(byteArray3, default)).Should().BeTrue();
+            p.TryEnqueue(byteArray3, default).Should().BeTrue();
             var message = await s.DequeueAsync(default);
             message.ToArray().Should().BeEquivalentTo(byteArray3);
 
-            (await p.TryEnqueueAsync(byteArray3, default)).Should().BeTrue();
+            p.TryEnqueue(byteArray3, default).Should().BeTrue();
             message = await s.DequeueAsync(default);
             message.ToArray().Should().BeEquivalentTo(byteArray3);
 
-            (await p.TryEnqueueAsync(byteArray2, default)).Should().BeTrue();
+            p.TryEnqueue(byteArray2, default).Should().BeTrue();
             message = await s.DequeueAsync(default);
             message.ToArray().Should().BeEquivalentTo(byteArray2);
 
-            (await p.TryEnqueueAsync(byteArray2, default)).Should().BeTrue();
+            p.TryEnqueue(byteArray2, default).Should().BeTrue();
             message = await s.DequeueAsync(new byte[5], default);
             message.ToArray().Should().BeEquivalentTo(byteArray2);
         }
@@ -42,33 +42,33 @@ namespace Cloudtoid.Interprocess.Tests
             using var p = CreatePublisher(128, createOrOverride: true);
             using var s = CreateSubscriber(128);
 
-            (await p.TryEnqueueAsync(byteArray50, default)).Should().BeTrue();
+            p.TryEnqueue(byteArray50, default).Should().BeTrue();
             var message = await s.DequeueAsync(default);
             message.ToArray().Should().BeEquivalentTo(byteArray50);
 
-            (await p.TryEnqueueAsync(byteArray50, default)).Should().BeTrue();
+            p.TryEnqueue(byteArray50, default).Should().BeTrue();
             message = await s.DequeueAsync(default);
             message.ToArray().Should().BeEquivalentTo(byteArray50);
 
-            (await p.TryEnqueueAsync(byteArray50, default)).Should().BeTrue();
+            p.TryEnqueue(byteArray50, default).Should().BeTrue();
             message = await s.DequeueAsync(default);
             message.ToArray().Should().BeEquivalentTo(byteArray50);
         }
 
         [Fact]
-        public async Task CannotEnqueuePastCapacity()
+        public void CannotEnqueuePastCapacity()
         {
             using var p = CreatePublisher(24, createOrOverride: true);
 
-            (await p.TryEnqueueAsync(byteArray3, default)).Should().BeTrue();
-            (await p.TryEnqueueAsync(byteArray1, default)).Should().BeFalse();
+            p.TryEnqueue(byteArray3, default).Should().BeTrue();
+            p.TryEnqueue(byteArray1, default).Should().BeFalse();
         }
 
         [Fact]
         public async Task DisposeShouldNotThrow()
         {
             var p = CreatePublisher(24, createOrOverride: true);
-            (await p.TryEnqueueAsync(byteArray3, default)).Should().BeTrue();
+            p.TryEnqueue(byteArray3, default).Should().BeTrue();
 
             using var s = CreateSubscriber(24);
             p.Dispose();
@@ -80,7 +80,7 @@ namespace Cloudtoid.Interprocess.Tests
         public async Task CannotReadAfterProducerIsDisposed()
         {
             var p = CreatePublisher(24, createOrOverride: true);
-            (await p.TryEnqueueAsync(byteArray3, default)).Should().BeTrue();
+            p.TryEnqueue(byteArray3, default).Should().BeTrue();
             using (var s = CreateSubscriber(24))
                 p.Dispose();
 

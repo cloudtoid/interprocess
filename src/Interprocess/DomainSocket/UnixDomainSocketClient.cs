@@ -45,8 +45,8 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
             try
             {
-                await EnsureConnectedAsync(socket, source.Token);
-                return await ReceiveAsync(socket, buffer, source.Token);
+                await EnsureConnectedAsync(socket, source.Token).ConfigureAwait(false);
+                return await ReceiveAsync(socket, buffer, source.Token).ConfigureAwait(false);
             }
             finally
             {
@@ -65,7 +65,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
         {
             try
             {
-                return await socket.ReceiveAsync(buffer, SocketFlags.None, cancellation);
+                return await socket.ReceiveAsync(buffer, SocketFlags.None, cancellation).ConfigureAwait(false);
             }
             catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
             {
@@ -107,7 +107,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
                         throw new TimeoutException("A Unix Domain Socket client failed to connect to the server because the timeout expired.");
                     }
 
-                    await Task.Delay(5, cancellation);
+                    await Task.Delay(5, cancellation).ConfigureAwait(false);
                 }
                 catch (SocketException se) when (se.SocketErrorCode == SocketError.AddressNotAvailable || se.SocketErrorCode == SocketError.ConnectionRefused)
                 {

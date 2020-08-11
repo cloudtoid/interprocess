@@ -55,7 +55,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
                 // do not use Task.WaitAll
                 for (int i = 0; i < count; i++)
-                    await tasks[i];
+                    await tasks[i].ConfigureAwait(false);
             }
             finally
             {
@@ -77,7 +77,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 var bytesSent = await client.SendAsync(
                     message,
                     SocketFlags.None,
-                    cancellation);
+                    cancellation).ConfigureAwait(false);
 
                 Debug.Assert(bytesSent == message.Length);
             }

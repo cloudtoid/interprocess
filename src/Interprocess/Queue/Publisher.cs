@@ -21,7 +21,7 @@ namespace Cloudtoid.Interprocess
             base.Dispose();
         }
 
-        public unsafe ValueTask<bool> TryEnqueueAsync(
+        public unsafe bool TryEnqueue(
             ReadOnlySpan<byte> message,
             CancellationToken cancellation)
         {
@@ -34,7 +34,7 @@ namespace Cloudtoid.Interprocess
                 long messageLength = GetMessageLength(bodyLength);
                 long capacity = buffer.Capacity - tailOffset + header.HeadOffset;
                 if (messageLength > capacity)
-                    return new ValueTask<bool>(false);
+                    return false;
 
                 var newTailOffset = SafeIncrementMessageOffset(tailOffset, messageLength);
 
@@ -63,7 +63,7 @@ namespace Cloudtoid.Interprocess
 
                     // signal the next receiver that there is a new message in the queue
                     signal.ReleaseAsync(cancellation).Wait();
-                    return new ValueTask<bool>(true);
+                    return true;
                 }
             }
         }

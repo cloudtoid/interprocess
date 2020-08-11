@@ -103,7 +103,7 @@ namespace Cloudtoid.Interprocess
                 else
                     wait = false;
 
-                if (await TryDequeueAsync(resultBuffer, cancellation, out var message))
+                if (await TryDequeueAsync(resultBuffer, cancellation, out var message).ConfigureAwait(false))
                     return message;
             }
         }
