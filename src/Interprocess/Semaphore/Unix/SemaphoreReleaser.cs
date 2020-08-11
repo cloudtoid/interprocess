@@ -46,6 +46,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             var clients = this.clients;
 
             var count = clients.Length;
+            if (count == 0)
+                return;
+
             var tasks = ArrayPool<ValueTask>.Shared.Rent(count);
 
             try
@@ -74,10 +77,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
             try
             {
-                var bytesSent = await client.SendAsync(
-                    message,
-                    SocketFlags.None,
-                    cancellation).ConfigureAwait(false);
+                var bytesSent = await client
+                    .SendAsync(message, SocketFlags.None, cancellation)
+                    .ConfigureAwait(false);
 
                 Debug.Assert(bytesSent == message.Length);
             }
