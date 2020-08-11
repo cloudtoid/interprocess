@@ -30,7 +30,7 @@ namespace Cloudtoid.Interprocess.Benchmark
         [Benchmark]
         public async Task<ReadOnlyMemory<byte>> EnqueueDequeue_LongMessage()
         {
-            await publisher!.TryEnqueueAsync(message, default);
+            publisher!.TryEnqueue(message, default);
             return await subscriber!.DequeueAsync(default);
         }
 
@@ -38,9 +38,9 @@ namespace Cloudtoid.Interprocess.Benchmark
         [Benchmark]
         public async Task<ReadOnlyMemory<byte>> EnqueueDequeue_WrappedMessages()
         {
-            await publisher!.TryEnqueueAsync(message, default);
+            publisher!.TryEnqueue(message, default);
             await subscriber!.DequeueAsync(default);
-            await publisher!.TryEnqueueAsync(message, default);
+            publisher!.TryEnqueue(message, default);
             return await subscriber!.DequeueAsync(default);
         }
     }
