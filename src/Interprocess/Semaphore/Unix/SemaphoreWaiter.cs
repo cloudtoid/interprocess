@@ -12,7 +12,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
     internal sealed class SemaphoreWaiter : IInterprocessSemaphoreWaiter
     {
-        private static readonly byte[] messageBuffer = new byte[] { 1 };
+        private static readonly byte[] messageBuffer = new byte[1];
         private static readonly EnumerationOptions enumerationOptions = new EnumerationOptions
         {
             IgnoreInaccessible = true,
@@ -160,15 +160,13 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             UnixDomainSocketClient client,
             CancellationToken cancellation)
         {
-            var buffer = new byte[1];
-
             try
             {
                 using (client)
                 {
                     while (!cancellation.IsCancellationRequested)
                     {
-                        if (await client.ReceiveAsync(buffer, cancellation) == 0)
+                        if (await client.ReceiveAsync(messageBuffer, cancellation) == 0)
                         {
                             logger.LogDebug("Looks like the server is shutting down.");
                             return;
