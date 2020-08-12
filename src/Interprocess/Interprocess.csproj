@@ -6,8 +6,26 @@
     <AssemblyName>Cloudtoid.Interprocess</AssemblyName>
   </PropertyGroup>
 
+  <!-- Package References -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
   </ItemGroup>
+
+  <!-- NuGet Packaging -->
+  <PropertyGroup>
+    <PackageId>Cloudtoid.Interprocess</PackageId>
+    <Title>Cloudtoid.Interprocess</Title>
+    <Authors>pedram@rezaei.us</Authors>
+    <Company>cloudtoid</Company>
+    <PackageDescription>A cross-platform shared memory queue for fast intraprocess messaging.</PackageDescription>
+    <Copyright>Copyright (c) Cloudtoid</Copyright>
+    <RepositoryUrl>https://github.com/cloudtoid/interprocess/</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/cloudtoid/interprocess/blob/master/README.md</PackageProjectUrl>
+    <IsPackable>true</IsPackable>
+    <PackageTags>interprocess;ipc;memory-mapped-file;queue</PackageTags>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <VersionSuffix Condition=" '$(VersionSuffix)'=='' ">0</VersionSuffix>
+    <Version>1.0.$(VersionSuffix)</Version>
+  </PropertyGroup>
 
 </Project>
