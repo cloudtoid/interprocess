@@ -22,4 +22,4 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release src/Interprocess.sln
       - name: Test
-        run: dotnet test --no-restore --verbosity normal
+        run: dotnet test --no-restore --verbosity normal src/Interprocess.sln
