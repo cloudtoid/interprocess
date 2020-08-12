@@ -25,7 +25,7 @@
     <PackageTags>interprocess;ipc;memory-mapped-file;queue</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <VersionSuffix Condition=" '$(VersionSuffix)'=='' ">0</VersionSuffix>
-    <Version>1.0.$(VersionSuffix)</Version>
+    <Version>1.0.$(VersionSuffix)-pre</Version>
   </PropertyGroup>
 
 </Project>
