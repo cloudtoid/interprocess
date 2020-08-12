@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using Cloudtoid.Interprocess.Semaphore.Unix;
 using Microsoft.Extensions.Logging;
+using WinSemaphore = Cloudtoid.Interprocess.Semaphore.Windows.Semaphore;
 
 namespace Cloudtoid.Interprocess
 {
@@ -30,16 +31,26 @@ namespace Cloudtoid.Interprocess
             SharedAssetsIdentifier identifier,
             ILogger logger)
         {
-            identifier = CreateUnixIdentifier(identifier);
-            return new SemaphoreWaiter(identifier, logger);
+            if (Util.IsUnixBased)
+            {
+                identifier = CreateUnixIdentifier(identifier);
+                return new SemaphoreWaiter(identifier, logger);
+            }
+
+            return new WinSemaphore(identifier);
         }
 
         internal static IInterprocessSemaphoreReleaser CreateReleaser(
             SharedAssetsIdentifier identifier,
             ILogger logger)
         {
-            identifier = CreateUnixIdentifier(identifier);
-            return new SemaphoreReleaser(identifier, logger);
+            if (Util.IsUnixBased)
+            {
+                identifier = CreateUnixIdentifier(identifier);
+                return new SemaphoreReleaser(identifier, logger);
+            }
+
+            return new WinSemaphore(identifier);
         }
 
         private static SharedAssetsIdentifier CreateUnixIdentifier(this SharedAssetsIdentifier identifier)
