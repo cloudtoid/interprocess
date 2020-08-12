@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         dotnet: [ '3.1.x', '5.0.x' ]
-    name: Dotnet ${{ matrix.dotnet }} sample
+    name: .NET ${{ matrix.dotnet }}
     steps:
       - uses: actions/checkout@v2
       - name: Setup .NET
@@ -20,6 +20,6 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Build
-        run: dotnet build --configuration Release
+        run: dotnet build --configuration Release src/Interprocess.sln
       - name: Test
         run: dotnet test --no-restore --verbosity normal
