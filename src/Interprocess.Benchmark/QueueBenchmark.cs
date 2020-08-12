@@ -6,11 +6,14 @@ using System.Threading.Tasks;
 namespace Cloudtoid.Interprocess.Benchmark
 {
     [SimpleJob(RuntimeMoniker.NetCoreApp31)]
-    public class QueueThroughputBenchmark
+    public class QueueBenchmark
     {
         private static readonly byte[] message = new byte[50];
-        private IPublisher? publisher;
-        private ISubscriber? subscriber;
+        private static readonly byte[] messageBuffer = new byte[message.Length];
+#pragma warning disable CS8618
+        private IPublisher publisher;
+        private ISubscriber subscriber;
+#pragma warning restore CS8618
 
         [GlobalSetup]
         public void Setup()
@@ -30,18 +33,18 @@ namespace Cloudtoid.Interprocess.Benchmark
         [Benchmark]
         public async Task<ReadOnlyMemory<byte>> EnqueueDequeue_LongMessage()
         {
-            publisher!.TryEnqueue(message, default);
-            return await subscriber!.DequeueAsync(default);
+            publisher.TryEnqueue(message);
+            return await subscriber.DequeueAsync(messageBuffer, default);
         }
 
         // when a message is wrapped in the circular buffer
         [Benchmark]
         public async Task<ReadOnlyMemory<byte>> EnqueueDequeue_WrappedMessages()
         {
-            publisher!.TryEnqueue(message, default);
-            await subscriber!.DequeueAsync(default);
-            publisher!.TryEnqueue(message, default);
-            return await subscriber!.DequeueAsync(default);
+            publisher.TryEnqueue(message);
+            await subscriber.DequeueAsync(messageBuffer, default);
+            publisher.TryEnqueue(message);
+            return await subscriber.DequeueAsync(messageBuffer, default);
         }
     }
 }

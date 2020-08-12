@@ -22,12 +22,19 @@ namespace Cloudtoid.Interprocess.Tests
 
             using (var server = new SemaphoreReleaser(defaultIdentifier, TestUtils.Logger))
             {
-                await server.ReleaseAsync(default);
+                server.Release();
             }
 
             using (var server = new SemaphoreReleaser(defaultIdentifier, TestUtils.Logger))
             {
-                await server.ReleaseAsync(default);
+                server.Release();
+                await Task.Delay(500);
+            }
+
+            using (var server = new SemaphoreReleaser(defaultIdentifier, TestUtils.Logger))
+            {
+                await Task.Delay(500);
+                server.Release();
                 await Task.Delay(500);
             }
         }
@@ -67,7 +74,7 @@ namespace Cloudtoid.Interprocess.Tests
             var start = DateTime.Now;
             for (int i = 0; i < Count; i++)
             {
-                await server.ReleaseAsync(default);
+                server.Release();
 
                 client1.WaitOne(1000).Should().BeTrue();
                 client2.WaitOne(1000).Should().BeTrue();
@@ -94,7 +101,7 @@ namespace Cloudtoid.Interprocess.Tests
             var start = DateTime.Now;
             for (int i = 0; i < Count; i++)
             {
-                await server.ReleaseAsync(default);
+                server.Release();
                 client1.WaitOne(1000).Should().BeTrue();
             }
             Console.WriteLine("Send and receive latency - " + ((DateTime.Now - start).TotalMilliseconds / Count));
@@ -122,7 +129,7 @@ namespace Cloudtoid.Interprocess.Tests
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
 
-            await server.ReleaseAsync(default);
+            server.Release();
 
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
@@ -134,7 +141,7 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(50).Should().BeFalse();
             client3.WaitOne(50).Should().BeFalse();
 
-            await server.ReleaseAsync(default);
+            server.Release();
 
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
@@ -156,13 +163,13 @@ namespace Cloudtoid.Interprocess.Tests
             }
 
             await WaitForClientCount(server, Count);
-            await server.ReleaseAsync(default);
+            server.Release();
 
             for (int i = 0; i < Count; i++)
                 clients[i].Dispose();
 
             while (server.ClientCount > 0)
-                await server.ReleaseAsync(default);
+                server.Release();
         }
 
         [Fact]
@@ -174,26 +181,26 @@ namespace Cloudtoid.Interprocess.Tests
 
             await WaitForClientCount(server1, 2);
 
-            await server1.ReleaseAsync(default);
+            server1.Release();
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
 
             using var server2 = new SemaphoreReleaser(defaultIdentifier, TestUtils.Logger);
             await WaitForClientCount(server2, 2);
 
-            await server1.ReleaseAsync(default);
+            server1.Release();
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
 
-            await server2.ReleaseAsync(default);
+            server2.Release();
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
 
-            await server1.ReleaseAsync(default);
-            await server2.ReleaseAsync(default);
+            server1.Release();
+            server2.Release();
             client1.WaitOne(1000).Should().BeTrue();
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
@@ -219,7 +226,7 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(50).Should().BeFalse();
 
             var start = DateTime.Now;
-            await server1.ReleaseAsync(default);
+            server1.Release();
 
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
@@ -229,7 +236,7 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(50).Should().BeFalse();
 
             start = DateTime.Now;
-            await server1.ReleaseAsync(default);
+            server1.Release();
 
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
@@ -243,7 +250,7 @@ namespace Cloudtoid.Interprocess.Tests
             client3.WaitOne(50).Should().BeFalse();
 
             start = DateTime.Now;
-            await server1.ReleaseAsync(default);
+            server1.Release();
 
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
@@ -258,7 +265,7 @@ namespace Cloudtoid.Interprocess.Tests
             client3.WaitOne(50).Should().BeFalse();
 
             start = DateTime.Now;
-            await server2.ReleaseAsync(default);
+            server2.Release();
 
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
@@ -272,7 +279,7 @@ namespace Cloudtoid.Interprocess.Tests
             start = DateTime.Now;
             for (int i = 0; i < 10000; i++)
             {
-                await server1.ReleaseAsync(default);
+                server1.Release();
 
                 client1.WaitOne(1000).Should().BeTrue();
                 client2.WaitOne(1000).Should().BeTrue();
@@ -285,8 +292,8 @@ namespace Cloudtoid.Interprocess.Tests
             client3.WaitOne(50).Should().BeFalse();
 
             start = DateTime.Now;
-            await server1.ReleaseAsync(default);
-            await server1.ReleaseAsync(default);
+            server1.Release();
+            server1.Release();
 
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
@@ -298,8 +305,8 @@ namespace Cloudtoid.Interprocess.Tests
             Console.WriteLine("Signal 6 - " + (DateTime.Now - start).TotalMilliseconds);
 
             start = DateTime.Now;
-            await server1.ReleaseAsync(default);
-            await server2.ReleaseAsync(default);
+            server1.Release();
+            server2.Release();
 
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
@@ -316,20 +323,6 @@ namespace Cloudtoid.Interprocess.Tests
 
             Console.WriteLine("Disposing all");
         }
-
-        //        [Fact] 
-        //public async Task UnixSignalTests()
-        //{
-        //    using (var semaphore = new UnixSemaphore(defaultIdentifier))
-        //    {
-        //        semaphore.WaitOne(50).Should().BeFalse();
-
-        //        await semaphore.ReleaseAsync(default);
-
-        //        semaphore.WaitOne(5000).Should().BeTrue();
-        //        semaphore.WaitOne(50).Should().BeFalse();
-        //    }
-        //}
 
         private static async Task WaitForClientCount(SemaphoreReleaser server, int count)
         {

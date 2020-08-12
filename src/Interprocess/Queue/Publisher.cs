@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess
 {
@@ -21,9 +20,7 @@ namespace Cloudtoid.Interprocess
             base.Dispose();
         }
 
-        public unsafe bool TryEnqueue(
-            ReadOnlySpan<byte> message,
-            CancellationToken cancellation)
+        public unsafe bool TryEnqueue(ReadOnlySpan<byte> message)
         {
             var bodyLength = message.Length;
             while (true)
@@ -62,7 +59,7 @@ namespace Cloudtoid.Interprocess
                     }
 
                     // signal the next receiver that there is a new message in the queue
-                    signal.ReleaseAsync(cancellation).Wait();
+                    signal.Release();
                     return true;
                 }
             }
