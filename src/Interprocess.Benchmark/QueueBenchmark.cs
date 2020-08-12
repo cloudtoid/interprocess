@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess.Benchmark
 {
+    [SimpleJob(RuntimeMoniker.NetCoreApp50)]
     [SimpleJob(RuntimeMoniker.NetCoreApp31)]
     public class QueueBenchmark
     {
