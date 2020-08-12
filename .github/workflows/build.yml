@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup .NET 3.1.x
+      - name: Setup .NET Core 3.1.x
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: '3.1.x'
@@ -24,4 +24,4 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release src/Interprocess.sln
       - name: Test
-        run: dotnet test --no-build --verbosity normal src/Interprocess.sln
+        run: dotnet test --no-restore --verbosity normal src/Interprocess.sln
