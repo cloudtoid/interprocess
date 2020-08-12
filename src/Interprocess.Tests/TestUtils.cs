@@ -4,10 +4,10 @@ namespace Cloudtoid.Interprocess.Tests
 {
     internal static class TestUtils
     {
-        internal static ILogger<IQueueFactory> Logger { get; }
-            = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<QueueFactory>();
+        internal static ILoggerFactory LoggerFactory { get; }
+            = Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddConsole());
 
         internal static IQueueFactory QueueFactory { get; }
-            = new QueueFactory(Logger);
+            = new QueueFactory(LoggerFactory);
     }
 }

@@ -11,11 +11,11 @@ namespace Cloudtoid.Interprocess.Memory.Unix
         private const string FileExtension = ".qu";
         private readonly string filePath;
         private readonly bool mustDeleteFileOnDispose;
-        private readonly ILogger logger;
+        private readonly ILogger<UnixMemoryFile> logger;
 
-        internal UnixMemoryFile(QueueOptions options, ILogger logger)
+        internal UnixMemoryFile(QueueOptions options, ILoggerFactory loggerFactory)
         {
-            this.logger = logger;
+            logger = loggerFactory.CreateLogger<UnixMemoryFile>();
             filePath = Path.Combine(options.Path, Folder);
             Directory.CreateDirectory(filePath);
             filePath = Path.Combine(filePath, options.QueueName + FileExtension);

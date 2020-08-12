@@ -83,7 +83,10 @@ namespace Cloudtoid.Interprocess
         /// <summary>
         /// Logs a critical error and then crashes the process
         /// </summary>
-        internal static void FailFast(this ILogger logger, string message, Exception exception)
+        internal static void FailFast<TCategoryName>(
+            this ILogger<TCategoryName> logger,
+            string message,
+            Exception exception)
         {
             logger.LogCritical(exception, message);
             Environment.FailFast(message);

@@ -16,12 +16,14 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly AutoResetEvent releaseSignal = new AutoResetEvent(false);
         private readonly string filePath;
-        private readonly ILogger logger;
+        private readonly ILoggerFactory loggerFactory;
+        private readonly ILogger<SemaphoreReleaser> logger;
         private Socket?[] clients = Array.Empty<Socket>();
 
-        internal SemaphoreReleaser(SharedAssetsIdentifier identifier, ILogger logger)
+        internal SemaphoreReleaser(SharedAssetsIdentifier identifier, ILoggerFactory loggerFactory)
         {
-            this.logger = logger;
+            this.loggerFactory = loggerFactory;
+            logger = loggerFactory.CreateLogger<SemaphoreReleaser>();
 
             filePath = Util.CreateShortUniqueFileName(
                 identifier.Path,
@@ -66,7 +68,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
             try
             {
-                server = new UnixDomainSocketServer(filePath, logger);
+                server = new UnixDomainSocketServer(filePath, loggerFactory);
                 while (!cancellation.IsCancellationRequested)
                 {
                     try
@@ -78,7 +80,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     {
                         logger.LogError(se, "Accepting a Unix Domain Socket connection failed unexpectedly.");
                         server.Dispose();
-                        server = new UnixDomainSocketServer(filePath, logger);
+                        server = new UnixDomainSocketServer(filePath, loggerFactory);
                     }
                 }
             }

@@ -43,7 +43,7 @@ namespace Cloudtoid.Interprocess.Tests
             using var cancelled = new ManualResetEventSlim();
 
             Task task;
-            using (var server = new UnixDomainSocketServer(file, TestUtils.Logger))
+            using (var server = new UnixDomainSocketServer(file, TestUtils.LoggerFactory))
             {
                 task = Task.Run(() => AcceptLoop(server, s => connections.Add(s), () => cancelled.Set(), source.Token));
 
@@ -86,7 +86,7 @@ namespace Cloudtoid.Interprocess.Tests
 
             using (var source = new CancellationTokenSource())
             using (var cancelled = new ManualResetEventSlim())
-            using (var server = new UnixDomainSocketServer(file, TestUtils.Logger))
+            using (var server = new UnixDomainSocketServer(file, TestUtils.LoggerFactory))
             {
                 source.Cancel();
                 AcceptLoop(server, s => { }, () => cancelled.Set(), source.Token);
@@ -95,7 +95,7 @@ namespace Cloudtoid.Interprocess.Tests
 
             using (var source = new CancellationTokenSource())
             using (var cancelled = new ManualResetEventSlim())
-            using (var server = new UnixDomainSocketServer(file, TestUtils.Logger))
+            using (var server = new UnixDomainSocketServer(file, TestUtils.LoggerFactory))
             {
                 source.CancelAfter(200);
                 AcceptLoop(server, s => { }, () => cancelled.Set(), source.Token);
@@ -104,7 +104,7 @@ namespace Cloudtoid.Interprocess.Tests
 
             using (var source = new CancellationTokenSource())
             using (var cancelled = new ManualResetEventSlim())
-            using (var server = new UnixDomainSocketServer(file, TestUtils.Logger))
+            using (var server = new UnixDomainSocketServer(file, TestUtils.LoggerFactory))
             {
                 source.CancelAfter(1000);
                 AcceptLoop(server, s => { }, () => cancelled.Set(), source.Token);
@@ -122,7 +122,7 @@ namespace Cloudtoid.Interprocess.Tests
             using (var source = new CancellationTokenSource())
             using (var source2 = new CancellationTokenSource())
             using (var cancelled = new ManualResetEventSlim())
-            using (var server = new UnixDomainSocketServer(file, TestUtils.Logger))
+            using (var server = new UnixDomainSocketServer(file, TestUtils.LoggerFactory))
             {
                 source.Cancel();
                 AcceptLoop(server, s => { }, () => cancelled.Set(), source.Token);
@@ -146,7 +146,7 @@ namespace Cloudtoid.Interprocess.Tests
         public void ServerCreatesFile()
         {
             var file = GetRandomNonExistingFilePath();
-            using (new UnixDomainSocketServer(file, TestUtils.Logger))
+            using (new UnixDomainSocketServer(file, TestUtils.LoggerFactory))
             {
                 File.Exists(file).Should().BeTrue();
             }
@@ -156,7 +156,7 @@ namespace Cloudtoid.Interprocess.Tests
         public void ClientDoesNotCreateFile()
         {
             var file = GetRandomNonExistingFilePath();
-            using (new UnixDomainSocketClient(file, TestUtils.Logger))
+            using (new UnixDomainSocketClient(file, TestUtils.LoggerFactory))
             {
                 File.Exists(file).Should().BeFalse();
             }
@@ -166,7 +166,7 @@ namespace Cloudtoid.Interprocess.Tests
         public async Task ClientUnableToConnectWithoutServer()
         {
             var file = GetRandomNonExistingFilePath();
-            using (var client = new UnixDomainSocketClient(file, TestUtils.Logger))
+            using (var client = new UnixDomainSocketClient(file, TestUtils.LoggerFactory))
             {
                 Func<Task<int>> action = async () => await client.ReceiveAsync(new byte[1], default);
                 var ex = await action.Should().ThrowAsync<SocketException>();
@@ -181,8 +181,8 @@ namespace Cloudtoid.Interprocess.Tests
             var file = GetRandomNonExistingFilePath();
             var endpoint = new UnixDomainSocketEndPoint(file);
 
-            using (var server = new UnixDomainSocketServer(file, TestUtils.Logger))
-            using (var client = new UnixDomainSocketClient(file, TestUtils.Logger))
+            using (var server = new UnixDomainSocketServer(file, TestUtils.LoggerFactory))
+            using (var client = new UnixDomainSocketClient(file, TestUtils.LoggerFactory))
             {
                 Socket socket;
                 var task = Task.Run(async () =>

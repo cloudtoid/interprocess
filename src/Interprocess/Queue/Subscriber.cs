@@ -13,10 +13,10 @@ namespace Cloudtoid.Interprocess
         private const long ReadyToBeConsumed = (long)MessageState.ReadyToBeConsumed;
         private readonly IInterprocessSemaphoreWaiter signal;
 
-        internal Subscriber(QueueOptions options, ILogger logger)
-            : base(options, logger)
+        internal Subscriber(QueueOptions options, ILoggerFactory loggerFactory)
+            : base(options, loggerFactory)
         {
-            signal = InterprocessSemaphore.CreateWaiter(identifier, logger);
+            signal = InterprocessSemaphore.CreateWaiter(identifier, loggerFactory);
         }
 
         public override void Dispose()

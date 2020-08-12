@@ -10,15 +10,15 @@ namespace Cloudtoid.Interprocess.DomainSocket
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly string file;
         private readonly Socket socket;
-        private readonly ILogger logger;
+        private readonly ILogger<UnixDomainSocketServer> logger;
 
         internal UnixDomainSocketServer(
             string file,
-            ILogger logger,
+            ILoggerFactory loggerFactory,
             int connectionQueueSize = 100)
         {
             this.file = file;
-            this.logger = logger;
+            logger = loggerFactory.CreateLogger<UnixDomainSocketServer>();
             socket = Util.CreateUnixDomainSocket(blocking: false);
             socket.Bind(Util.CreateUnixDomainSocketEndPoint(file));
             socket.Listen(connectionQueueSize);

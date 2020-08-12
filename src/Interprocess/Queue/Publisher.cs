@@ -8,10 +8,10 @@ namespace Cloudtoid.Interprocess
     {
         private readonly IInterprocessSemaphoreReleaser signal;
 
-        internal Publisher(QueueOptions options, ILogger logger)
-            : base(options, logger)
+        internal Publisher(QueueOptions options, ILoggerFactory loggerFactory)
+            : base(options, loggerFactory)
         {
-            signal = InterprocessSemaphore.CreateReleaser(identifier, logger);
+            signal = InterprocessSemaphore.CreateReleaser(identifier, loggerFactory);
         }
 
         public override void Dispose()

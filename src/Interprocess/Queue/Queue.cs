@@ -9,19 +9,19 @@ namespace Cloudtoid.Interprocess
         private readonly MemoryView view;
         protected readonly CircularBuffer buffer;
         protected readonly SharedAssetsIdentifier identifier;
-        protected readonly ILogger logger;
+        protected readonly ILogger<Queue> logger;
 
-        protected unsafe Queue(QueueOptions options, ILogger logger)
+        protected unsafe Queue(QueueOptions options, ILoggerFactory loggerFactory)
         {
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
-            this.logger = logger;
+            logger = loggerFactory.CreateLogger<Queue>();
             identifier = new SharedAssetsIdentifier(
                 options.QueueName,
                 Util.GetAbsolutePath(options.Path));
 
-            view = new MemoryView(options, logger);
+            view = new MemoryView(options, loggerFactory);
             try
             {
                 buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);

@@ -26,15 +26,17 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private readonly SysSemaphoree semaphore = new SysSemaphoree(0, int.MaxValue);
         private readonly ManualResetEvent stoppedWaitHandle = new ManualResetEvent(false);
         private readonly SharedAssetsIdentifier identifier;
-        private readonly ILogger logger;
+        private readonly ILoggerFactory loggerFactory;
+        private readonly ILogger<SemaphoreWaiter> logger;
         private FileSystemWatcher? watcher;
 
         internal SemaphoreWaiter(
             SharedAssetsIdentifier identifier,
-            ILogger logger)
+            ILoggerFactory loggerFactory)
         {
             this.identifier = identifier;
-            this.logger = logger;
+            this.loggerFactory = loggerFactory;
+            logger = loggerFactory.CreateLogger<SemaphoreWaiter>();
 
             StartClients();
             StartFileWatcher();
@@ -129,7 +131,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     // new clients to add
                     foreach (var add in files.Where(f => !clients.ContainsKey(f)))
                     {
-                        var client = new UnixDomainSocketClient(add, this.logger);
+                        var client = new UnixDomainSocketClient(add, loggerFactory);
                         clients.Add(add, client);
                         logger.LogInformation($"A Unix Domain Socket server for '{add}' is discovered and a client is created for it.");
                         Task.Run(() => ReceiveAsync(client, cancellation), cancellation);

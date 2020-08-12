@@ -5,22 +5,22 @@ namespace Cloudtoid.Interprocess
 {
     public sealed class QueueFactory : IQueueFactory
     {
-        private readonly ILogger<IQueueFactory> logger;
+        private readonly ILoggerFactory loggerFactory;
 
         public QueueFactory()
         {
-            logger = NullLogger<IQueueFactory>.Instance;
+            loggerFactory = NullLoggerFactory.Instance;
         }
 
-        public QueueFactory(ILogger<IQueueFactory> logger)
+        public QueueFactory(ILoggerFactory loggerFactory)
         {
-            this.logger = logger ?? NullLogger<IQueueFactory>.Instance;
+            this.loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         }
 
         public IPublisher CreatePublisher(QueueOptions options)
-            => new Publisher(options, logger);
+            => new Publisher(options, loggerFactory);
 
         public ISubscriber CreateSubscriber(QueueOptions options)
-            => new Subscriber(options, logger);
+            => new Subscriber(options, loggerFactory);
     }
 }

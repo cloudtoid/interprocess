@@ -12,10 +12,10 @@ namespace Cloudtoid.Interprocess
         private readonly IMemoryFile file;
         private readonly MemoryMappedViewAccessor view;
 
-        internal unsafe MemoryView(QueueOptions options, ILogger logger)
+        internal unsafe MemoryView(QueueOptions options, ILoggerFactory loggerFactory)
         {
             file = Util.IsUnixBased
-                ? new UnixMemoryFile(options, logger)
+                ? new UnixMemoryFile(options, loggerFactory)
                 : (IMemoryFile)new WindowsMemoryFile(options);
 
             try

@@ -29,12 +29,12 @@ namespace Cloudtoid.Interprocess
     {
         internal static IInterprocessSemaphoreWaiter CreateWaiter(
             SharedAssetsIdentifier identifier,
-            ILogger logger)
+            ILoggerFactory loggerFactory)
         {
             if (Util.IsUnixBased)
             {
                 identifier = CreateUnixIdentifier(identifier);
-                return new SemaphoreWaiter(identifier, logger);
+                return new SemaphoreWaiter(identifier, loggerFactory);
             }
 
             return new WinSemaphore(identifier);
@@ -42,12 +42,12 @@ namespace Cloudtoid.Interprocess
 
         internal static IInterprocessSemaphoreReleaser CreateReleaser(
             SharedAssetsIdentifier identifier,
-            ILogger logger)
+            ILoggerFactory loggerFactory)
         {
             if (Util.IsUnixBased)
             {
                 identifier = CreateUnixIdentifier(identifier);
-                return new SemaphoreReleaser(identifier, logger);
+                return new SemaphoreReleaser(identifier, loggerFactory);
             }
 
             return new WinSemaphore(identifier);

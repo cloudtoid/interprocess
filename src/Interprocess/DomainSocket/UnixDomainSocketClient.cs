@@ -13,13 +13,13 @@ namespace Cloudtoid.Interprocess.DomainSocket
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly UnixDomainSocketEndPoint endpoint;
         private readonly string file;
-        private readonly ILogger logger;
+        private readonly ILogger<UnixDomainSocketClient> logger;
         private Socket? socket;
 
-        internal UnixDomainSocketClient(string file, ILogger logger)
+        internal UnixDomainSocketClient(string file, ILoggerFactory loggerFactory)
         {
             this.file = file;
-            this.logger = logger;
+            logger = loggerFactory.CreateLogger<UnixDomainSocketClient>();
             endpoint = Util.CreateUnixDomainSocketEndPoint(file);
             socket = Util.CreateUnixDomainSocket(blocking: false);
         }
