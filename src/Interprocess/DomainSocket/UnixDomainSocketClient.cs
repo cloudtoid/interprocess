@@ -52,7 +52,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
             {
                 if (!socket.Connected)
                 {
-                    logger.LogInformation("Disposing a Unix Domain Socket because it is no longer connected.");
+                    logger.LogInformation($"Disposing a Unix Domain Socket because it is no longer connected. Endpoint = {socket.LocalEndPoint} {socket.RemoteEndPoint}");
                     Interlocked.CompareExchange(ref this.socket, null, socket).SafeDispose();
                 }
             }
