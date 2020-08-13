@@ -160,10 +160,7 @@ namespace Cloudtoid.Interprocess.Tests
             var clients = new SemaphoreWaiter[Count];
 
             for (int i = 0; i < Count; i++)
-            {
-                Console.WriteLine(i);
                 clients[i] = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
-            }
 
             await WaitForClientCount(server, Count);
             server.Release();
