@@ -174,6 +174,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
                 if (!client.Connected)
                 {
+                    logger.LogError(ex, "Client is no longer connected.");
                     clients[i] = null;
                     client.SafeDispose();
                 }
