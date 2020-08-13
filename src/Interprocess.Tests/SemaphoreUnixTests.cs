@@ -89,7 +89,6 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanReceiveSignalsAtDifferentPaces()
         {
-            TestUtils.LoggerFactory.CreateLogger("test").LogInformation("CanReceiveSignalsAtDifferentPaces - begin");
             using var server = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory);
             using var client1 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
             using var client2 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
@@ -117,7 +116,6 @@ namespace Cloudtoid.Interprocess.Tests
             Console.WriteLine("Receive latency - " + ((DateTime.Now - start).TotalMilliseconds / Count));
 
             client2.WaitOne(50).Should().BeFalse();
-            TestUtils.LoggerFactory.CreateLogger("test").LogInformation("CanReceiveSignalsAtDifferentPaces - end");
         }
 
         [Fact]
@@ -178,6 +176,7 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanSupporrtMultipleServersAndClients()
         {
+            TestUtils.LoggerFactory.CreateLogger("test").LogInformation("CanSupporrtMultipleServersAndClients - begin");
             using var server1 = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory);
             using var client1 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
             using var client2 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
@@ -211,6 +210,7 @@ namespace Cloudtoid.Interprocess.Tests
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
+            TestUtils.LoggerFactory.CreateLogger("test").LogInformation("CanSupporrtMultipleServersAndClients - end");
         }
 
         // this is complex test that sends and receives many times in a variety
