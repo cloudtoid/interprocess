@@ -50,7 +50,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
         public void Dispose()
         {
-            logger.LogInformation("Disposing " + nameof(SemaphoreWaiter));
+            logger.LogInformation("Disposing " + nameof(SemaphoreWaiter) + Environment.NewLine + Environment.StackTrace);
             StopFileWatcher();
             cancellationSource.Cancel();
             clientsLoopThread.Join();
