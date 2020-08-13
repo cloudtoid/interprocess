@@ -227,7 +227,7 @@ namespace Cloudtoid.Interprocess.Tests
             string result;
             do
             {
-                result = Path.GetRandomFileName();
+                result = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             }
             while (File.Exists(result));
 
