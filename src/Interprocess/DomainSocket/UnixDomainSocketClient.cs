@@ -69,12 +69,12 @@ namespace Cloudtoid.Interprocess.DomainSocket
             }
             catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
             {
-                logger.LogInformation(se, "Reading from a Unix Domain Socket was cancelled.");
+                logger.LogInformation("Reading from a Unix Domain Socket was cancelled.");
                 throw new OperationCanceledException();
             }
-            catch (OperationCanceledException oce)
+            catch (OperationCanceledException)
             {
-                logger.LogInformation(oce, "Reading from a Unix Domain Socket was cancelled.");
+                logger.LogInformation("Reading from a Unix Domain Socket was cancelled.");
                 throw;
             }
             catch (Exception ex)
@@ -125,12 +125,12 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 }
                 catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
                 {
-                    logger.LogInformation(se, "Connecting to a Unix Domain Socket was cancelled.");
+                    logger.LogInformation("Connecting to a Unix Domain Socket was cancelled.");
                     throw new OperationCanceledException();
                 }
-                catch (OperationCanceledException oce)
+                catch (OperationCanceledException)
                 {
-                    logger.LogInformation(oce, "Connecting to a Unix Domain Socket was cancelled.");
+                    logger.LogInformation("Connecting to a Unix Domain Socket was cancelled.");
                     throw;
                 }
                 catch (Exception ex)
