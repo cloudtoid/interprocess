@@ -43,19 +43,12 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         internal int ClientCount
             => clients.Count(c => c != null);
 
-        ~SemaphoreReleaser()
-        {
-            logger.LogError($"Make sure to call Dispose for {nameof(SemaphoreReleaser)}");
-            cancellationSource.Cancel();
-        }
-
         public void Dispose()
         {
             logger.LogInformation("Disposing " + nameof(SemaphoreReleaser));
             cancellationSource.Cancel();
             connectionAcceptThread.Join();
             releaseLoopThread.Join();
-            GC.SuppressFinalize(this);
         }
 
         public void Release()
@@ -89,7 +82,6 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     try
                     {
                         var client = server.Accept(cancellation);
-                        logger.LogInformation("Accepted a Unix Domain Socket connection.");
                         clients = clients.Concat(new[] { client }).Where(c => c != null).ToArray();
                     }
                     catch (SocketException se)
@@ -183,16 +175,11 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 clients[i] = null;
                 client.SafeDispose();
             }
-            catch (Exception ex)
+            catch when (!client.Connected)
             {
-                logger.LogError(ex, $"Sending a message to a Unix Domain Socket failed. Endpoint = {filePath}");
-
-                if (!client.Connected)
-                {
-                    logger.LogError("Client is no longer connected.");
-                    clients[i] = null;
-                    client.SafeDispose();
-                }
+                logger.LogError($"Client is no longer connected to this '{filePath}' Unix Domain Socket server.");
+                clients[i] = null;
+                client.SafeDispose();
             }
         }
     }
