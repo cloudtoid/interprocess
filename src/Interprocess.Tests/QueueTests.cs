@@ -1,18 +1,22 @@
 ﻿using FluentAssertions;
-using System;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Xunit;
 
 namespace Cloudtoid.Interprocess.Tests
 {
-    public class QueueTests
+    public class QueueTests : IClassFixture<UniqueIdentifierFixture>
     {
-        private const string DefaultQueueName = "qn";
         private static readonly byte[] byteArray1 = new byte[] { 100, };
         private static readonly byte[] byteArray2 = new byte[] { 100, 110 };
         private static readonly byte[] byteArray3 = new byte[] { 100, 110, 120 };
         private static readonly byte[] byteArray50 = Enumerable.Range(1, 50).Select(i => (byte)i).ToArray();
+        private readonly UniqueIdentifierFixture fixture;
+
+        public QueueTests(UniqueIdentifierFixture fixture)
+        {
+            this.fixture = fixture;
+        }
 
         [Fact]
         public async Task CanEnqueueAndDequeue()
@@ -92,12 +96,12 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
-        private static IPublisher CreatePublisher(long capacity, bool createOrOverride = false)
+        private IPublisher CreatePublisher(long capacity, bool createOrOverride = false)
             => TestUtils.QueueFactory.CreatePublisher(
-                new QueueOptions(DefaultQueueName, Path.GetTempPath(), capacity, createOrOverride));
+                new QueueOptions(fixture.Identifier.Name, fixture.Identifier.Path, capacity, createOrOverride));
 
-        private static ISubscriber CreateSubscriber(long capacity, bool createOrOverride = false)
+        private ISubscriber CreateSubscriber(long capacity, bool createOrOverride = false)
             => TestUtils.QueueFactory.CreateSubscriber(
-                new QueueOptions(DefaultQueueName, Path.GetTempPath(), capacity, createOrOverride));
+                new QueueOptions(fixture.Identifier.Name, fixture.Identifier.Path, capacity, createOrOverride));
     }
 }

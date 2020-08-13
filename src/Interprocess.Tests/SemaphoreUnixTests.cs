@@ -1,38 +1,40 @@
 ﻿using Cloudtoid.Interprocess.Semaphore.Unix;
 using FluentAssertions;
-using Microsoft.Extensions.Logging;
 using System;
-using System.IO;
 using System.Threading.Tasks;
+using Xunit;
 
 namespace Cloudtoid.Interprocess.Tests
 {
-    public class SemaphoreUnixTests
+    public class SemaphoreUnixTests : IClassFixture<UniqueIdentifierFixture>
     {
-        private const string DefaultQueueName = "qn";
-        private static readonly string path = Path.GetTempPath();
-        private static readonly SharedAssetsIdentifier defaultIdentifier = new SharedAssetsIdentifier(DefaultQueueName, path);
+        private readonly UniqueIdentifierFixture fixture;
+
+        public SemaphoreUnixTests(UniqueIdentifierFixture fixture)
+        {
+            this.fixture = fixture;
+        }
 
         [Fact]
         public async Task CanDisposeUnixServer()
         {
             // simple create and dispose
-            using (new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory))
+            using (new SemaphoreReleaser(fixture.Identifier, TestUtils.LoggerFactory))
             {
             }
 
-            using (var server = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory))
+            using (var server = new SemaphoreReleaser(fixture.Identifier, TestUtils.LoggerFactory))
             {
                 server.Release();
             }
 
-            using (var server = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory))
+            using (var server = new SemaphoreReleaser(fixture.Identifier, TestUtils.LoggerFactory))
             {
                 server.Release();
                 await Task.Delay(500);
             }
 
-            using (var server = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory))
+            using (var server = new SemaphoreReleaser(fixture.Identifier, TestUtils.LoggerFactory))
             {
                 await Task.Delay(500);
                 server.Release();
@@ -44,16 +46,16 @@ namespace Cloudtoid.Interprocess.Tests
         public void CanDisposeUnixClient()
         {
             // simple create and dispose
-            using (new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory))
+            using (new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory))
             {
             }
 
-            using (var client = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory))
+            using (var client = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory))
             {
                 client.WaitOne(50).Should().BeFalse();
             }
 
-            using (var client = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory))
+            using (var client = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory))
             {
                 client.WaitOne(500).Should().BeFalse();
             }
@@ -62,9 +64,9 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanSignalMultipleClients()
         {
-            using var server = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory);
-            using var client1 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
-            using var client2 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
+            using var server = new SemaphoreReleaser(fixture.Identifier, TestUtils.LoggerFactory);
+            using var client1 = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
+            using var client2 = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
 
             await WaitForClientCount(server, 2);
 
@@ -89,9 +91,9 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanReceiveSignalsAtDifferentPaces()
         {
-            using var server = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory);
-            using var client1 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
-            using var client2 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
+            using var server = new SemaphoreReleaser(fixture.Identifier, TestUtils.LoggerFactory);
+            using var client1 = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
+            using var client2 = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
 
             await WaitForClientCount(server, 2);
 
@@ -121,9 +123,9 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanAddClientLater()
         {
-            using var server = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory);
-            using var client1 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
-            using var client2 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
+            using var server = new SemaphoreReleaser(fixture.Identifier, TestUtils.LoggerFactory);
+            using var client1 = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
+            using var client2 = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
 
             await WaitForClientCount(server, 2);
 
@@ -135,7 +137,7 @@ namespace Cloudtoid.Interprocess.Tests
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
 
-            using var client3 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
+            using var client3 = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
             await WaitForClientCount(server, 3);
 
             client1.WaitOne(50).Should().BeFalse();
@@ -154,13 +156,13 @@ namespace Cloudtoid.Interprocess.Tests
         {
             const int Count = 20;
 
-            using var server = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory);
+            using var server = new SemaphoreReleaser(fixture.Identifier, TestUtils.LoggerFactory);
             var clients = new SemaphoreWaiter[Count];
 
             for (int i = 0; i < Count; i++)
             {
                 Console.WriteLine(i);
-                clients[i] = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
+                clients[i] = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
             }
 
             await WaitForClientCount(server, Count);
@@ -176,9 +178,9 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanSupporrtMultipleServersAndClients()
         {
-            using var server1 = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory);
-            using var client1 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
-            using var client2 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
+            using var server1 = new SemaphoreReleaser(fixture.Identifier, TestUtils.LoggerFactory);
+            using var client1 = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
+            using var client2 = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
 
             await WaitForClientCount(server1, 2);
 
@@ -186,7 +188,7 @@ namespace Cloudtoid.Interprocess.Tests
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
 
-            using var server2 = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory);
+            using var server2 = new SemaphoreReleaser(fixture.Identifier, TestUtils.LoggerFactory);
             await WaitForClientCount(server2, 2);
 
             server1.Release();
@@ -217,9 +219,9 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public async Task CanPerformManyActions()
         {
-            using var server1 = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory);
-            using var client1 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
-            using var client2 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
+            using var server1 = new SemaphoreReleaser(fixture.Identifier, TestUtils.LoggerFactory);
+            using var client1 = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
+            using var client2 = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
 
             await WaitForClientCount(server1, 2);
 
@@ -243,7 +245,7 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(1000).Should().BeTrue();
             Console.WriteLine("Signal 2 - " + (DateTime.Now - start).TotalMilliseconds);
 
-            using var client3 = new SemaphoreWaiter(defaultIdentifier, TestUtils.LoggerFactory);
+            using var client3 = new SemaphoreWaiter(fixture.Identifier, TestUtils.LoggerFactory);
             await WaitForClientCount(server1, 3);
 
             client1.WaitOne(50).Should().BeFalse();
@@ -258,7 +260,7 @@ namespace Cloudtoid.Interprocess.Tests
             client3.WaitOne(1000).Should().BeTrue();
             Console.WriteLine("Signal 3 - " + (DateTime.Now - start).TotalMilliseconds);
 
-            using var server2 = new SemaphoreReleaser(defaultIdentifier, TestUtils.LoggerFactory);
+            using var server2 = new SemaphoreReleaser(fixture.Identifier, TestUtils.LoggerFactory);
             await WaitForClientCount(server2, 3);
 
             client1.WaitOne(50).Should().BeFalse();

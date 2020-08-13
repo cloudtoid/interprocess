@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cloudtoid.Interprocess.DomainSocket;
 using Microsoft.Extensions.Logging;
-using SysSemaphore = System.Threading.Semaphore;
 
 namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
