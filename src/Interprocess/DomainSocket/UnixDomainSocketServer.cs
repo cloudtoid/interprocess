@@ -18,8 +18,8 @@ namespace Cloudtoid.Interprocess.DomainSocket
             int connectionQueueSize = 100)
         {
             this.file = file;
-            logger.LogDebug($"Creating a domain socket server - {file}");
             logger = loggerFactory.CreateLogger<UnixDomainSocketServer>();
+            logger.LogDebug($"Creating a domain socket server - {file}");
             socket = Util.CreateUnixDomainSocket(blocking: false);
 
             try
