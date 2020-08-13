@@ -26,7 +26,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
         public void Dispose()
         {
-            logger.LogDebug("Disposing a domain socket client");
+            logger.LogInformation($"Disposing a domain socket client - {file}");
             cancellationSource.Cancel();
             Interlocked.Exchange(ref socket, null).SafeDispose();
         }
@@ -52,7 +52,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
             {
                 if (!socket.Connected)
                 {
-                    logger.LogInformation($"Disposing a Unix Domain Socket because it is no longer connected. Endpoint = {socket.LocalEndPoint} {socket.RemoteEndPoint}");
+                    logger.LogInformation($"Disposing a Unix Domain Socket because it is no longer connected. Endpoint = {file}. IsCancelled = {source.Token.IsCancellationRequested}");
                     Interlocked.CompareExchange(ref this.socket, null, socket).SafeDispose();
                 }
             }
