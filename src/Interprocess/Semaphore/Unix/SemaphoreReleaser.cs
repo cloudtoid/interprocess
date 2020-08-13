@@ -179,7 +179,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Sending a message to a Unix Domain Socket failed.");
+                logger.LogError(ex, $"Sending a message to a Unix Domain Socket failed. {client.RemoteEndPoint}");
 
                 if (!client.Connected)
                 {
