@@ -43,11 +43,19 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         internal int ClientCount
             => clients.Count(c => c != null);
 
+        ~SemaphoreReleaser()
+        {
+            logger.LogError($"Make sure to call Dispose for {nameof(SemaphoreReleaser)}");
+            cancellationSource.Cancel();
+        }
+
         public void Dispose()
         {
+            logger.LogInformation("Disposing " + nameof(SemaphoreReleaser));
             cancellationSource.Cancel();
             connectionAcceptThread.Join();
             releaseLoopThread.Join();
+            GC.SuppressFinalize(this);
         }
 
         public void Release()

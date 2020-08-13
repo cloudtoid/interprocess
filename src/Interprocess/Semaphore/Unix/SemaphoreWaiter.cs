@@ -42,6 +42,12 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             StartFileWatcher();
         }
 
+        ~SemaphoreWaiter()
+        {
+            logger.LogError($"Make sure to call Dispose for {nameof(SemaphoreWaiter)}");
+            cancellationSource.Cancel();
+        }
+
         public void Dispose()
         {
             logger.LogInformation("Disposing " + nameof(SemaphoreWaiter));
@@ -50,6 +56,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             clientsLoopThread.Join();
             semaphore.Dispose();
             fileWatcherHandle.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         public bool WaitOne(int millisecondsTimeout)
