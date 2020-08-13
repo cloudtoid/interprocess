@@ -177,9 +177,15 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
                 Debug.Assert(bytesSent == message.Length);
             }
+            catch (SocketException se) when (se.SocketErrorCode == SocketError.Shutdown)
+            {
+                logger.LogInformation($"Server has shutdown a connection to this '{filePath}' Unix Domain Socket server.");
+                clients[i] = null;
+                client.SafeDispose();
+            }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"Sending a message to a Unix Domain Socket failed. Endpoint = {client.LocalEndPoint}");
+                logger.LogError(ex, $"Sending a message to a Unix Domain Socket failed. Endpoint = {filePath}");
 
                 if (!client.Connected)
                 {
