@@ -85,7 +85,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
         private void Dispose(bool disposing)
         {
-            logger.LogDebug($"Disposing a domain socket server - {file}");
+            logger.LogInformation($"Disposing a domain socket server - {file}");
 
             if (disposing)
             {
