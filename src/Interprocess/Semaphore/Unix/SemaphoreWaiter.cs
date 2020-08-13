@@ -133,7 +133,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         clients.Remove(remove.Key);
                         remove.Value.Dispose();
                         logger.LogInformation(
-                            $"The Unix Domain Socket server on '{remove}' is no longer available and the client for it is now removed.");
+                            $"The Unix Domain Socket server on '{remove.Key}' is no longer available and the client for it is now removed.");
                     }
 
                     // new clients to add
