@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cloudtoid.Interprocess.DomainSocket;
 using Microsoft.Extensions.Logging;
+using SysSemaphore = System.Threading.Semaphore;
 
 namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
@@ -15,6 +16,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private static readonly byte[] message = new byte[] { 1 };
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly AutoResetEvent releaseSignal = new AutoResetEvent(false);
+        private readonly SysSemaphore stoppedWaitHandle = new SysSemaphore(0, 2);
         private readonly string filePath;
         private readonly ILoggerFactory loggerFactory;
         private readonly ILogger<SemaphoreReleaser> logger;
@@ -41,7 +43,10 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             => clients.Count(c => c != null);
 
         public void Dispose()
-            => cancellationSource.Cancel();
+        {
+            cancellationSource.Cancel();
+            stoppedWaitHandle.WaitOne();
+        }
 
         public void Release()
         {
@@ -99,6 +104,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     client.SafeDispose();
 
                 server?.Dispose();
+
+                stoppedWaitHandle.Release();
             }
         }
 
@@ -141,6 +148,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             finally
             {
                 releaseSignal.Dispose();
+                stoppedWaitHandle.Release();
             }
         }
 
