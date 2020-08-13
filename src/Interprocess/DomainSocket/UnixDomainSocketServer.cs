@@ -18,6 +18,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
             int connectionQueueSize = 100)
         {
             this.file = file;
+            logger.LogDebug($"Creating a domain socket server - {file}");
             logger = loggerFactory.CreateLogger<UnixDomainSocketServer>();
             socket = Util.CreateUnixDomainSocket(blocking: false);
 
@@ -84,7 +85,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
         private void Dispose(bool disposing)
         {
-            logger.LogDebug("Disposing a domain socket server");
+            logger.LogDebug($"Disposing a domain socket server - {file}");
 
             if (disposing)
             {
