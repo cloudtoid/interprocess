@@ -72,6 +72,11 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 logger.LogInformation("Reading from a Unix Domain Socket was cancelled.");
                 throw new OperationCanceledException();
             }
+            catch (SocketException se) when (se.SocketErrorCode == SocketError.ConnectionReset)
+            {
+                logger.LogWarning("Reading from a Unix Domain Socket failed but the client can re-establish the connection.");
+                throw;
+            }
             catch (OperationCanceledException)
             {
                 logger.LogInformation("Reading from a Unix Domain Socket was cancelled.");
