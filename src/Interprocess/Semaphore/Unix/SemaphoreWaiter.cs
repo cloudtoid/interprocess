@@ -24,7 +24,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly AutoResetEvent fileWatcherHandle = new AutoResetEvent(false);
         private readonly SysSemaphoree semaphore = new SysSemaphoree(0, int.MaxValue);
-        private readonly ManualResetEvent stoppedWaitHandle = new ManualResetEvent(false);
+        private readonly Thread clientsLoopThread;
         private readonly SharedAssetsIdentifier identifier;
         private readonly ILoggerFactory loggerFactory;
         private readonly ILogger<SemaphoreWaiter> logger;
@@ -38,16 +38,16 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             this.loggerFactory = loggerFactory;
             logger = loggerFactory.CreateLogger<SemaphoreWaiter>();
 
-            StartClients();
+            clientsLoopThread = StartClients();
             StartFileWatcher();
         }
 
         public void Dispose()
         {
+            logger.LogInformation("Disposing " + nameof(SemaphoreWaiter));
             StopFileWatcher();
             cancellationSource.Cancel();
-            stoppedWaitHandle.WaitOne(); // wait for ClientsLoop to stop
-            stoppedWaitHandle.Dispose();
+            clientsLoopThread.Join();
             semaphore.Dispose();
             fileWatcherHandle.Dispose();
         }
@@ -98,12 +98,13 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private void OnSocketFileAddedOrDeleted(object sender, FileSystemEventArgs e)
             => fileWatcherHandle.Set();
 
-        private void StartClients()
+        private Thread StartClients()
         {
             // using a dedicated thread as this is a very long blocking call
             var thread = new Thread(ClientsLoop);
             thread.IsBackground = true;
             thread.Start();
+            return thread;
         }
 
         private void ClientsLoop()
@@ -153,8 +154,6 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             {
                 foreach (var client in clients)
                     client.Value.Dispose();
-
-                stoppedWaitHandle.Set();
             }
         }
 

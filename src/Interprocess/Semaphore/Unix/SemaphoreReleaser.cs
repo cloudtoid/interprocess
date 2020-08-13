@@ -16,7 +16,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private static readonly byte[] message = new byte[] { 1 };
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly AutoResetEvent releaseSignal = new AutoResetEvent(false);
-        private readonly SysSemaphore stoppedWaitHandle = new SysSemaphore(0, 2);
+        private readonly Thread releaseLoopThread;
+        private readonly Thread connectionAcceptThread;
         private readonly string filePath;
         private readonly ILoggerFactory loggerFactory;
         private readonly ILogger<SemaphoreReleaser> logger;
@@ -35,7 +36,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             if (filePath.Length > 104)
                 throw new ArgumentException($"The queue path and queue name together are too long for this OS. File: '{filePath}'");
 
-            StartServer();
+            StartServer(out connectionAcceptThread, out releaseLoopThread);
         }
 
         // used for testing
@@ -45,7 +46,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         public void Dispose()
         {
             cancellationSource.Cancel();
-            stoppedWaitHandle.WaitOne();
+            connectionAcceptThread.Join();
+            releaseLoopThread.Join();
         }
 
         public void Release()
@@ -54,16 +56,16 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 releaseSignal.Set();
         }
 
-        private void StartServer()
+        private void StartServer(out Thread connectionAcceptThread, out Thread releaseLoopThread)
         {
             // using dedicated threads as these are long running and looping operations
-            var thread = new Thread(ConnectionAcceptLoop);
-            thread.IsBackground = true;
-            thread.Start();
+            connectionAcceptThread = new Thread(ConnectionAcceptLoop);
+            connectionAcceptThread.IsBackground = true;
+            connectionAcceptThread.Start();
 
-            thread = new Thread(async () => await ReleaseLoop());
-            thread.IsBackground = true;
-            thread.Start();
+            releaseLoopThread = new Thread(async () => await ReleaseLoop());
+            releaseLoopThread.IsBackground = true;
+            releaseLoopThread.Start();
         }
 
         private void ConnectionAcceptLoop()
@@ -104,8 +106,6 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     client.SafeDispose();
 
                 server?.Dispose();
-
-                stoppedWaitHandle.Release();
             }
         }
 
@@ -148,7 +148,6 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             finally
             {
                 releaseSignal.Dispose();
-                stoppedWaitHandle.Release();
             }
         }
 
