@@ -20,7 +20,20 @@ namespace Cloudtoid.Interprocess.DomainSocket
             this.file = file;
             logger = loggerFactory.CreateLogger<UnixDomainSocketServer>();
             socket = Util.CreateUnixDomainSocket(blocking: false);
-            socket.Bind(Util.CreateUnixDomainSocketEndPoint(file));
+
+            try
+            {
+                socket.Bind(Util.CreateUnixDomainSocketEndPoint(file));
+            }
+            catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationNotSupported)
+            {
+                logger.LogError(se, $"Failed to bind to a Unix Domain Socket at '{file}'. " +
+                    $"This typically happens if the path is not supported by this OS for Domain Sockets. " +
+                    $"Consider changing the path that is passed to the queue.");
+
+                throw;
+            }
+
             socket.Listen(connectionQueueSize);
         }
 
