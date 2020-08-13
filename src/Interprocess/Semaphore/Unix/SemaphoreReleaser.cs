@@ -81,6 +81,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     try
                     {
                         var client = server.Accept(cancellation);
+                        logger.LogInformation("Accepted a Unix Domain Socket connection.");
                         clients = clients.Concat(new[] { client }).Where(c => c != null).ToArray();
                     }
                     catch (SocketException se)
@@ -174,7 +175,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
                 if (!client.Connected)
                 {
-                    logger.LogError(ex, "Client is no longer connected.");
+                    logger.LogError("Client is no longer connected.");
                     clients[i] = null;
                     client.SafeDispose();
                 }
