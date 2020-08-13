@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -93,10 +94,10 @@ namespace Cloudtoid.Interprocess.Tests
 
         private static IPublisher CreatePublisher(long capacity, bool createOrOverride = false)
             => TestUtils.QueueFactory.CreatePublisher(
-                new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, capacity, createOrOverride));
+                new QueueOptions(DefaultQueueName, Path.GetTempPath(), capacity, createOrOverride));
 
         private static ISubscriber CreateSubscriber(long capacity, bool createOrOverride = false)
             => TestUtils.QueueFactory.CreateSubscriber(
-                new QueueOptions(DefaultQueueName, Environment.CurrentDirectory, capacity, createOrOverride));
+                new QueueOptions(DefaultQueueName, Path.GetTempPath(), capacity, createOrOverride));
     }
 }

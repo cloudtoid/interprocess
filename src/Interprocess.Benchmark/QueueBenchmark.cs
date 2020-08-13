@@ -1,6 +1,7 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess.Benchmark
@@ -20,8 +21,8 @@ namespace Cloudtoid.Interprocess.Benchmark
         public void Setup()
         {
             var queueFactory = new QueueFactory();
-            publisher = queueFactory.CreatePublisher(new QueueOptions("qn", Environment.CurrentDirectory, 128, true));
-            subscriber = queueFactory.CreateSubscriber(new QueueOptions("qn", Environment.CurrentDirectory, 128, false));
+            publisher = queueFactory.CreatePublisher(new QueueOptions("qn", Path.GetTempPath(), 128, true));
+            subscriber = queueFactory.CreateSubscriber(new QueueOptions("qn", Path.GetTempPath(), 128, false));
         }
 
         [GlobalCleanup]
