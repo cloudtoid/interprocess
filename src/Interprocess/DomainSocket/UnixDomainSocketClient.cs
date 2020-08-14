@@ -9,7 +9,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
 {
     internal sealed class UnixDomainSocketClient : IDisposable
     {
-        private const int ConnectMillisecondTimeout = 100;
+        private const int ConnectMillisecondTimeout = 500;
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly UnixDomainSocketEndPoint endpoint;
         private readonly string file;
