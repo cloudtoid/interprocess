@@ -1,7 +1,9 @@
 ﻿using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Cloudtoid.Interprocess.Tests
 {
@@ -12,10 +14,15 @@ namespace Cloudtoid.Interprocess.Tests
         private static readonly byte[] byteArray3 = new byte[] { 100, 110, 120 };
         private static readonly byte[] byteArray50 = Enumerable.Range(1, 50).Select(i => (byte)i).ToArray();
         private readonly UniqueIdentifierFixture fixture;
+        private readonly ILoggerFactory loggerFactory;
 
-        public QueueTests(UniqueIdentifierFixture fixture)
+        public QueueTests(
+            UniqueIdentifierFixture fixture,
+            ITestOutputHelper testOutputHelper)
         {
             this.fixture = fixture;
+            loggerFactory = new LoggerFactory();
+            loggerFactory.AddProvider(new XunitLoggerProvider(testOutputHelper));
         }
 
         [Fact]

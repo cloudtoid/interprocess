@@ -1,17 +1,26 @@
 ﻿using Cloudtoid.Interprocess.DomainSocket;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace Cloudtoid.Interprocess.Tests
 {
     public class DomainSocketTests
     {
         private static readonly ReadOnlyMemory<byte> message = new byte[] { 1 };
+        private readonly ILoggerFactory loggerFactory;
+
+        public DomainSocketTests(ITestOutputHelper testOutputHelper)
+        {
+            loggerFactory = new LoggerFactory();
+            loggerFactory.AddProvider(new XunitLoggerProvider(testOutputHelper));
+        }
 
         [Fact]
         public void CanCreateUnixDomainSocket()
