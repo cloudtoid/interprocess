@@ -1,8 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
-using System.Threading;
 
 namespace Cloudtoid.Interprocess.Tests
 {
@@ -27,8 +25,6 @@ namespace Cloudtoid.Interprocess.Tests
 
         public void Dispose()
         {
-            var logger = TestUtils.LoggerFactory.CreateLogger("TEST");
-
             foreach (var file in Directory.EnumerateFiles(Identifier.Path))
                 Util.TryDeleteFile(file);
 
@@ -36,13 +32,7 @@ namespace Cloudtoid.Interprocess.Tests
             {
                 Directory.Delete(Identifier.Path);
             }
-            catch
-            {
-                foreach (var file in Directory.EnumerateFiles(Identifier.Path))
-                    logger.LogError("failed to delete file: " + file);
-
-                throw;
-            }
+            catch { }
         }
 
         internal SharedAssetsIdentifier Identifier { get; }
