@@ -27,11 +27,22 @@ namespace Cloudtoid.Interprocess.Tests
 
         public void Dispose()
         {
+            var logger = TestUtils.LoggerFactory.CreateLogger("TEST");
+
             foreach (var file in Directory.EnumerateFiles(Identifier.Path))
                 Util.TryDeleteFile(file);
 
-            Thread.Sleep(100);
-            Directory.Delete(Identifier.Path);
+            try
+            {
+                Directory.Delete(Identifier.Path);
+            }
+            catch
+            {
+                foreach (var file in Directory.EnumerateFiles(Identifier.Path))
+                    logger.LogError("failed to delete file: " + file);
+
+                throw;
+            }
         }
 
         internal SharedAssetsIdentifier Identifier { get; }
