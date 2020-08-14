@@ -27,9 +27,9 @@ namespace Cloudtoid.Interprocess.Tests
         public void Dispose()
         {
             foreach (var file in Directory.EnumerateFiles(Identifier.Path))
-                if (!Util.TryDeleteFile(file))
-                    TestUtils.LoggerFactory.CreateLogger("TEST").LogError($"Failed to delete file: {file}");
+                Util.TryDeleteFile(file);
 
+            TestUtils.LoggerFactory.CreateLogger("TEST").LogError($"Deleting: {Identifier.Path}");
             Directory.Delete(Identifier.Path);
         }
 
