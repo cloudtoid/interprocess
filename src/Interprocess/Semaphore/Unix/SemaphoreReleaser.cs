@@ -103,7 +103,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             finally
             {
                 foreach (var client in clients)
-                    client.SafeDispose();
+                    client.SafeDispose(logger);
 
                 server?.Dispose();
             }
@@ -172,13 +172,13 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             {
                 logger.LogInformation($"Server has shutdown a connection to this '{filePath}' Unix Domain Socket server.");
                 clients[i] = null;
-                client.SafeDispose();
+                client.SafeDispose(logger);
             }
             catch when (!client.Connected)
             {
                 logger.LogError($"Client is no longer connected to this '{filePath}' Unix Domain Socket server.");
                 clients[i] = null;
-                client.SafeDispose();
+                client.SafeDispose(logger);
             }
         }
     }

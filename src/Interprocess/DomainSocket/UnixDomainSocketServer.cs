@@ -90,7 +90,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
             if (disposing)
             {
                 cancellationSource.Cancel();
-                socket.SafeDispose();
+                socket.SafeDispose(logger);
             }
 
             if (!Util.TryDeleteFile(file))

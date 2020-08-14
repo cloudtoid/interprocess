@@ -29,15 +29,15 @@ namespace Cloudtoid.Interprocess
             return new UnixDomainSocketEndPoint(ShortenPath(file));
         }
 
-        internal static void SafeDispose(this Socket? socket)
+        internal static void SafeDispose(this Socket? socket, ILogger? logger = null)
         {
             try
             {
                 socket?.Dispose();
             }
-            catch
+            catch (Exception ex)
             {
-                Console.WriteLine("Failed to dispose a socket.");
+                logger?.LogError(ex, "Failed to dispose a socket.");
             }
         }
 

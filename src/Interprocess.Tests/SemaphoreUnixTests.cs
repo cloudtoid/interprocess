@@ -81,7 +81,6 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(50).Should().BeFalse();
 
             const int Count = 10000;
-            var start = DateTime.Now;
             for (int i = 0; i < Count; i++)
             {
                 server.Release();
@@ -89,7 +88,6 @@ namespace Cloudtoid.Interprocess.Tests
                 client1.WaitOne(1000).Should().BeTrue();
                 client2.WaitOne(1000).Should().BeTrue();
             }
-            Console.WriteLine("Latency - " + ((DateTime.Now - start).TotalMilliseconds / Count));
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
@@ -108,21 +106,16 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(50).Should().BeFalse();
 
             const int Count = 10000;
-            var start = DateTime.Now;
             for (int i = 0; i < Count; i++)
             {
                 server.Release();
                 client1.WaitOne(1000).Should().BeTrue();
             }
-            Console.WriteLine("Send and receive latency - " + ((DateTime.Now - start).TotalMilliseconds / Count));
 
             client1.WaitOne(50).Should().BeFalse();
 
-            start = DateTime.Now;
             for (int i = 0; i < Count; i++)
                 client2.WaitOne(1000).Should().BeTrue();
-
-            Console.WriteLine("Receive latency - " + ((DateTime.Now - start).TotalMilliseconds / Count));
 
             client2.WaitOne(50).Should().BeFalse();
         }
@@ -232,22 +225,18 @@ namespace Cloudtoid.Interprocess.Tests
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
 
-            var start = DateTime.Now;
             server1.Release();
 
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
-            Console.WriteLine("Signal 1 - " + (DateTime.Now - start).TotalMilliseconds);
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
 
-            start = DateTime.Now;
             server1.Release();
 
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
-            Console.WriteLine("Signal 2 - " + (DateTime.Now - start).TotalMilliseconds);
 
             using var client3 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
             await WaitForClientCount(server1, 3);
@@ -256,13 +245,11 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(50).Should().BeFalse();
             client3.WaitOne(50).Should().BeFalse();
 
-            start = DateTime.Now;
             server1.Release();
 
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
             client3.WaitOne(1000).Should().BeTrue();
-            Console.WriteLine("Signal 3 - " + (DateTime.Now - start).TotalMilliseconds);
 
             using var server2 = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
             await WaitForClientCount(server2, 3);
@@ -271,19 +258,16 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(50).Should().BeFalse();
             client3.WaitOne(50).Should().BeFalse();
 
-            start = DateTime.Now;
             server2.Release();
 
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
             client3.WaitOne(1000).Should().BeTrue();
-            Console.WriteLine("Signal 4 - " + (DateTime.Now - start).TotalMilliseconds);
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
             client3.WaitOne(50).Should().BeFalse();
 
-            start = DateTime.Now;
             for (int i = 0; i < 10000; i++)
             {
                 server1.Release();
@@ -292,13 +276,11 @@ namespace Cloudtoid.Interprocess.Tests
                 client2.WaitOne(1000).Should().BeTrue();
                 client3.WaitOne(1000).Should().BeTrue();
             }
-            Console.WriteLine("Signal 5 (Average) - " + ((DateTime.Now - start).TotalMilliseconds / 10000));
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
             client3.WaitOne(50).Should().BeFalse();
 
-            start = DateTime.Now;
             server1.Release();
             server1.Release();
 
@@ -309,9 +291,7 @@ namespace Cloudtoid.Interprocess.Tests
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
             client3.WaitOne(1000).Should().BeTrue();
-            Console.WriteLine("Signal 6 - " + (DateTime.Now - start).TotalMilliseconds);
 
-            start = DateTime.Now;
             server1.Release();
             server2.Release();
 
@@ -322,13 +302,10 @@ namespace Cloudtoid.Interprocess.Tests
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
             client3.WaitOne(1000).Should().BeTrue();
-            Console.WriteLine("Signal 7 - " + (DateTime.Now - start).TotalMilliseconds);
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
             client3.WaitOne(50).Should().BeFalse();
-
-            Console.WriteLine("Disposing all");
         }
 
         private static async Task WaitForClientCount(SemaphoreReleaser server, int count)
