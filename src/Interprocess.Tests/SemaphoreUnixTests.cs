@@ -172,9 +172,11 @@ namespace Cloudtoid.Interprocess.Tests
                 server.Release();
         }
 
-        [Fact]
-        public async Task CanSupporrtMultipleServersAndClients()
+        [Theory]
+        [Repeat(100)]
+        public async Task CanSupporrtMultipleServersAndClients(int i)
         {
+            Console.WriteLine(i);
             using var server1 = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
             using var client1 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
             using var client2 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
