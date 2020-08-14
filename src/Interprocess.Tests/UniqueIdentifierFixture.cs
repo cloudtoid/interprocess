@@ -2,6 +2,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Threading;
 
 namespace Cloudtoid.Interprocess.Tests
 {
@@ -26,32 +27,11 @@ namespace Cloudtoid.Interprocess.Tests
 
         public void Dispose()
         {
-            var logger = TestUtils.LoggerFactory.CreateLogger("TEST");
-
-            var options = new EnumerationOptions
-            {
-                IgnoreInaccessible = false,
-                AttributesToSkip = 0
-            };
-
-            foreach (var file in Directory.EnumerateFiles(Identifier.Path, "*", options))
-            {
-                logger.LogInformation($"Deleting file: {file}");
+            foreach (var file in Directory.EnumerateFiles(Identifier.Path))
                 Util.TryDeleteFile(file);
-            }
 
-            logger.LogInformation($"Deleting dir: {Identifier.Path}");
-            try
-            {
-                Directory.Delete(Identifier.Path);
-            }
-            catch (Exception ex)
-            {
-                foreach (var file in Directory.EnumerateFiles(Identifier.Path))
-                    logger.LogError($"New file? {file}");
-
-                logger.LogError(ex, "Failed to delete " + Identifier.Path);
-            }
+            Thread.Sleep(100);
+            Directory.Delete(Identifier.Path);
         }
 
         internal SharedAssetsIdentifier Identifier { get; }
