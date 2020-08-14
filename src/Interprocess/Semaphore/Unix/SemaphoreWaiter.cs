@@ -44,13 +44,11 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
         public void Dispose()
         {
-            logger.LogInformation("Disposing " + nameof(SemaphoreWaiter));
             StopFileWatcher();
             cancellationSource.Cancel();
             clientsLoopThread.Join();
             semaphore.Dispose();
             fileWatcherHandle.Dispose();
-            logger.LogInformation("Disposed " + nameof(SemaphoreWaiter));
         }
 
         public bool WaitOne(int millisecondsTimeout)
@@ -127,7 +125,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         clients.Remove(remove.Key);
                         remove.Value.Dispose();
                         logger.LogInformation(
-                            $"The Unix Domain Socket server on '{remove.Key}' is no longer available and the client for it is now removed.");
+                            "The Unix Domain Socket server on '{0}' is no longer available and the client for it is now removed.",
+                            remove.Key);
                     }
 
                     // new clients to add
@@ -135,7 +134,10 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     {
                         var client = new UnixDomainSocketClient(add, loggerFactory);
                         clients.Add(add, client);
-                        logger.LogInformation($"A Unix Domain Socket server for '{add}' is discovered and a client is created for it.");
+                        logger.LogInformation(
+                            "A Unix Domain Socket server for '{0}' is discovered and a client is created for it.",
+                            add);
+
                         Task.Run(() => ReceiveAsync(client, cancellation), cancellation);
                     }
 

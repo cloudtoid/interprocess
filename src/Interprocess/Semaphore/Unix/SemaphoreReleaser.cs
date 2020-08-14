@@ -44,11 +44,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
         public void Dispose()
         {
-            logger.LogInformation("Disposing " + nameof(SemaphoreReleaser));
             cancellationSource.Cancel();
             connectionAcceptThread.Join();
             releaseLoopThread.Join();
-            logger.LogInformation("Disposed " + nameof(SemaphoreReleaser));
         }
 
         public void Release()
@@ -171,13 +169,13 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             }
             catch (SocketException se) when (se.SocketErrorCode == SocketError.Shutdown)
             {
-                logger.LogInformation($"Server has shutdown a connection to this '{filePath}' Unix Domain Socket server.");
+                logger.LogInformation("Server has shutdown a connection to this '{0}' Unix Domain Socket server.", filePath);
                 clients[i] = null;
                 client.SafeDispose(logger);
             }
             catch when (!client.Connected)
             {
-                logger.LogError($"Client is no longer connected to this '{filePath}' Unix Domain Socket server.");
+                logger.LogError("Client is no longer connected to this '{0}' Unix Domain Socket server.", filePath);
                 clients[i] = null;
                 client.SafeDispose(logger);
             }

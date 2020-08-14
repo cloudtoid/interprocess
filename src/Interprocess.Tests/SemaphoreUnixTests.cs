@@ -173,7 +173,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Theory]
-        [Repeat(100)]
+        [Repeat(20)]
         public async Task CanSupporrtMultipleServersAndClients(int i)
         {
             Console.WriteLine(i);

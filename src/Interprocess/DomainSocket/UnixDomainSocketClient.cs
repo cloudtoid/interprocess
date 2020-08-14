@@ -20,13 +20,14 @@ namespace Cloudtoid.Interprocess.DomainSocket
         {
             this.file = file;
             logger = loggerFactory.CreateLogger<UnixDomainSocketClient>();
+            logger.LogDebug("Creating a domain socket client - {0}", file);
             endpoint = Util.CreateUnixDomainSocketEndPoint(file);
             socket = Util.CreateUnixDomainSocket(blocking: false);
         }
 
         public void Dispose()
         {
-            logger.LogInformation($"Disposing a domain socket client - {file}");
+            logger.LogDebug("Disposing a domain socket client - {0}", file);
             cancellationSource.Cancel();
             Interlocked.Exchange(ref socket, null).SafeDispose();
         }
@@ -52,7 +53,11 @@ namespace Cloudtoid.Interprocess.DomainSocket
             {
                 if (!socket.Connected)
                 {
-                    logger.LogInformation($"Disposing a Unix Domain Socket because it is no longer connected. Endpoint = {file}. IsCancelled = {source.Token.IsCancellationRequested}");
+                    logger.LogInformation(
+                        "Disposing a Unix Domain Socket as it is no longer connected. Endpoint = {0}. IsCancelled = {1}",
+                        file,
+                        source.Token.IsCancellationRequested);
+
                     Interlocked.CompareExchange(ref this.socket, null, socket).SafeDispose(logger);
                 }
             }
@@ -67,15 +72,15 @@ namespace Cloudtoid.Interprocess.DomainSocket
             {
                 return await socket.ReceiveAsync(buffer, SocketFlags.None, cancellation).ConfigureAwait(false);
             }
-            catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
-            {
-                logger.LogInformation("Reading from a Unix Domain Socket was cancelled.");
-                throw new OperationCanceledException();
-            }
             catch (SocketException se) when (se.SocketErrorCode == SocketError.ConnectionReset)
             {
                 logger.LogWarning("Reading from a Unix Domain Socket failed but the client can re-establish the connection.");
                 throw;
+            }
+            catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
+            {
+                logger.LogInformation("Reading from a Unix Domain Socket was cancelled.");
+                throw new OperationCanceledException();
             }
             catch (OperationCanceledException)
             {
@@ -116,17 +121,22 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 }
                 catch (SocketException se) when (se.SocketErrorCode == SocketError.AddressNotAvailable || se.SocketErrorCode == SocketError.ConnectionRefused)
                 {
-                    if (File.Exists(file))
+                    if (!File.Exists(file))
+                        throw;
+
+                    var duration = (DateTime.Now - startTime).Milliseconds;
+                    if (duration > ConnectMillisecondTimeout)
                     {
                         logger.LogError(
-                            "Found an orphaned Unix Domain Socket backing file lock file. " +
+                            $"Found an orphaned Unix Domain Socket backing file. '{file}'" +
                             "This can only happen if an earlier process terminated without deleting the file. " +
                             "This should be treated as a bug.");
 
                         Util.TryDeleteFile(file);
+                        throw;
                     }
 
-                    throw;
+                    await Task.Delay(5, cancellation).ConfigureAwait(false);
                 }
                 catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
                 {

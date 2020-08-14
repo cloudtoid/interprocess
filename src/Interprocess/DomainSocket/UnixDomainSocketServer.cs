@@ -19,7 +19,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
         {
             this.file = file;
             logger = loggerFactory.CreateLogger<UnixDomainSocketServer>();
-            logger.LogInformation($"Creating a domain socket server - {file}");
+            logger.LogDebug("Creating a domain socket server - {0}", file);
             socket = Util.CreateUnixDomainSocket(blocking: false);
 
             try
@@ -29,8 +29,8 @@ namespace Cloudtoid.Interprocess.DomainSocket
             catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationNotSupported)
             {
                 logger.LogError(se, $"Failed to bind to a Unix Domain Socket at '{file}'. " +
-                    $"This typically happens if the path is not supported by this OS for Domain Sockets. " +
-                    $"Consider changing the path that is passed to the queue.");
+                    "This typically happens if the path is not supported by this OS for Domain Sockets. " +
+                    "Consider changing the path that is passed to the queue.");
 
                 throw;
             }
@@ -85,7 +85,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
         private void Dispose(bool disposing)
         {
-            logger.LogInformation($"Disposing a domain socket server - {file}");
+            logger.LogDebug("Disposing a domain socket server - {0}", file);
 
             if (disposing)
             {
