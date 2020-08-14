@@ -14,15 +14,16 @@ namespace Cloudtoid.Interprocess.Tests
         private static readonly byte[] byteArray3 = new byte[] { 100, 110, 120 };
         private static readonly byte[] byteArray50 = Enumerable.Range(1, 50).Select(i => (byte)i).ToArray();
         private readonly UniqueIdentifierFixture fixture;
-        private readonly ILoggerFactory loggerFactory;
+        private readonly QueueFactory queueFactory;
 
         public QueueTests(
             UniqueIdentifierFixture fixture,
             ITestOutputHelper testOutputHelper)
         {
             this.fixture = fixture;
-            loggerFactory = new LoggerFactory();
+            var loggerFactory = new LoggerFactory();
             loggerFactory.AddProvider(new XunitLoggerProvider(testOutputHelper));
+            queueFactory = new QueueFactory(loggerFactory);
         }
 
         [Fact]
@@ -104,11 +105,11 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         private IPublisher CreatePublisher(long capacity, bool createOrOverride = false)
-            => TestUtils.QueueFactory.CreatePublisher(
+            => queueFactory.CreatePublisher(
                 new QueueOptions(fixture.Identifier.Name, fixture.Identifier.Path, capacity, createOrOverride));
 
         private ISubscriber CreateSubscriber(long capacity, bool createOrOverride = false)
-            => TestUtils.QueueFactory.CreateSubscriber(
+            => queueFactory.CreateSubscriber(
                 new QueueOptions(fixture.Identifier.Name, fixture.Identifier.Path, capacity, createOrOverride));
     }
 }
