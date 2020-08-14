@@ -22,4 +22,8 @@
     <ProjectReference Include="..\Interprocess\Interprocess.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

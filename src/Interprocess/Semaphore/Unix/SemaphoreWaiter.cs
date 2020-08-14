@@ -50,6 +50,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             clientsLoopThread.Join();
             semaphore.Dispose();
             fileWatcherHandle.Dispose();
+            logger.LogInformation("Disposed " + nameof(SemaphoreWaiter));
         }
 
         public bool WaitOne(int millisecondsTimeout)

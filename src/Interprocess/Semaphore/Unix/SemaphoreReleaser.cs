@@ -48,6 +48,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             cancellationSource.Cancel();
             connectionAcceptThread.Join();
             releaseLoopThread.Join();
+            logger.LogInformation("Disposed " + nameof(SemaphoreReleaser));
         }
 
         public void Release()
