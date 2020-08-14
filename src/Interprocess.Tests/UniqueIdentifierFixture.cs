@@ -28,7 +28,13 @@ namespace Cloudtoid.Interprocess.Tests
         {
             var logger = TestUtils.LoggerFactory.CreateLogger("TEST");
 
-            foreach (var file in Directory.EnumerateFiles(Identifier.Path))
+            var options = new EnumerationOptions
+            {
+                IgnoreInaccessible = false,
+                AttributesToSkip = 0
+            };
+
+            foreach (var file in Directory.EnumerateFiles(Identifier.Path, "*", options))
             {
                 logger.LogInformation($"Deleting file: {file}");
                 Util.TryDeleteFile(file);
