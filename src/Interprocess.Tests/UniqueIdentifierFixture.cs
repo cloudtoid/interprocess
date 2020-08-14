@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Globalization;
 using System.IO;
 
@@ -26,7 +27,8 @@ namespace Cloudtoid.Interprocess.Tests
         public void Dispose()
         {
             foreach (var file in Directory.EnumerateFiles(Identifier.Path))
-                Util.TryDeleteFile(file);
+                if (!Util.TryDeleteFile(file))
+                    TestUtils.LoggerFactory.CreateLogger("TEST").LogError($"Failed to delete file: {file}");
 
             Directory.Delete(Identifier.Path);
         }

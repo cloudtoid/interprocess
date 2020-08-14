@@ -48,9 +48,8 @@ namespace Cloudtoid.Interprocess
                 File.Delete(file);
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine(ex.Message);
                 return false;
             }
         }
