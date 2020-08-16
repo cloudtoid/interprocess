@@ -98,9 +98,15 @@ To benchmark the performance and the memory usage, we use [BenchmarkDotNet](http
 |                     'Message enqueue and dequeue' | Benchmarks the performance of sending a message to a client. It is inclusive of the time taken to enqueue and dequeue a message |
 | 'Message enqueue and dequeue - no message buffer' | Benchmarks the performance of sending a message to a client. It is inclusive of the time taken to enqueue and dequeue a message, as well as, allocating memory for the received message |
 
+You can replicate the results by running the following command:
+
+```cmd
+dotnet run Interprocess.Benchmark.csproj --configuration Release
+```
+
 ### On Windows
 
-Host: 
+Host:
 
 ```ini
 OS=Windows 10.0.19041.450
@@ -118,11 +124,55 @@ Results:
 |                     'Message enqueue and dequeue' | .NET Core 3.1 | 584.651 ns | 11.5850 ns | 23.6650 ns |         - |
 | 'Message enqueue and dequeue - no message buffer' | .NET Core 3.1 | 581.341 ns | 11.5766 ns | 30.2940 ns |      32 B |
 
+### On OSX
 
+Host:
 
-## Contribute
+```ini
+OS=macOS Catalina 10.15.5
+Intel Core i7-7567U CPU 3.50GHz (Kaby Lake), 1 CPU, 4 logical and 2 physical cores
+.NET Core SDK=5.0.100-preview.7.20366.6
+  [Host]        : .NET Core 3.1.6, X64 RyuJIT
+  .NET Core 3.1 : .NET Core 3.1.6, X64 RyuJIT
+  .NET Core 5.0 : .NET Core 5.0.0, X64 RyuJIT
+```
+
+|                                            Method |       Runtime |         Mean |      Error |     StdDev | Allocated |
+|-------------------------------------------------- |-------------- |-------------:|-----------:|-----------:|----------:|
+|                                 'Message enqueue' | .NET Core 3.1 |    14.539 ns |  0.1102 ns |  0.1030 ns |         - |
+|                     'Message enqueue and dequeue' | .NET Core 3.1 | 1,649.060 ns | 27.1430 ns | 24.0616 ns |      40 B |
+| 'Message enqueue and dequeue - no message buffer' | .NET Core 3.1 | 1,596.437 ns | 21.4398 ns | 19.0059 ns |      72 B |
+|                                 'Message enqueue' | .NET Core 5.0 |     4.973 ns |  0.1273 ns |  0.1466 ns |         - |
+|                     'Message enqueue and dequeue' | .NET Core 5.0 | 1,656.197 ns | 17.3074 ns | 13.5125 ns |      43 B |
+| 'Message enqueue and dequeue - no message buffer' | .NET Core 5.0 | 1,721.164 ns | 11.0354 ns |  9.7826 ns |      76 B |
+
+### On Ubuntu (through [WSL](https://docs.microsoft.com/en-us/windows/wsl/about))
+
+```ini
+OS=ubuntu 20.04
+Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=5.0.100-preview.7.20366.6
+  [Host]        : .NET Core 3.1.7, X64 RyuJIT
+  .NET Core 3.1 : .NET Core 3.1.7, X64 RyuJIT
+```
+
+|                                            Method |       Runtime |         Mean |      Error |      StdDev | Allocated |
+|-------------------------------------------------- |-------------- |-------------:|-----------:|------------:|----------:|
+|                                 'Message enqueue' | .NET Core 3.1 |    16.298 ns |  0.3997 ns |   1.1660 ns |         - |
+|                     'Message enqueue and dequeue' | .NET Core 3.1 | 1,580.302 ns | 45.1770 ns | 133.2054 ns |      15 B |
+| 'Message enqueue and dequeue - no message buffer' | .NET Core 3.1 | 1,589.269 ns | 59.4680 ns | 174.4092 ns |      47 B |
 
 ## Implementation Notes
+
+To signal the existence of a new message to all message subscribers and do it across process boundaries, we use a [Named Semaphore](https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore#remarks). Named semaphores are synchronization constructs accessible across processes.
+
+.NET Core 3.1  and .NET 5 do not have support for named semaphores on Unix based OSs (Linux, macOS, etc.). To replicate a named semaphore in the most efficient possible way, we are using Unix Domain Sockets to send signals between processes.
+
+It is worth mentioning that we support multiple signal publishers and receivers; therefore, you will find some logic on Unix to utilize multiple named sockets. We also use a file system watcher to keep track of the addition and removal of signal publishers (Unix Domain Sockets use backing files).
+
+The domain socket implementation will be replaced with [`System.Threading.Semaphore`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore) once named semaphores are supported on all platforms.
+
+## Contribute
 
 ## Author
 
