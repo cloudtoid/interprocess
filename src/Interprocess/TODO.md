@@ -1,6 +1,5 @@
 ﻿- Queue tests
 - Perf benchmarks
-- Write ReadME
 - Create a sample application
 - only x64?
 - update from pre-release to full release

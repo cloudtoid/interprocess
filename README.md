@@ -11,7 +11,6 @@
 - **API**: Provides a simple and intuitive API to enqueue/send and dequeue/receive messages.
 - **Multiple publishers and subscribers**: It supports multiple publishers and subscribers to a shared queue.
 - **Efficient**: Sending and receiving messages is *almost* heap memory allocation free reducing garbage collections.
-- **.NET**: Supports .NET Core 3.1 and .NET 5.
 - **Developer**: Developed by folks at Microsoft.
 
 ## NuGet Package
@@ -94,9 +93,9 @@ To benchmark the performance and the memory usage, we use [BenchmarkDotNet](http
 
 |                                          Method |   Description |
 |------------------------------------------------ |-------------- |
-|                                 Message enqueue | Benchmarks the performance of enqueuing a message |
-|                     Message enqueue and dequeue | Benchmarks the performance of sending a message to a client. It is inclusive of the time taken to enqueue and dequeue a message |
-| Message enqueue and dequeue - no message buffer | Benchmarks the performance of sending a message to a client. It is inclusive of the time taken to enqueue and dequeue a message, as well as, allocating memory for the received message |
+|                                 Message enqueue | Benchmarks the performance of enqueuing a message. |
+|                     Message enqueue and dequeue | Benchmarks the performance of sending a message to a client and receiving that message. It is inclusive of the duration to enqueue and dequeue a message. |
+| Message enqueue and dequeue - no message buffer | Benchmarks the performance of sending a message to a client and receiving that message. It is inclusive of the duration to enqueue and dequeue a message, as well as, allocating memory for the received message. |
 
 You can replicate the results by running the following command:
 
@@ -104,14 +103,14 @@ You can replicate the results by running the following command:
 dotnet run Interprocess.Benchmark.csproj --configuration Release
 ```
 
-You can also be explicit about the .NET SDK and Runtime:
+You can also be explicit about the .NET SDK and Runtime(s) versions:
 ```cmd
 dotnet run Interprocess.Benchmark.csproj --configuration Release --framework net5.0 --runtimes net5.0 netcoreapp3.1
 ```
 
 ### On Windows
 
-Host:
+#### Host
 
 ```ini
 OS=Windows 10.0.19041.450
@@ -121,7 +120,7 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
   .NET Core 3.1 : .NET Core 3.1.7, X64 RyuJIT
 ```
 
-Results:
+#### Results
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
@@ -131,7 +130,7 @@ Results:
 
 ### On OSX
 
-Host:
+#### Host
 
 ```ini
 OS=macOS Catalina 10.15.5
@@ -141,6 +140,8 @@ Intel Core i7-7567U CPU 3.50GHz (Kaby Lake), 1 CPU, 4 logical and 2 physical cor
   .NET Core 3.1 : .NET Core 3.1.6, X64 RyuJIT
   .NET Core 5.0 : .NET Core 5.0.0, X64 RyuJIT
 ```
+
+#### Results
 
 |                                          Method | .NET | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |-----:|----------:|-----------:|------------:|----------:|
@@ -153,6 +154,8 @@ Intel Core i7-7567U CPU 3.50GHz (Kaby Lake), 1 CPU, 4 logical and 2 physical cor
 
 ### On Ubuntu (through [WSL](https://docs.microsoft.com/en-us/windows/wsl/about))
 
+#### Host
+
 ```ini
 OS=ubuntu 20.04
 Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
@@ -160,6 +163,8 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
   [Host]        : .NET Core 3.1.7, X64 RyuJIT
   .NET Core 3.1 : .NET Core 3.1.7, X64 RyuJIT
 ```
+
+#### Results
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
@@ -177,7 +182,12 @@ It is worth mentioning that we support multiple signal publishers and receivers;
 
 The domain socket implementation will be replaced with [`System.Threading.Semaphore`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore) once named semaphores are supported on all platforms.
 
-## Contribute
+## How to Contribute
+
+- Create a branch from master.
+- Ensure that all tests pass on Windows, Linux, and OSX.
+- Keep the code coverage number above 99.5% by adding new tests or modifying the existing tests.
+- Send a pull request.
 
 ## Author
 
