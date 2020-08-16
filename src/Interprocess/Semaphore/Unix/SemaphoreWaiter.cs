@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using Cloudtoid.Interprocess.DomainSocket;
 using Microsoft.Extensions.Logging;
 using SysSemaphoree = System.Threading.Semaphore;
 
 namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
-    internal sealed class SemaphoreWaiter : IInterprocessSemaphoreWaiter
+    internal sealed partial class SemaphoreWaiter : IInterprocessSemaphoreWaiter
     {
         private static readonly byte[] MessageBuffer = new byte[1];
         private static readonly EnumerationOptions EnumerationOptions = new EnumerationOptions
@@ -38,7 +36,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             this.loggerFactory = loggerFactory;
             logger = loggerFactory.CreateLogger<SemaphoreWaiter>();
 
-            clientsLoopThread = StartClients();
+            clientsLoopThread = StartRceivers();
             StartFileWatcher();
         }
 
@@ -53,6 +51,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
         public bool WaitOne(int millisecondsTimeout)
             => semaphore.WaitOne(millisecondsTimeout);
+
+        private void Release()
+            => semaphore.Release();
 
         private void StartFileWatcher()
         {
@@ -79,9 +80,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     snapshot.Deleted -= OnSocketFileAddedOrDeleted;
                 }
             }
-            catch
+            catch (Exception ex) when (!ex.IsFatal())
             {
-                logger.LogError("Failed to fully dispose an old file watcher.");
+                logger.LogError(ex, "Failed to fully dispose an old file watcher.");
             }
         }
 
@@ -97,20 +98,20 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private void OnSocketFileAddedOrDeleted(object sender, FileSystemEventArgs e)
             => fileWatcherHandle.Set();
 
-        private Thread StartClients()
+        private Thread StartRceivers()
         {
             // using a dedicated thread as this is a very long blocking call
-            var thread = new Thread(ClientsLoop);
+            var thread = new Thread(ReceiversLoop);
             thread.IsBackground = true;
             thread.Start();
             return thread;
         }
 
-        private void ClientsLoop()
+        private void ReceiversLoop()
         {
             var cancellation = cancellationSource.Token;
             var fileSearchPattern = identifier.Name + "*" + Constants.Extension;
-            var clients = new Dictionary<string, UnixDomainSocketClient>(StringComparer.OrdinalIgnoreCase);
+            var receivers = new Dictionary<string, Receiver>(StringComparer.OrdinalIgnoreCase);
             try
             {
                 while (!cancellation.IsCancellationRequested)
@@ -118,70 +119,42 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     var files = Directory.GetFiles(identifier.Path, fileSearchPattern, EnumerationOptions);
 
                     // remove closed clients
-                    var toRemove = clients.Where(c => !files.Contains(c.Key, StringComparer.OrdinalIgnoreCase));
+                    var toRemove = receivers.Where(r => !files.Contains(r.Key, StringComparer.OrdinalIgnoreCase));
 
                     foreach (var remove in toRemove)
                     {
-                        clients.Remove(remove.Key);
+                        receivers.Remove(remove.Key);
                         remove.Value.Dispose();
                         logger.LogInformation(
-                            "The Unix Domain Socket server on '{0}' is no longer available and the client for it is now removed.",
+                            "The Unix Domain Socket server on '{0}' is no longer available and the receiver for it is now removed.",
                             remove.Key);
                     }
 
                     // new clients to add
-                    foreach (var add in files.Where(f => !clients.ContainsKey(f)))
+                    foreach (var add in files.Where(file => !receivers.ContainsKey(file)))
                     {
-                        var client = new UnixDomainSocketClient(add, loggerFactory);
-                        clients.Add(add, client);
+                        var receiver = new Receiver(add, Release, loggerFactory);
+                        receivers.Add(add, receiver);
                         logger.LogInformation(
-                            "A Unix Domain Socket server for '{0}' is discovered and a client is created for it.",
+                            "A Unix Domain Socket server for '{0}' is discovered and a receiver is created for it.",
                             add);
-
-                        _ = Task.Run(() => ReceiveAsync(client, cancellation), cancellation);
                     }
 
                     fileWatcherHandle.WaitOne(100);
                 }
             }
             catch when (cancellation.IsCancellationRequested) { }
-            catch (Exception ex)
+            catch (Exception ex) when (!ex.IsFatalOrCancelOrTimeout())
             {
-                // if there is an error here, we are in a bad state.
-                // treat this as a fatal exception and crash the process
-                logger.FailFast(
-                    "Unix domain socket client failed leaving the application in a bad state. " +
-                    "The only option is to crash the application.", ex);
+                logger.LogError(
+                    ex,
+                    $"An unexpected error in {nameof(ReceiversLoop)}. Given the {nameof(SemaphoreWaiter)} has not " +
+                    $"been disposed/cancelled, we will ignore this exception.");
             }
             finally
             {
-                foreach (var client in clients)
+                foreach (var client in receivers)
                     client.Value.Dispose();
-            }
-        }
-
-        private async Task ReceiveAsync(
-            UnixDomainSocketClient client,
-            CancellationToken cancellation)
-        {
-            try
-            {
-                using (client)
-                {
-                    while (!cancellation.IsCancellationRequested)
-                    {
-                        if (await client.ReceiveAsync(MessageBuffer, cancellation).ConfigureAwait(false) == 0)
-                        {
-                            logger.LogDebug("Looks like the server is shutting down.");
-                            return;
-                        }
-
-                        semaphore.Release();
-                    }
-                }
-            }
-            catch
-            {
             }
         }
     }

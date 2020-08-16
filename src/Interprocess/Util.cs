@@ -2,6 +2,8 @@
 using System.IO;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess
@@ -89,6 +91,56 @@ namespace Cloudtoid.Interprocess
         {
             logger.LogCritical(exception, message);
             Environment.FailFast(message);
+        }
+
+        internal static void SafeLoop(
+            Action<CancellationToken> action,
+            ILogger logger,
+            CancellationToken cancellation)
+        {
+            try
+            {
+                while (!cancellation.IsCancellationRequested)
+                {
+                    try
+                    {
+                        action(cancellation);
+                    }
+                    catch (Exception ex) when (!cancellation.IsCancellationRequested && !ex.IsFatal())
+                    {
+                        logger.LogError(
+                            ex,
+                            $"Received an unexpected error in a safe loop while the cancellation token is still active. " +
+                            $"We will ignore this exception and continue with the loop.");
+                    }
+                }
+            }
+            catch when (cancellation.IsCancellationRequested) { }
+        }
+
+        internal static async Task SafeLoopAsync(
+            Func<CancellationToken, Task> action,
+            ILogger logger,
+            CancellationToken cancellation)
+        {
+            try
+            {
+                while (!cancellation.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await action(cancellation).ConfigureAwait(false);
+                    }
+                    catch (Exception ex) when (!cancellation.IsCancellationRequested && !ex.IsFatal())
+                    {
+                        logger.LogError(
+                            ex,
+                            $"Received an unexpected error in a safe loop while the cancellation token is still active. " +
+                            $"We will ignore this exception and continue with the loop.");
+                    }
+                }
+            }
+            catch when (cancellation.IsCancellationRequested) { }
         }
 
         // shortens a file path by choosing the shorter of absolute and relative paths

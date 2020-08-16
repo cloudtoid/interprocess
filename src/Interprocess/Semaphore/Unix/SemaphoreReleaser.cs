@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
@@ -55,6 +56,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 releaseSignal.Set();
         }
 
+        [SuppressMessage("Usage", "VSTHRD002:Avoid problematic synchronous waits", Justification = "Used in a creation of s thread.")]
         private void StartServer(out Thread connectionAcceptThread, out Thread releaseLoopThread)
         {
             // using dedicated threads as these are long running and looping operations
@@ -62,93 +64,73 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             connectionAcceptThread.IsBackground = true;
             connectionAcceptThread.Start();
 
-#pragma warning disable VSTHRD002
             releaseLoopThread = new Thread(() => ReleaseLoopAsync().Wait());
-#pragma warning restore VSTHRD002
             releaseLoopThread.IsBackground = true;
             releaseLoopThread.Start();
         }
 
         private void ConnectionAcceptLoop()
         {
-            var cancellation = cancellationSource.Token;
-            UnixDomainSocketServer? server = null;
+            var server = new UnixDomainSocketServer(filePath, loggerFactory);
 
             try
             {
-                server = new UnixDomainSocketServer(filePath, loggerFactory);
-                while (!cancellation.IsCancellationRequested)
-                {
-                    try
+                Util.SafeLoop(
+                    cancellation =>
                     {
-                        var client = server.Accept(cancellation);
-                        clients = clients.Concat(new[] { client }).Where(c => c != null).ToArray();
-                    }
-                    catch (SocketException se)
-                    {
-                        logger.LogError(se, "Accepting a Unix Domain Socket connection failed unexpectedly.");
-                        server.Dispose();
-                        server = new UnixDomainSocketServer(filePath, loggerFactory);
-                    }
-                }
-            }
-            catch when (cancellation.IsCancellationRequested) { }
-            catch (Exception ex)
-            {
-                // if there is an error here, we are in a bad state.
-                // treat this as a fatal exception and crash the process
-                logger.FailFast(
-                    "Unix semaphore releaser failed leaving the application in a bad state. " +
-                    "The only option is to crash the application.", ex);
+                        try
+                        {
+                            var client = server.Accept(cancellation);
+                            clients = clients.Where(c => c != null).Concat(new[] { client }).ToArray();
+                        }
+                        catch (SocketException se)
+                        {
+                            logger.LogError(se, "Accepting a Unix Domain Socket connection failed unexpectedly.");
+                            server.Dispose();
+                            server = new UnixDomainSocketServer(filePath, loggerFactory);
+                        }
+                    },
+                    logger,
+                    cancellationSource.Token);
             }
             finally
             {
                 foreach (var client in clients)
                     client.SafeDispose(logger);
 
-                server?.Dispose();
+                server.Dispose();
             }
         }
 
         private async Task ReleaseLoopAsync()
         {
             const int MaxClientCount = 1000;
-            var cancellation = cancellationSource.Token;
             var tasks = new ValueTask[MaxClientCount];
-
-            try
+            using (releaseSignal)
             {
-                while (!cancellation.IsCancellationRequested)
-                {
-                    if (!releaseSignal.WaitOne(10))
-                        continue;
+                await Util.SafeLoopAsync(
+                    async cancellation =>
+                    {
+                        if (!releaseSignal.WaitOne(10))
+                            return;
 
-                    // take a snapshot as the ref to the array may change
-                    var clients = this.clients;
+                        // take a snapshot as the ref to the array may change
+                        var clients = this.clients;
 
-                    var count = Math.Min(clients.Length, MaxClientCount);
-                    if (count == 0)
-                        continue;
+                        var count = Math.Min(clients.Length, MaxClientCount);
+                        if (count == 0)
+                            return;
 
-                    for (var i = 0; i < count; i++)
-                        tasks[i] = ReleaseAsync(clients, i, cancellation);
+                        for (var i = 0; i < count; i++)
+                            tasks[i] = ReleaseAsync(clients, i, cancellation);
 
-                    // do not use Task.WaitAll
-                    for (var i = 0; i < count; i++)
-                        await tasks[i].ConfigureAwait(false);
-                }
-            }
-            catch (Exception ex)
-            {
-                // if there is an error here, we are in a bad state.
-                // treat this as a fatal exception and crash the process
-                logger.FailFast(
-                    "Unix semaphore releaser failed leaving the application in a bad state. " +
-                    "The only option is to crash the application.", ex);
-            }
-            finally
-            {
-                releaseSignal.Dispose();
+                        // do not use Task.WaitAll
+                        for (var i = 0; i < count; i++)
+                            await tasks[i].ConfigureAwait(false);
+                    },
+                    logger,
+                    cancellationSource.Token)
+                    .ConfigureAwait(false);
             }
         }
 
