@@ -6,11 +6,12 @@
     <!-- <TargetFrameworks>net5.0;netcoreapp3.1</TargetFrameworks> -->
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <!-- Versions -->
   <PropertyGroup>
-    <CloudtoidFrameworkVersion>1.0.68</CloudtoidFrameworkVersion>
+    <CloudtoidFrameworkVersion>1.0.70</CloudtoidFrameworkVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp3.1'">

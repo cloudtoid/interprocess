@@ -8,6 +8,7 @@ using Cloudtoid.Interprocess.DomainSocket;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
+#pragma warning disable VSTHRD103
 
 namespace Cloudtoid.Interprocess.Tests
 {
@@ -147,6 +148,7 @@ namespace Cloudtoid.Interprocess.Tests
 
                 File.Exists(file).Should().BeTrue();
             }
+
             await task;
             File.Exists(file).Should().BeFalse();
         }
@@ -227,6 +229,7 @@ namespace Cloudtoid.Interprocess.Tests
                     onCancelled();
                     return;
                 }
+
                 onNewConnection(socket);
             }
         }
@@ -262,4 +265,5 @@ namespace Cloudtoid.Interprocess.Tests
             public bool IsCompleted { get; }
         }
     }
+#pragma warning restore VSTHRD103 // Call async methods when in an async method
 }

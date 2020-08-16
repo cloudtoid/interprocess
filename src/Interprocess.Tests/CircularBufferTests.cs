@@ -7,7 +7,7 @@ namespace Cloudtoid.Interprocess.Tests
 {
     public unsafe class CircularBufferTests
     {
-        private static readonly byte[] byteArray1 = new byte[] { 100, };
+        private static readonly byte[] ByteArray1 = new byte[] { 100, };
         private static readonly byte[] ByteArray2 = new byte[] { 100, 110 };
         private static readonly byte[] ByteArray3 = new byte[] { 100, 110, 120 };
 
@@ -166,7 +166,7 @@ namespace Cloudtoid.Interprocess.Tests
 
             action = () =>
             {
-                fixed (byte* ptr = &byteArray1[0])
+                fixed (byte* ptr = &ByteArray1[0])
                     new CircularBuffer(ptr, 0);
             };
             action.Should().ThrowExactly<ArgumentException>("*capacity*");

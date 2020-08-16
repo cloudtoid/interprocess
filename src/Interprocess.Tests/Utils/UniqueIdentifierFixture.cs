@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using System.IO;
 
 namespace Cloudtoid.Interprocess.Tests
@@ -12,7 +11,7 @@ namespace Cloudtoid.Interprocess.Tests
         {
             while (true)
             {
-                var folder = (DateTime.UtcNow.Ticks % 0xFFFFF).ToString("X5", CultureInfo.InvariantCulture);
+                var folder = (DateTime.UtcNow.Ticks % 0xFFFFF).ToStringInvariant("X5");
                 var path = Path.Combine(Root, folder);
                 if (!Directory.Exists(path))
                 {
@@ -22,6 +21,8 @@ namespace Cloudtoid.Interprocess.Tests
                 }
             }
         }
+
+        internal SharedAssetsIdentifier Identifier { get; }
 
         public void Dispose()
         {
@@ -34,7 +35,5 @@ namespace Cloudtoid.Interprocess.Tests
             }
             catch { }
         }
-
-        internal SharedAssetsIdentifier Identifier { get; }
     }
 }

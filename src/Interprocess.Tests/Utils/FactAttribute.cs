@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Cloudtoid.Interprocess.Tests
 {
@@ -43,17 +42,5 @@ namespace Cloudtoid.Interprocess.Tests
 
             return null;
         }
-    }
-
-    [Flags]
-    public enum Platform
-    {
-        Windows = 0x01,
-        Linux = 0x02,
-        OSX = 0x04,
-        FreeBSD = 0x08,
-
-        UnixBased = Linux | OSX | FreeBSD,
-        All = Windows | Linux | OSX | FreeBSD
     }
 }

@@ -5,7 +5,7 @@ namespace Cloudtoid.Interprocess
     public sealed class QueueOptions
     {
         /// <summary>
-        /// Creates an instance of <see cref="QueueOptions"/>
+        /// Initializes a new instance of the <see cref="QueueOptions"/> class.
         /// </summary>
         /// <param name="queueName">The unique name of the queue.</param>
         /// <param name="path">The path to the directory/folder in which the memory mapped and other files are stored in</param>
