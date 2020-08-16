@@ -107,7 +107,7 @@ You can also be explicit about the .NET SDK and Runtime(s) versions:
 ```cmd
 dotnet run Interprocess.Benchmark.csproj --configuration Release --framework net5.0 --runtimes net5.0 netcoreapp3.1
 ```
-
+---
 ### On Windows
 
 #### Host
@@ -128,6 +128,7 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
 |                     Message enqueue and dequeue |  `584.651`|   `11.5850`|    `23.6650`|       `-` |
 | Message enqueue and dequeue - no message buffer |  `581.341`|   `11.5766`|    `30.2940`|    `32 B` |
 
+---
 ### On OSX
 
 #### Host
@@ -152,6 +153,7 @@ Intel Core i7-7567U CPU 3.50GHz (Kaby Lake), 1 CPU, 4 logical and 2 physical cor
 |                     Message enqueue and dequeue |  5.0 | `1,656.19`|     `17.30`|      `13.51`|     `43 B`|
 | Message enqueue and dequeue - no message buffer |  5.0 | `1,721.16`|     `11.03`|       `9.78`|     `76 B`|
 
+---
 ### On Ubuntu (through [WSL](https://docs.microsoft.com/en-us/windows/wsl/about))
 
 #### Host
