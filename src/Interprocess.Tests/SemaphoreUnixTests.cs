@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Cloudtoid.Interprocess.Semaphore.Unix;
 using FluentAssertions;
@@ -174,9 +175,10 @@ namespace Cloudtoid.Interprocess.Tests
 
         [Theory]
         [Repeat(20)]
+        [SuppressMessage("Style", "IDE0060", Justification = "Parameter is needed for xUnit's repeated test to work.")]
+        [SuppressMessage("Usage", "xUnit1026", Justification = "Parameter is needed for xUnit's repeated test to work.")]
         public async Task CanSupporrtMultipleServersAndClientsAsync(int i)
         {
-            Console.WriteLine(i);
             using var server1 = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
             using var client1 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
             using var client2 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
