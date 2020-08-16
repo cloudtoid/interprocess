@@ -4,11 +4,11 @@
 
 ![](https://github.com/cloudtoid/interprocess/workflows/publish/badge.svg) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/cloudtoid/url-patterns/blob/master/LICENSE) ![https://www.nuget.org/packages/Cloudtoid.Interprocess/](https://img.shields.io/nuget/vpre/Cloudtoid.Interprocess) ![](https://img.shields.io/badge/.net%20core-%3E%203.1.0-blue)
 
-**Cloudtoid Introprcess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC](https://en.wikipedia.org/wiki/Inter-process_communication)). It uses a shared memory mapped file for extremly fast and efficient communication between processes.
+**Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC](https://en.wikipedia.org/wiki/Inter-process_communication)). It uses a shared memory mapped file for extremly fast and efficient communication between processes.
 
-- **Fast**: It is *extremly* fast.
-- **Cross-platform**: It supports Windows and Unix-based operating systems such as Linux, [OSX](https://en.wikipedia.org/wiki/MacOS), and [FreeBSD](https://www.freebsd.org/).
-- **API**: Provides a simple and intutive API to enqueue/send and dequeue/receive messages.
+- **Fast**: It is *extremely* fast.
+- **Cross-platform**: It supports Windows, and Unix-based operating systems such as Linux, [OSX](https://en.wikipedia.org/wiki/MacOS), and [FreeBSD](https://www.freebsd.org/).
+- **API**: Provides a simple and intuitive API to enqueue/send and dequeue/receive messages.
 - **Multiple publishers and subscribers**: It supports multiple publishers and subscribers to a shared queue.
 - **Efficient**: Sending and receiving messages is *almost* heap allocation free, reducing delays because of garbage collection.
 - **.NET**: Supports .NET Core 3.1 and .NET 5.
@@ -89,6 +89,8 @@ await subscriber.TryDequeueAsync(messageBuffer, cancellationToken, out var messa
 ## Performance
 
 ## Contribute
+
+## Implementation Notes
 
 ## Author
 
