@@ -19,5 +19,7 @@ jobs:
         run: dotnet build --configuration Release src/Interprocess.sln
       - name: Test
         run: dotnet test --no-restore --verbosity normal src/Interprocess.sln
+      - name: Pack
+        run: dotnet pack --configuration Release --no-build --output . --version-suffix ${{github.run_number}} src/Interprocess/Interprocess.csproj 
       - name: Push
         run: dotnet nuget push Interprocess.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.nuget_org_api_key }}
