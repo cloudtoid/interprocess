@@ -1,6 +1,8 @@
 ﻿using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
@@ -24,6 +26,65 @@ namespace Cloudtoid.Interprocess.Tests
             var loggerFactory = new LoggerFactory();
             loggerFactory.AddProvider(new XunitLoggerProvider(testOutputHelper));
             queueFactory = new QueueFactory(loggerFactory);
+        }
+
+        [Fact]
+        public async Task SampleAsync()
+        {
+            var message = new byte[] { 1, 2, 3 };
+            var messageBuffer = new byte[3];
+            CancellationToken cancellationToken = default;
+
+            var factory = new QueueFactory();
+            var options = new QueueOptions(
+                queueName: "my-queue",
+                bytesCapacity: 1024 * 1024,
+                createOrOverride: true);
+
+            using var publisher = factory.CreatePublisher(options);
+            publisher.TryEnqueue(message);
+
+            options = new QueueOptions(
+                queueName: "my-queue",
+                bytesCapacity: 1024 * 1024);
+
+            using var subscriber = factory.CreateSubscriber(options);
+            await subscriber.TryDequeueAsync(messageBuffer, cancellationToken, out var msg);
+
+            msg.ToArray().Should().BeEquivalentTo(message);
+        }
+
+        [Fact]
+        public async Task DependencyInjectionSampleAsync()
+        {
+            var message = new byte[] { 1, 2, 3 };
+            var messageBuffer = new byte[3];
+            CancellationToken cancellationToken = default;
+            var services = new ServiceCollection();
+
+            services
+                .AddInterprocessQueue() // adding the queue related components
+                .AddLogging(); // optionally, we can enable logging
+
+            var serviceProvider = services.BuildServiceProvider();
+            var factory = serviceProvider.GetRequiredService<IQueueFactory>();
+
+            var options = new QueueOptions(
+                queueName: "my-queue",
+                bytesCapacity: 1024 * 1024,
+                createOrOverride: true);
+
+            using var publisher = factory.CreatePublisher(options);
+            publisher.TryEnqueue(message);
+
+            options = new QueueOptions(
+                queueName: "my-queue",
+                bytesCapacity: 1024 * 1024);
+
+            using var subscriber = factory.CreateSubscriber(options);
+            await subscriber.TryDequeueAsync(messageBuffer, cancellationToken, out var msg);
+
+            msg.ToArray().Should().BeEquivalentTo(message);
         }
 
         [Fact]

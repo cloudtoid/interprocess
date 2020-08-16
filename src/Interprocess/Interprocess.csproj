@@ -17,7 +17,7 @@
     <Title>Cloudtoid.Interprocess</Title>
     <Authors>pedram@rezaei.us</Authors>
     <Company>cloudtoid</Company>
-    <PackageDescription>A cross-platform shared memory queue for fast intraprocess messaging.</PackageDescription>
+    <PackageDescription>A cross-platform shared memory queue for fast interprocess messaging.</PackageDescription>
     <Copyright>Copyright (c) Cloudtoid</Copyright>
     <RepositoryUrl>https://github.com/cloudtoid/interprocess/</RepositoryUrl>
     <PackageProjectUrl>https://github.com/cloudtoid/interprocess/blob/master/README.md</PackageProjectUrl>

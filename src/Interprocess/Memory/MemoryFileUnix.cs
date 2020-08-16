@@ -54,7 +54,7 @@ namespace Cloudtoid.Interprocess.Memory.Unix
                 MappedFile = MemoryMappedFile.CreateFromFile(
                     stream,
                     mapName: null, // do not set this or it will not work on Linux/Unix/MacOS
-                    options.Capacity,
+                    options.BytesCapacity,
                     MemoryMappedFileAccess.ReadWrite,
                     HandleInheritability.None,
                     false);

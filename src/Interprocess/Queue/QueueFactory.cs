@@ -8,8 +8,8 @@ namespace Cloudtoid.Interprocess
         private readonly ILoggerFactory loggerFactory;
 
         public QueueFactory()
+            : this(NullLoggerFactory.Instance)
         {
-            loggerFactory = NullLoggerFactory.Instance;
         }
 
         public QueueFactory(ILoggerFactory loggerFactory)
@@ -17,9 +17,15 @@ namespace Cloudtoid.Interprocess
             this.loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         }
 
+        /// <summary>
+        /// Creates a queue message publisher.
+        /// </summary>
         public IPublisher CreatePublisher(QueueOptions options)
             => new Publisher(options, loggerFactory);
 
+        /// <summary>
+        /// Creates a queue message subscriber.
+        /// </summary>
         public ISubscriber CreateSubscriber(QueueOptions options)
             => new Subscriber(options, loggerFactory);
     }
