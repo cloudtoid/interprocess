@@ -15,8 +15,8 @@ namespace Cloudtoid.Interprocess
         internal unsafe MemoryView(QueueOptions options, ILoggerFactory loggerFactory)
         {
             file = Util.IsUnixBased
-                ? new UnixMemoryFile(options, loggerFactory)
-                : (IMemoryFile)new WindowsMemoryFile(options);
+                ? new MemoryFileUnix(options, loggerFactory)
+                : (IMemoryFile)new MemoryFileWindows(options);
 
             try
             {

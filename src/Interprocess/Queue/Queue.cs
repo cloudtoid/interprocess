@@ -1,30 +1,27 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess
 {
     internal abstract class Queue : IDisposable
     {
         private readonly MemoryView view;
-        protected readonly CircularBuffer buffer;
-        protected readonly SharedAssetsIdentifier identifier;
-        protected readonly ILogger<Queue> logger;
 
         protected unsafe Queue(QueueOptions options, ILoggerFactory loggerFactory)
         {
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
-            logger = loggerFactory.CreateLogger<Queue>();
-            identifier = new SharedAssetsIdentifier(
+            Logger = loggerFactory.CreateLogger<Queue>();
+            Identifier = new SharedAssetsIdentifier(
                 options.QueueName,
                 Util.GetAbsolutePath(options.Path));
 
             view = new MemoryView(options, loggerFactory);
             try
             {
-                buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);
+                Buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);
             }
             catch
             {
@@ -38,6 +35,10 @@ namespace Cloudtoid.Interprocess
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => (QueueHeader*)view.Pointer;
         }
+
+        protected SharedAssetsIdentifier Identifier { get; }
+        protected CircularBuffer Buffer { get; }
+        protected ILogger<Queue> Logger { get; }
 
         public virtual void Dispose()
             => view.Dispose();

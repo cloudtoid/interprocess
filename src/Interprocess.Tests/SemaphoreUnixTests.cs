@@ -1,8 +1,8 @@
-﻿using Cloudtoid.Interprocess.Semaphore.Unix;
+﻿using System;
+using System.Threading.Tasks;
+using Cloudtoid.Interprocess.Semaphore.Unix;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -23,7 +23,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task CanDisposeUnixServer()
+        public async Task CanDisposeUnixServerAsync()
         {
             // simple create and dispose
             using (new SemaphoreReleaser(fixture.Identifier, loggerFactory))
@@ -69,19 +69,19 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task CanSignalMultipleClients()
+        public async Task CanSignalMultipleClientsAsync()
         {
             using var server = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
             using var client1 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
             using var client2 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
 
-            await WaitForClientCount(server, 2);
+            await WaitForClientCountAsync(server, 2);
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
 
             const int Count = 10000;
-            for (int i = 0; i < Count; i++)
+            for (var i = 0; i < Count; i++)
             {
                 server.Release();
 
@@ -94,19 +94,19 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task CanReceiveSignalsAtDifferentPaces()
+        public async Task CanReceiveSignalsAtDifferentPacesAsync()
         {
             using var server = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
             using var client1 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
             using var client2 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
 
-            await WaitForClientCount(server, 2);
+            await WaitForClientCountAsync(server, 2);
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
 
             const int Count = 10000;
-            for (int i = 0; i < Count; i++)
+            for (var i = 0; i < Count; i++)
             {
                 server.Release();
                 client1.WaitOne(1000).Should().BeTrue();
@@ -114,20 +114,20 @@ namespace Cloudtoid.Interprocess.Tests
 
             client1.WaitOne(50).Should().BeFalse();
 
-            for (int i = 0; i < Count; i++)
+            for (var i = 0; i < Count; i++)
                 client2.WaitOne(1000).Should().BeTrue();
 
             client2.WaitOne(50).Should().BeFalse();
         }
 
         [Fact]
-        public async Task CanAddClientLater()
+        public async Task CanAddClientLaterAsync()
         {
             using var server = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
             using var client1 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
             using var client2 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
 
-            await WaitForClientCount(server, 2);
+            await WaitForClientCountAsync(server, 2);
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
@@ -138,7 +138,7 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(1000).Should().BeTrue();
 
             using var client3 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
-            await WaitForClientCount(server, 3);
+            await WaitForClientCountAsync(server, 3);
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
@@ -152,20 +152,20 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task CanSupportManyClients()
+        public async Task CanSupportManyClientsAsync()
         {
             const int Count = 20;
 
             using var server = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
             var clients = new SemaphoreWaiter[Count];
 
-            for (int i = 0; i < Count; i++)
+            for (var i = 0; i < Count; i++)
                 clients[i] = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
 
-            await WaitForClientCount(server, Count);
+            await WaitForClientCountAsync(server, Count);
             server.Release();
 
-            for (int i = 0; i < Count; i++)
+            for (var i = 0; i < Count; i++)
                 clients[i].Dispose();
 
             while (server.ClientCount > 0)
@@ -174,21 +174,21 @@ namespace Cloudtoid.Interprocess.Tests
 
         [Theory]
         [Repeat(20)]
-        public async Task CanSupporrtMultipleServersAndClients(int i)
+        public async Task CanSupporrtMultipleServersAndClientsAsync(int i)
         {
             Console.WriteLine(i);
             using var server1 = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
             using var client1 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
             using var client2 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
 
-            await WaitForClientCount(server1, 2);
+            await WaitForClientCountAsync(server1, 2);
 
             server1.Release();
             client1.WaitOne(1000).Should().BeTrue();
             client2.WaitOne(1000).Should().BeTrue();
 
             using var server2 = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
-            await WaitForClientCount(server2, 2);
+            await WaitForClientCountAsync(server2, 2);
 
             server1.Release();
             client1.WaitOne(1000).Should().BeTrue();
@@ -216,13 +216,13 @@ namespace Cloudtoid.Interprocess.Tests
         // of manners. every single scenario has a separate unit test in this
         // file but here we combine many of them into a single test
         [Fact]
-        public async Task CanPerformManyActions()
+        public async Task CanPerformManyActionsAsync()
         {
             using var server1 = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
             using var client1 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
             using var client2 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
 
-            await WaitForClientCount(server1, 2);
+            await WaitForClientCountAsync(server1, 2);
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
@@ -241,7 +241,7 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(1000).Should().BeTrue();
 
             using var client3 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
-            await WaitForClientCount(server1, 3);
+            await WaitForClientCountAsync(server1, 3);
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
@@ -254,7 +254,7 @@ namespace Cloudtoid.Interprocess.Tests
             client3.WaitOne(1000).Should().BeTrue();
 
             using var server2 = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
-            await WaitForClientCount(server2, 3);
+            await WaitForClientCountAsync(server2, 3);
 
             client1.WaitOne(50).Should().BeFalse();
             client2.WaitOne(50).Should().BeFalse();
@@ -270,7 +270,7 @@ namespace Cloudtoid.Interprocess.Tests
             client2.WaitOne(50).Should().BeFalse();
             client3.WaitOne(50).Should().BeFalse();
 
-            for (int i = 0; i < 10000; i++)
+            for (var i = 0; i < 10000; i++)
             {
                 server1.Release();
 
@@ -310,7 +310,7 @@ namespace Cloudtoid.Interprocess.Tests
             client3.WaitOne(50).Should().BeFalse();
         }
 
-        private static async Task WaitForClientCount(SemaphoreReleaser server, int count)
+        private static async Task WaitForClientCountAsync(SemaphoreReleaser server, int count)
         {
             while (server.ClientCount != count)
                 await Task.Delay(5);

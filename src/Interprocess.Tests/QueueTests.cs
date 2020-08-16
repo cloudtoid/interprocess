@@ -1,7 +1,7 @@
-﻿using FluentAssertions;
-using Microsoft.Extensions.Logging;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -9,7 +9,7 @@ namespace Cloudtoid.Interprocess.Tests
 {
     public class QueueTests : IClassFixture<UniqueIdentifierFixture>
     {
-        private static readonly byte[] byteArray1 = new byte[] { 100, };
+        private static readonly byte[] ByteArray1 = new byte[] { 100, };
         private static readonly byte[] byteArray2 = new byte[] { 100, 110 };
         private static readonly byte[] byteArray3 = new byte[] { 100, 110, 120 };
         private static readonly byte[] byteArray50 = Enumerable.Range(1, 50).Select(i => (byte)i).ToArray();
@@ -27,7 +27,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task CanEnqueueAndDequeue()
+        public async Task CanEnqueueAndDequeueAsync()
         {
             using var p = CreatePublisher(24, createOrOverride: true);
             using var s = CreateSubscriber(24);
@@ -50,7 +50,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task CanEnqueueDequeueWrappedMessage()
+        public async Task CanEnqueueDequeueWrappedMessageAsync()
         {
             using var p = CreatePublisher(128, createOrOverride: true);
             using var s = CreateSubscriber(128);
@@ -74,11 +74,11 @@ namespace Cloudtoid.Interprocess.Tests
             using var p = CreatePublisher(24, createOrOverride: true);
 
             p.TryEnqueue(byteArray3).Should().BeTrue();
-            p.TryEnqueue(byteArray1).Should().BeFalse();
+            p.TryEnqueue(ByteArray1).Should().BeFalse();
         }
 
         [Fact]
-        public async Task DisposeShouldNotThrow()
+        public async Task DisposeShouldNotThrowAsync()
         {
             var p = CreatePublisher(24, createOrOverride: true);
             p.TryEnqueue(byteArray3).Should().BeTrue();
@@ -90,7 +90,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task CannotReadAfterProducerIsDisposed()
+        public async Task CannotReadAfterProducerIsDisposedAsync()
         {
             var p = CreatePublisher(24, createOrOverride: true);
             p.TryEnqueue(byteArray3).Should().BeTrue();

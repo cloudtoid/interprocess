@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess
 {
@@ -11,7 +11,7 @@ namespace Cloudtoid.Interprocess
         internal Publisher(QueueOptions options, ILoggerFactory loggerFactory)
             : base(options, loggerFactory)
         {
-            signal = InterprocessSemaphore.CreateReleaser(identifier, loggerFactory);
+            signal = InterprocessSemaphore.CreateReleaser(Identifier, loggerFactory);
         }
 
         public override void Dispose()
@@ -28,8 +28,8 @@ namespace Cloudtoid.Interprocess
                 var header = *Header;
                 var tailOffset = header.TailOffset;
 
-                long messageLength = GetMessageLength(bodyLength);
-                long capacity = buffer.Capacity - tailOffset + header.HeadOffset;
+                var messageLength = GetMessageLength(bodyLength);
+                var capacity = Buffer.Capacity - tailOffset + header.HeadOffset;
                 if (messageLength > capacity)
                     return false;
 
@@ -42,10 +42,10 @@ namespace Cloudtoid.Interprocess
                     try
                     {
                         // write the message body
-                        buffer.Write(message, GetMessageBodyOffset(tailOffset));
+                        Buffer.Write(message, GetMessageBodyOffset(tailOffset));
 
                         // write the message header
-                        buffer.Write(
+                        Buffer.Write(
                             new MessageHeader(MessageState.ReadyToBeConsumed, bodyLength),
                             tailOffset);
                     }
@@ -53,7 +53,7 @@ namespace Cloudtoid.Interprocess
                     {
                         // if there is an error here, we are in a bad state.
                         // treat this as a fatal exception and crash the process
-                        logger.FailFast(
+                        Logger.FailFast(
                             "Publishing to the shared memory queue failed leaving the queue in a bad state. " +
                             "The only option is to crash the application.", ex);
                     }

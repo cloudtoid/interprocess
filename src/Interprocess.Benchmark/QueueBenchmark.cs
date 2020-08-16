@@ -1,8 +1,8 @@
-﻿using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
-using System;
+﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 
 namespace Cloudtoid.Interprocess.Benchmark
 {
@@ -10,8 +10,8 @@ namespace Cloudtoid.Interprocess.Benchmark
     [SimpleJob(RuntimeMoniker.NetCoreApp31)]
     public class QueueBenchmark
     {
-        private static readonly byte[] message = new byte[50];
-        private static readonly byte[] messageBuffer = new byte[message.Length];
+        private static readonly byte[] Message = new byte[50];
+        private static readonly byte[] MessageBuffer = new byte[Message.Length];
 #pragma warning disable CS8618
         private IPublisher publisher;
         private ISubscriber subscriber;
@@ -33,20 +33,20 @@ namespace Cloudtoid.Interprocess.Benchmark
         }
 
         [Benchmark]
-        public async Task<ReadOnlyMemory<byte>> EnqueueDequeue_LongMessage()
+        public async Task<ReadOnlyMemory<byte>> EnqueueDequeue_LongMessageAsync()
         {
-            publisher.TryEnqueue(message);
-            return await subscriber.DequeueAsync(messageBuffer, default);
+            publisher.TryEnqueue(Message);
+            return await subscriber.DequeueAsync(MessageBuffer, default);
         }
 
         // when a message is wrapped in the circular buffer
         [Benchmark]
-        public async Task<ReadOnlyMemory<byte>> EnqueueDequeue_WrappedMessages()
+        public async Task<ReadOnlyMemory<byte>> EnqueueDequeue_WrappedMessagesAsync()
         {
-            publisher.TryEnqueue(message);
-            await subscriber.DequeueAsync(messageBuffer, default);
-            publisher.TryEnqueue(message);
-            return await subscriber.DequeueAsync(messageBuffer, default);
+            publisher.TryEnqueue(Message);
+            await subscriber.DequeueAsync(MessageBuffer, default);
+            publisher.TryEnqueue(Message);
+            return await subscriber.DequeueAsync(MessageBuffer, default);
         }
     }
 }

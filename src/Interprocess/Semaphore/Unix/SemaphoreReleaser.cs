@@ -12,7 +12,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
     internal sealed class SemaphoreReleaser : IInterprocessSemaphoreReleaser
     {
-        private static readonly byte[] message = new byte[] { 1 };
+        private static readonly byte[] Message = new byte[] { 1 };
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly AutoResetEvent releaseSignal = new AutoResetEvent(false);
         private readonly Thread releaseLoopThread;
@@ -62,7 +62,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             connectionAcceptThread.IsBackground = true;
             connectionAcceptThread.Start();
 
-            releaseLoopThread = new Thread(async () => await ReleaseLoop());
+#pragma warning disable VSTHRD002
+            releaseLoopThread = new Thread(() => ReleaseLoopAsync().Wait());
+#pragma warning restore VSTHRD002
             releaseLoopThread.IsBackground = true;
             releaseLoopThread.Start();
         }
@@ -108,7 +110,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             }
         }
 
-        private async Task ReleaseLoop()
+        private async Task ReleaseLoopAsync()
         {
             const int MaxClientCount = 1000;
             var cancellation = cancellationSource.Token;
@@ -128,11 +130,11 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                     if (count == 0)
                         continue;
 
-                    for (int i = 0; i < count; i++)
+                    for (var i = 0; i < count; i++)
                         tasks[i] = ReleaseAsync(clients, i, cancellation);
 
                     // do not use Task.WaitAll
-                    for (int i = 0; i < count; i++)
+                    for (var i = 0; i < count; i++)
                         await tasks[i].ConfigureAwait(false);
                 }
             }
@@ -162,10 +164,10 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             try
             {
                 var bytesSent = await client
-                    .SendAsync(message, SocketFlags.None, cancellation)
+                    .SendAsync(Message, SocketFlags.None, cancellation)
                     .ConfigureAwait(false);
 
-                Debug.Assert(bytesSent == message.Length);
+                Debug.Assert(bytesSent == Message.Length, "EExpected the bytesSent to be 1");
             }
             catch (SocketException se) when (se.SocketErrorCode == SocketError.Shutdown)
             {

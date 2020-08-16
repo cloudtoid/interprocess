@@ -1,9 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess
 {
@@ -69,7 +69,7 @@ namespace Cloudtoid.Interprocess
             do
             {
                 var index = DateTime.Now.Ticks % 0xFFFFF;
-                var name = fileName + index.ToString("X5", CultureInfo.InvariantCulture) + fileExtension;
+                var name = fileName + index.ToStringInvariant("X5") + fileExtension;
                 filePath = Path.Combine(path, name);
             }
             while (File.Exists(filePath));

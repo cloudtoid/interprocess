@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <!-- Versions -->
+  <PropertyGroup>
+    <CloudtoidFrameworkVersion>1.0.68</CloudtoidFrameworkVersion>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp3.1'">
     <MicrosoftExtensionsVersion>3.1.7</MicrosoftExtensionsVersion>
   </PropertyGroup>
@@ -16,5 +20,10 @@
   <PropertyGroup Condition="'$(TargetFramework)'=='net5.0'">
     <MicrosoftExtensionsVersion>5.0.0</MicrosoftExtensionsVersion>
   </PropertyGroup>
+
+  <!-- Package dependencies -->
+  <ItemGroup>
+    <PackageReference Include="Cloudtoid.Framework" Version="$(CloudtoidFrameworkVersion)" />
+  </ItemGroup>
 
 </Project>

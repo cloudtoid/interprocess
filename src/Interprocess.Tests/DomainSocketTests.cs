@@ -1,19 +1,19 @@
-﻿using Cloudtoid.Interprocess.DomainSocket;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Cloudtoid.Interprocess.DomainSocket;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 
 namespace Cloudtoid.Interprocess.Tests
 {
     public class DomainSocketTests
     {
-        private static readonly ReadOnlyMemory<byte> message = new byte[] { 1 };
+        private static readonly ReadOnlyMemory<byte> Message = new byte[] { 1 };
         private readonly ILoggerFactory loggerFactory;
 
         public DomainSocketTests(ITestOutputHelper testOutputHelper)
@@ -41,7 +41,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task CanAcceptConnections()
+        public async Task CanAcceptConnectionsAsync()
         {
             using var source = new CancellationTokenSource();
 
@@ -122,7 +122,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task CanAcceptConnectionsRecoverFromTimeout()
+        public async Task CanAcceptConnectionsRecoverFromTimeoutAsync()
         {
             var file = GetRandomNonExistingFilePath();
             var endpoint = new UnixDomainSocketEndPoint(file);
@@ -172,7 +172,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
-        public async Task ClientUnableToConnectWithoutServer()
+        public async Task ClientUnableToConnectWithoutServerAsync()
         {
             var file = GetRandomNonExistingFilePath();
             using (var client = new UnixDomainSocketClient(file, loggerFactory))
@@ -197,7 +197,7 @@ namespace Cloudtoid.Interprocess.Tests
                 var task = Task.Run(async () =>
                 {
                     socket = server.Accept(default);
-                    var c = await socket.SendAsync(message, default);
+                    var c = await socket.SendAsync(Message, default);
                     c.Should().Be(1);
                 });
 

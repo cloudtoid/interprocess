@@ -1,8 +1,8 @@
-﻿using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
-using System;
+﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 
 namespace Cloudtoid.Interprocess.Benchmark
 {
@@ -11,8 +11,8 @@ namespace Cloudtoid.Interprocess.Benchmark
     [MemoryDiagnoser]
     public class QueueBenchmarkWithMemoryDiagnoser
     {
-        private static readonly byte[] message = new byte[] { 100, 110, 120 };
-        private static readonly byte[] messageBuffer = new byte[message.Length];
+        private static readonly byte[] Message = new byte[] { 100, 110, 120 };
+        private static readonly byte[] MessageBuffer = new byte[Message.Length];
 #pragma warning disable CS8618
         private IPublisher publisher;
         private ISubscriber subscriber;
@@ -37,22 +37,22 @@ namespace Cloudtoid.Interprocess.Benchmark
         [Benchmark]
         public bool Enqueue()
         {
-            return publisher!.TryEnqueue(message);
+            return publisher!.TryEnqueue(Message);
         }
 
         [Benchmark]
-        public async ValueTask<ReadOnlyMemory<byte>> EnqueueDequeue_WithResultArrayAllocation()
+        public async ValueTask<ReadOnlyMemory<byte>> EnqueueDequeue_WithResultArrayAllocationAsync()
         {
-            publisher.TryEnqueue(message);
+            publisher.TryEnqueue(Message);
             return await subscriber.DequeueAsync(default);
         }
 
         // Expecting that there are NO managed heap allocations.
         [Benchmark]
-        public async ValueTask<ReadOnlyMemory<byte>> EnqueueAndDequeue_WithPooledResultArray()
+        public async ValueTask<ReadOnlyMemory<byte>> EnqueueAndDequeue_WithPooledResultArrayAsync()
         {
-            publisher.TryEnqueue(message);
-            return await subscriber.DequeueAsync(messageBuffer, default);
+            publisher.TryEnqueue(Message);
+            return await subscriber.DequeueAsync(MessageBuffer, default);
         }
     }
 }

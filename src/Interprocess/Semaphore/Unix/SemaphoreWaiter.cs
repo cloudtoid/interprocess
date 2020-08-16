@@ -12,8 +12,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
     internal sealed class SemaphoreWaiter : IInterprocessSemaphoreWaiter
     {
-        private static readonly byte[] messageBuffer = new byte[1];
-        private static readonly EnumerationOptions enumerationOptions = new EnumerationOptions
+        private static readonly byte[] MessageBuffer = new byte[1];
+        private static readonly EnumerationOptions EnumerationOptions = new EnumerationOptions
         {
             IgnoreInaccessible = true,
             MatchCasing = MatchCasing.PlatformDefault,
@@ -115,7 +115,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             {
                 while (!cancellation.IsCancellationRequested)
                 {
-                    var files = Directory.GetFiles(identifier.Path, fileSearchPattern, enumerationOptions);
+                    var files = Directory.GetFiles(identifier.Path, fileSearchPattern, EnumerationOptions);
 
                     // remove closed clients
                     var toRemove = clients.Where(c => !files.Contains(c.Key, StringComparer.OrdinalIgnoreCase));
@@ -138,7 +138,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                             "A Unix Domain Socket server for '{0}' is discovered and a client is created for it.",
                             add);
 
-                        Task.Run(() => ReceiveAsync(client, cancellation), cancellation);
+                        _ = Task.Run(() => ReceiveAsync(client, cancellation), cancellation);
                     }
 
                     fileWatcherHandle.WaitOne(100);
@@ -170,7 +170,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 {
                     while (!cancellation.IsCancellationRequested)
                     {
-                        if (await client.ReceiveAsync(messageBuffer, cancellation).ConfigureAwait(false) == 0)
+                        if (await client.ReceiveAsync(MessageBuffer, cancellation).ConfigureAwait(false) == 0)
                         {
                             logger.LogDebug("Looks like the server is shutting down.");
                             return;

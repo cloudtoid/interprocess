@@ -14,7 +14,7 @@ namespace Cloudtoid.Interprocess
     /// Unix based OSs (Linux, macOS, etc.). To replicate a named semaphore in
     /// the most efficient possible way, we are using Unix Domain Sockets to send
     /// signals between processes.
-    /// 
+    ///
     /// It is worth mentioning that we support multiple signal publishers and
     /// receivers; therefore, you will find some logic on Unix to utilize multiple
     /// named sockets. We also use a file system watcher to keep track of the

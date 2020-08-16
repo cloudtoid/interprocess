@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Net.Sockets;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess.DomainSocket
 {

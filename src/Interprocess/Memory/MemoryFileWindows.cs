@@ -3,11 +3,11 @@ using System.IO.MemoryMappedFiles;
 
 namespace Cloudtoid.Interprocess.Memory.Windows
 {
-    internal sealed class WindowsMemoryFile : IMemoryFile
+    internal sealed class MemoryFileWindows : IMemoryFile
     {
         private const string MapNamePrefix = "CT_IP_";
 
-        internal WindowsMemoryFile(QueueOptions options)
+        internal MemoryFileWindows(QueueOptions options)
         {
             MappedFile = MemoryMappedFile.CreateOrOpen(
                 mapName: MapNamePrefix + options.QueueName,

@@ -1,9 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess.DomainSocket
 {
@@ -105,7 +105,9 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
                 try
                 {
+#pragma warning disable VSTHRD103
                     socket.Connect(endpoint);
+#pragma warning restore VSTHRD103
                     return;
                 }
                 catch (SocketException se) when (se.SocketErrorCode == SocketError.WouldBlock)

@@ -1,6 +1,6 @@
-﻿using FluentAssertions;
-using System;
+﻿using System;
 using System.Linq;
+using FluentAssertions;
 using Xunit;
 
 namespace Cloudtoid.Interprocess.Tests
@@ -8,8 +8,8 @@ namespace Cloudtoid.Interprocess.Tests
     public unsafe class CircularBufferTests
     {
         private static readonly byte[] byteArray1 = new byte[] { 100, };
-        private static readonly byte[] byteArray2 = new byte[] { 100, 110 };
-        private static readonly byte[] byteArray3 = new byte[] { 100, 110, 120 };
+        private static readonly byte[] ByteArray2 = new byte[] { 100, 110 };
+        private static readonly byte[] ByteArray3 = new byte[] { 100, 110, 120 };
 
         [Theory]
         [InlineData(new byte[] { 100 }, 0, 0)]
@@ -86,9 +86,9 @@ namespace Cloudtoid.Interprocess.Tests
         [InlineData(1, 2, new byte[] { 110, 120 }, 6)]
         public void CanRead(long offset, int length, byte[] expectedResult, int? bufferLength = null)
         {
-            fixed (byte* bytesPtr = &byteArray3[0])
+            fixed (byte* bytesPtr = &ByteArray3[0])
             {
-                var buffer = new CircularBuffer(bytesPtr, byteArray3.Length);
+                var buffer = new CircularBuffer(bytesPtr, ByteArray3.Length);
                 if (bufferLength is null)
                     buffer.Read(offset, length).ToArray().Should().BeEquivalentTo(expectedResult);
 

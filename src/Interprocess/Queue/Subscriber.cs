@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess
 {
@@ -16,7 +16,7 @@ namespace Cloudtoid.Interprocess
         internal Subscriber(QueueOptions options, ILoggerFactory loggerFactory)
             : base(options, loggerFactory)
         {
-            signal = InterprocessSemaphore.CreateWaiter(identifier, loggerFactory);
+            signal = InterprocessSemaphore.CreateWaiter(Identifier, loggerFactory);
         }
 
         public override void Dispose()
@@ -59,7 +59,7 @@ namespace Cloudtoid.Interprocess
                     return new ValueTask<bool>(false);
                 }
 
-                var state = (long*)buffer.GetPointer(headOffset);
+                var state = (long*)Buffer.GetPointer(headOffset);
 
                 if (*state == LockedToBeConsumed)
                     continue; // some other receiver got to this message before us
@@ -75,13 +75,13 @@ namespace Cloudtoid.Interprocess
                 // read the message body from the queue buffer
                 var bodyOffset = GetMessageBodyOffset(headOffset);
                 var bodyLength = ReadMessageBodyLength(headOffset);
-                message = buffer.Read(bodyOffset, bodyLength, resultBuffer);
+                message = Buffer.Read(bodyOffset, bodyLength, resultBuffer);
 
                 // zero out the entire message block
-                long messageLength = GetMessageLength(bodyLength);
-                buffer.ZeroBlock(headOffset, messageLength);
+                var messageLength = GetMessageLength(bodyLength);
+                Buffer.ZeroBlock(headOffset, messageLength);
 
-                // updating the queue header to point the head of the queue to the next available message 
+                // updating the queue header to point the head of the queue to the next available message
                 var newHeadOffset = SafeIncrementMessageOffset(headOffset, messageLength);
                 var currentHeadOffset = (long*)header;
                 Interlocked.Exchange(ref *currentHeadOffset, newHeadOffset);
@@ -94,7 +94,7 @@ namespace Cloudtoid.Interprocess
             Memory<byte>? resultBuffer,
             CancellationToken cancellation)
         {
-            bool wait = false;
+            var wait = false;
 
             while (true)
             {
@@ -110,6 +110,6 @@ namespace Cloudtoid.Interprocess
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private long ReadMessageBodyLength(long messageHeaderOffset)
-            => buffer.ReadInt64(messageHeaderOffset + sizeof(long));
+            => Buffer.ReadInt64(messageHeaderOffset + sizeof(long));
     }
 }

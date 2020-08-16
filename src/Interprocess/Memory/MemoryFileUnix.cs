@@ -1,21 +1,21 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.IO;
 using System.IO.MemoryMappedFiles;
+using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess.Memory.Unix
 {
-    internal sealed class UnixMemoryFile : IMemoryFile
+    internal sealed class MemoryFileUnix : IMemoryFile
     {
         private const string Folder = ".cloudtoid/interprocess/mmf";
         private const string FileExtension = ".qu";
         private readonly string filePath;
         private readonly bool mustDeleteFileOnDispose;
-        private readonly ILogger<UnixMemoryFile> logger;
+        private readonly ILogger<MemoryFileUnix> logger;
 
-        internal UnixMemoryFile(QueueOptions options, ILoggerFactory loggerFactory)
+        internal MemoryFileUnix(QueueOptions options, ILoggerFactory loggerFactory)
         {
-            logger = loggerFactory.CreateLogger<UnixMemoryFile>();
+            logger = loggerFactory.CreateLogger<MemoryFileUnix>();
             filePath = Path.Combine(options.Path, Folder);
             Directory.CreateDirectory(filePath);
             filePath = Path.Combine(filePath, options.QueueName + FileExtension);
@@ -53,7 +53,7 @@ namespace Cloudtoid.Interprocess.Memory.Unix
             {
                 MappedFile = MemoryMappedFile.CreateFromFile(
                     stream,
-                    mapName: null, // do not set this or it will not work on Linux/Unix/MacOS 
+                    mapName: null, // do not set this or it will not work on Linux/Unix/MacOS
                     options.Capacity,
                     MemoryMappedFileAccess.ReadWrite,
                     HandleInheritability.None,
@@ -71,14 +71,15 @@ namespace Cloudtoid.Interprocess.Memory.Unix
                 {
                     ResetBackingFile();
                 }
+
                 throw;
             }
         }
 
-        public MemoryMappedFile MappedFile { get; }
+        ~MemoryFileUnix()
+           => Dispose(false);
 
-        ~UnixMemoryFile()
-            => Dispose(false);
+        public MemoryMappedFile MappedFile { get; }
 
         public void Dispose()
         {
@@ -100,7 +101,7 @@ namespace Cloudtoid.Interprocess.Memory.Unix
         }
 
         /// <summary>
-        /// Deletes the backing file if it was created by this instance of <see cref="UnixMemoryFile"/>.
+        /// Deletes the backing file if it was created by this instance of <see cref="MemoryFileUnix"/>.
         /// </summary>
         private void ResetBackingFile()
         {
