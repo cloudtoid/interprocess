@@ -22,4 +22,4 @@ jobs:
       - name: Pack
         run: dotnet pack --configuration Release --no-build --output . --version-suffix ${{github.run_number}} src/Interprocess/Interprocess.csproj 
       - name: Push
-        run: dotnet nuget push Interprocess.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.nuget_org_api_key }}
+        run: dotnet nuget push Cloudtoid.Interprocess.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.nuget_org_api_key }}
