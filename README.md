@@ -4,13 +4,13 @@
 
 ![](https://github.com/cloudtoid/interprocess/workflows/publish/badge.svg) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/cloudtoid/url-patterns/blob/master/LICENSE) ![https://www.nuget.org/packages/Cloudtoid.Interprocess/](https://img.shields.io/nuget/vpre/Cloudtoid.Interprocess) ![](https://img.shields.io/badge/.net%20core-%3E%203.1.0-blue)
 
-**Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC](https://en.wikipedia.org/wiki/Inter-process_communication)). It uses a shared memory mapped file for extremly fast and efficient communication between processes.
+**Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC](https://en.wikipedia.org/wiki/Inter-process_communication)). It uses a shared memory-mapped file for extremely fast and efficient communication between processes.
 
 - **Fast**: It is *extremely* fast.
 - **Cross-platform**: It supports Windows, and Unix-based operating systems such as Linux, [OSX](https://en.wikipedia.org/wiki/MacOS), and [FreeBSD](https://www.freebsd.org/).
 - **API**: Provides a simple and intuitive API to enqueue/send and dequeue/receive messages.
 - **Multiple publishers and subscribers**: It supports multiple publishers and subscribers to a shared queue.
-- **Efficient**: Sending and receiving messages is *almost* heap memory allocation free reducing garbage collections.
+- **Efficient**: Sending and receiving messages is an almost heap memory allocation free reducing garbage collections.
 - **Developer**: Developed by folks at Microsoft.
 
 ## NuGet Package
@@ -87,15 +87,15 @@ await subscriber.TryDequeueAsync(messageBuffer, cancellationToken, out var messa
 
 ## Performance
 
-A lot has gone into optimizing the implementation of this library. It is also mostly heap memory allocation free reducing the need for garbage collection induced pauses.
+A lot has gone into optimizing the implementation of this library. It is also mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
 
-To benchmark the performance and the memory usage, we use [BenchmarkDotNet](https://benchmarkdotnet.org/). Here are the results on fairly slow dev machines:
+To benchmark the performance and memory usage, we use [BenchmarkDotNet](https://benchmarkdotnet.org/). Here are the results on fairly slow dev machines:
 
 |                                          Method |   Description |
 |------------------------------------------------ |-------------- |
 |                                 Message enqueue | Benchmarks the performance of enqueuing a message. |
 |                     Message enqueue and dequeue | Benchmarks the performance of sending a message to a client and receiving that message. It is inclusive of the duration to enqueue and dequeue a message. |
-| Message enqueue and dequeue - no message buffer | Benchmarks the performance of sending a message to a client and receiving that message. It is inclusive of the duration to enqueue and dequeue a message, as well as, allocating memory for the received message. |
+| Message enqueue and dequeue - no message buffer | Benchmarks the performance of sending a message to a client and receiving that message. It is inclusive of the duration to enqueue and dequeue a message and memory allocation for the received message. |
 
 You can replicate the results by running the following command:
 
@@ -104,10 +104,13 @@ dotnet run Interprocess.Benchmark.csproj --configuration Release
 ```
 
 You can also be explicit about the .NET SDK and Runtime(s) versions:
+
 ```cmd
 dotnet run Interprocess.Benchmark.csproj --configuration Release --framework net5.0 --runtimes net5.0 netcoreapp3.1
 ```
+
 ---
+
 ### On Windows
 
 #### Host
@@ -129,6 +132,7 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
 | Message enqueue and dequeue - no message buffer |  `581.341`|   `11.5766`|    `30.2940`|    `32 B` |
 
 ---
+
 ### On OSX
 
 #### Host
@@ -154,6 +158,7 @@ Intel Core i7-7567U CPU 3.50GHz (Kaby Lake), 1 CPU, 4 logical and 2 physical cor
 | Message enqueue and dequeue - no message buffer |  5.0 | `1,721.16`|     `11.03`|       `9.78`|     `76 B`|
 
 ---
+
 ### On Ubuntu (through [WSL](https://docs.microsoft.com/en-us/windows/wsl/about))
 
 #### Host
@@ -176,13 +181,13 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
 
 ## Implementation Notes
 
-To signal the existence of a new message to all message subscribers and do it across process boundaries, we use a [Named Semaphore](https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore#remarks). Named semaphores are synchronization constructs accessible across processes.
+This library relies on [Named Semaphores](https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore#remarks) To signal the existence of a new message to all message subscribers and to do it across process boundaries. Named semaphores are synchronization constructs accessible across processes.
 
-.NET Core 3.1  and .NET 5 do not have support for named semaphores on Unix based OSs (Linux, macOS, etc.). To replicate a named semaphore in the most efficient possible way, we are using Unix Domain Sockets to send signals between processes.
+.NET Core 3.1 and .NET 5 do not support named semaphores on Unix-based OSs (Linux, macOS, etc.). To replicate a named semaphore most efficiently, we are using [Unix Domain Sockets](https://en.wikipedia.org/wiki/Unix_domain_socket) to send signals between processes.
 
-It is worth mentioning that we support multiple signal publishers and receivers; therefore, you will find some logic on Unix to utilize multiple named sockets. We also use a file system watcher to keep track of the addition and removal of signal publishers (Unix Domain Sockets use backing files).
+It is worth mentioning that we support multiple signal publishers and receivers; therefore, you will find some logic on Unix to utilize multiple named sockets. We also use a [file system watcher](https://docs.microsoft.com/en-us/dotnet/api/system.io.filesystemwatcher) to track the addition and removal of signal publishers (Unix Domain Sockets use backing files).
 
-The domain socket implementation will be replaced with [`System.Threading.Semaphore`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore) once named semaphores are supported on all platforms.
+The domain socket implementation will be replaced with [`System.Threading.Semaphore`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore), once named semaphores are supported on all platforms.
 
 ## How to Contribute
 
@@ -193,4 +198,4 @@ The domain socket implementation will be replaced with [`System.Threading.Semaph
 
 ## Author
 
-[**Pedram Rezaei**](https://www.linkedin.com/in/pedramrezaei/): Pedram is a software architect at Microsoft with years of experience building highly scalable and reliable cloud-native applications for Microsoft.
+[**Pedram Rezaei**](https://www.linkedin.com/in/pedramrezaei/) is a software architect at Microsoft with years of experience building highly scalable and reliable cloud-native applications for Microsoft.
