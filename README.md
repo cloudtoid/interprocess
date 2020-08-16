@@ -50,7 +50,7 @@ options = new QueueOptions(
     bytesCapacity: 1024 * 1024);
 
 using var subscriber = factory.CreateSubscriber(options);
-await subscriber.TryDequeueAsync(messageBuffer, cancellationToken, out var msg);
+await subscriber.TryDequeueAsync(messageBuffer, cancellationToken, out var message);
 ```
 
 ### Usage with DI
@@ -92,16 +92,21 @@ A lot has gone into optimizing the implementation of this library. It is also mo
 
 To benchmark the performance and the memory usage, we use [BenchmarkDotNet](https://benchmarkdotnet.org/). Here are the results on fairly slow dev machines:
 
-|                                            Method |       Description |
-|-------------------------------------------------- |-------------- |
-|                                 'Message enqueue' | Benchmarks the performance of enqueuing a message |
-|                     'Message enqueue and dequeue' | Benchmarks the performance of sending a message to a client. It is inclusive of the time taken to enqueue and dequeue a message |
-| 'Message enqueue and dequeue - no message buffer' | Benchmarks the performance of sending a message to a client. It is inclusive of the time taken to enqueue and dequeue a message, as well as, allocating memory for the received message |
+|                                          Method |   Description |
+|------------------------------------------------ |-------------- |
+|                                 Message enqueue | Benchmarks the performance of enqueuing a message |
+|                     Message enqueue and dequeue | Benchmarks the performance of sending a message to a client. It is inclusive of the time taken to enqueue and dequeue a message |
+| Message enqueue and dequeue - no message buffer | Benchmarks the performance of sending a message to a client. It is inclusive of the time taken to enqueue and dequeue a message, as well as, allocating memory for the received message |
 
 You can replicate the results by running the following command:
 
 ```cmd
 dotnet run Interprocess.Benchmark.csproj --configuration Release
+```
+
+You can also be explicit about the .NET SDK and Runtime:
+```cmd
+dotnet run Interprocess.Benchmark.csproj --configuration Release --framework net5.0 --runtimes net5.0 netcoreapp3.1
 ```
 
 ### On Windows
@@ -118,11 +123,11 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
 
 Results:
 
-|                                            Method |       Runtime |       Mean |      Error |     StdDev | Allocated |
-|-------------------------------------------------- |-------------- |-----------:|-----------:|-----------:|----------:|
-|                                 'Message enqueue' | .NET Core 3.1 |   6.138 ns |  0.1641 ns |  0.3315 ns |         - |
-|                     'Message enqueue and dequeue' | .NET Core 3.1 | 584.651 ns | 11.5850 ns | 23.6650 ns |         - |
-| 'Message enqueue and dequeue - no message buffer' | .NET Core 3.1 | 581.341 ns | 11.5766 ns | 30.2940 ns |      32 B |
+|                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
+|------------------------------------------------ |----------:|-----------:|------------:|----------:|
+|                                 Message enqueue |    `6.138`|    `0.1641`|     `0.3315`|       `-` |
+|                     Message enqueue and dequeue |  `584.651`|   `11.5850`|    `23.6650`|       `-` |
+| Message enqueue and dequeue - no message buffer |  `581.341`|   `11.5766`|    `30.2940`|    `32 B` |
 
 ### On OSX
 
@@ -137,14 +142,14 @@ Intel Core i7-7567U CPU 3.50GHz (Kaby Lake), 1 CPU, 4 logical and 2 physical cor
   .NET Core 5.0 : .NET Core 5.0.0, X64 RyuJIT
 ```
 
-|                                            Method |       Runtime |         Mean |      Error |     StdDev | Allocated |
-|-------------------------------------------------- |-------------- |-------------:|-----------:|-----------:|----------:|
-|                                 'Message enqueue' | .NET Core 3.1 |    14.539 ns |  0.1102 ns |  0.1030 ns |         - |
-|                     'Message enqueue and dequeue' | .NET Core 3.1 | 1,649.060 ns | 27.1430 ns | 24.0616 ns |      40 B |
-| 'Message enqueue and dequeue - no message buffer' | .NET Core 3.1 | 1,596.437 ns | 21.4398 ns | 19.0059 ns |      72 B |
-|                                 'Message enqueue' | .NET Core 5.0 |     4.973 ns |  0.1273 ns |  0.1466 ns |         - |
-|                     'Message enqueue and dequeue' | .NET Core 5.0 | 1,656.197 ns | 17.3074 ns | 13.5125 ns |      43 B |
-| 'Message enqueue and dequeue - no message buffer' | .NET Core 5.0 | 1,721.164 ns | 11.0354 ns |  9.7826 ns |      76 B |
+|                                          Method | .NET | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
+|------------------------------------------------ |-----:|----------:|-----------:|------------:|----------:|
+|                                 Message enqueue |  3.1 |    `14.53`|      `0.11`|       `0.10`|        `-`|
+|                     Message enqueue and dequeue |  3.1 | `1,649.06`|     `27.14`|      `24.06`|     `40 B`|
+| Message enqueue and dequeue - no message buffer |  3.1 | `1,596.43`|     `21.43`|      `19.00`|     `72 B`|
+|                                 Message enqueue |  5.0 |     `4.97`|      `0.12`|       `0.14`|        `-`|
+|                     Message enqueue and dequeue |  5.0 | `1,656.19`|     `17.30`|      `13.51`|     `43 B`|
+| Message enqueue and dequeue - no message buffer |  5.0 | `1,721.16`|     `11.03`|       `9.78`|     `76 B`|
 
 ### On Ubuntu (through [WSL](https://docs.microsoft.com/en-us/windows/wsl/about))
 
@@ -156,11 +161,11 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
   .NET Core 3.1 : .NET Core 3.1.7, X64 RyuJIT
 ```
 
-|                                            Method |       Runtime |         Mean |      Error |      StdDev | Allocated |
-|-------------------------------------------------- |-------------- |-------------:|-----------:|------------:|----------:|
-|                                 'Message enqueue' | .NET Core 3.1 |    16.298 ns |  0.3997 ns |   1.1660 ns |         - |
-|                     'Message enqueue and dequeue' | .NET Core 3.1 | 1,580.302 ns | 45.1770 ns | 133.2054 ns |      15 B |
-| 'Message enqueue and dequeue - no message buffer' | .NET Core 3.1 | 1,589.269 ns | 59.4680 ns | 174.4092 ns |      47 B |
+|                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
+|------------------------------------------------ |----------:|-----------:|------------:|----------:|
+|                                 Message enqueue |    `16.29`|      `0.39`|       `1.16`|        `-`|
+|                     Message enqueue and dequeue | `1,580.30`|     `45.17`|     `133.20`|     `15 B`|
+| Message enqueue and dequeue - no message buffer | `1,589.26`|     `59.46`|     `174.40`|     `47 B`|
 
 ## Implementation Notes
 
@@ -177,9 +182,3 @@ The domain socket implementation will be replaced with [`System.Threading.Semaph
 ## Author
 
 [**Pedram Rezaei**](https://www.linkedin.com/in/pedramrezaei/): Pedram is a software architect at Microsoft with years of experience building highly scalable and reliable cloud-native applications for Microsoft.
-
-
-
-## Notes:
-Command to run the benchmark: `dotnet run Interprocess.Benchmark.csproj --configuration Release --framework net5.0 --runtimes net5.0 netcoreapp3.1`
-
