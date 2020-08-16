@@ -8,7 +8,7 @@ namespace Cloudtoid.Interprocess.Benchmark
 {
     [SimpleJob(RuntimeMoniker.NetCoreApp50)]
     [SimpleJob(RuntimeMoniker.NetCoreApp31)]
-    public class QueueBenchmark
+    public class QueueExtendedBenchmark
     {
         private static readonly byte[] Message = new byte[50];
         private static readonly byte[] MessageBuffer = new byte[Message.Length];

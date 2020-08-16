@@ -2,7 +2,7 @@
 
   <!-- Build Settings -->
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <!-- <TargetFrameworks>net5.0;netcoreapp3.1</TargetFrameworks> -->
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

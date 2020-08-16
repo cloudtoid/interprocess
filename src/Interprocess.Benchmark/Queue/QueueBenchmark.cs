@@ -9,7 +9,7 @@ namespace Cloudtoid.Interprocess.Benchmark
     [SimpleJob(RuntimeMoniker.NetCoreApp50)]
     [SimpleJob(RuntimeMoniker.NetCoreApp31)]
     [MemoryDiagnoser]
-    public class QueueBenchmarkWithMemoryDiagnoser
+    public class QueueBenchmark
     {
         private static readonly byte[] Message = new byte[] { 100, 110, 120 };
         private static readonly byte[] MessageBuffer = new byte[Message.Length];
@@ -34,13 +34,13 @@ namespace Cloudtoid.Interprocess.Benchmark
         }
 
         // Expecting that there are NO managed heap allocations.
-        [Benchmark]
+        [Benchmark(Description = "Message enqueue")]
         public bool Enqueue()
         {
             return publisher!.TryEnqueue(Message);
         }
 
-        [Benchmark]
+        [Benchmark(Description = "Message enqueue and dequeue - no message buffer")]
         public async ValueTask<ReadOnlyMemory<byte>> EnqueueDequeue_WithResultArrayAllocationAsync()
         {
             publisher.TryEnqueue(Message);
@@ -48,7 +48,7 @@ namespace Cloudtoid.Interprocess.Benchmark
         }
 
         // Expecting that there are NO managed heap allocations.
-        [Benchmark]
+        [Benchmark(Description = "Message enqueue and dequeue")]
         public async ValueTask<ReadOnlyMemory<byte>> EnqueueAndDequeue_WithPooledResultArrayAsync()
         {
             publisher.TryEnqueue(Message);
