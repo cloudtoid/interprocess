@@ -41,7 +41,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
         // used for testing
         internal int ClientCount
-            => clients.Count(c => c != null);
+            => clients.WhereNotNull().Count();
 
         public void Dispose()
         {
@@ -81,7 +81,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         try
                         {
                             var client = server.Accept(cancellation);
-                            clients = clients.Where(c => c != null).Concat(new[] { client }).ToArray();
+                            clients = clients.WhereNotNull().Concat(client).ToArray();
                         }
                         catch (SocketException se)
                         {

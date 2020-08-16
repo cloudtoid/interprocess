@@ -109,47 +109,41 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
         private void ReceiversLoop()
         {
-            var cancellation = cancellationSource.Token;
             var fileSearchPattern = identifier.Name + "*" + Constants.Extension;
             var receivers = new Dictionary<string, Receiver>(StringComparer.OrdinalIgnoreCase);
             try
             {
-                while (!cancellation.IsCancellationRequested)
-                {
-                    var files = Directory.GetFiles(identifier.Path, fileSearchPattern, EnumerationOptions);
-
-                    // remove closed clients
-                    var toRemove = receivers.Where(r => !files.Contains(r.Key, StringComparer.OrdinalIgnoreCase));
-
-                    foreach (var remove in toRemove)
+                Util.SafeLoop(
+                    cancellation =>
                     {
-                        receivers.Remove(remove.Key);
-                        remove.Value.Dispose();
-                        logger.LogInformation(
-                            "The Unix Domain Socket server on '{0}' is no longer available and the receiver for it is now removed.",
-                            remove.Key);
-                    }
+                        var files = Directory.GetFiles(identifier.Path, fileSearchPattern, EnumerationOptions);
 
-                    // new clients to add
-                    foreach (var add in files.Where(file => !receivers.ContainsKey(file)))
-                    {
-                        var receiver = new Receiver(add, Release, loggerFactory);
-                        receivers.Add(add, receiver);
-                        logger.LogInformation(
-                            "A Unix Domain Socket server for '{0}' is discovered and a receiver is created for it.",
-                            add);
-                    }
+                        // remove closed clients
+                        var toRemove = receivers.Where(r => !files.Contains(r.Key, StringComparer.OrdinalIgnoreCase));
 
-                    fileWatcherHandle.WaitOne(100);
-                }
-            }
-            catch when (cancellation.IsCancellationRequested) { }
-            catch (Exception ex) when (!ex.IsFatalOrCancelOrTimeout())
-            {
-                logger.LogError(
-                    ex,
-                    $"An unexpected error in {nameof(ReceiversLoop)}. Given the {nameof(SemaphoreWaiter)} has not " +
-                    $"been disposed/cancelled, we will ignore this exception.");
+                        foreach (var remove in toRemove)
+                        {
+                            receivers.Remove(remove.Key);
+                            remove.Value.Dispose();
+                            logger.LogInformation(
+                                "The Unix Domain Socket server on '{0}' is no longer available and the receiver for it is now removed.",
+                                remove.Key);
+                        }
+
+                        // new clients to add
+                        foreach (var add in files.Where(file => !receivers.ContainsKey(file)))
+                        {
+                            var receiver = new Receiver(add, Release, loggerFactory);
+                            receivers.Add(add, receiver);
+                            logger.LogInformation(
+                                "A Unix Domain Socket server for '{0}' is discovered and a receiver is created for it.",
+                                add);
+                        }
+
+                        fileWatcherHandle.WaitOne(100);
+                    },
+                    logger,
+                    cancellationSource.Token);
             }
             finally
             {
