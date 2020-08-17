@@ -6,8 +6,6 @@ namespace Publisher
 {
     internal class Program
     {
-        private static readonly byte[] Message = new byte[] { 1, 2, 3 };
-
         internal static async Task Main()
         {
             // Set up an optional logger factory to redirect the traces to he console
