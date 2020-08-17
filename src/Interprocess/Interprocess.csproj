@@ -6,11 +6,6 @@
     <AssemblyName>Cloudtoid.Interprocess</AssemblyName>
   </PropertyGroup>
 
-  <!-- Package References -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
-  </ItemGroup>
-
   <!-- NuGet Packaging -->
   <PropertyGroup>
     <PackageId>Cloudtoid.Interprocess</PackageId>
