@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using static Cloudtoid.Contract;
 
 namespace Cloudtoid.Interprocess
 {
@@ -14,11 +15,8 @@ namespace Cloudtoid.Interprocess
             if (buffer == null)
                 throw new ArgumentNullException(nameof(buffer));
 
-            if (capacity <= 0)
-                throw new ArgumentException($"{nameof(capacity)} must be greater than 0.", nameof(capacity));
-
             this.buffer = buffer;
-            Capacity = capacity;
+            Capacity = CheckGreaterThan(capacity, 0, nameof(capacity));
         }
 
         internal long Capacity { get; }

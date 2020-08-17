@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
+using static Cloudtoid.Contract;
 
 namespace Cloudtoid.Interprocess
 {
@@ -10,8 +11,8 @@ namespace Cloudtoid.Interprocess
 
         protected unsafe Queue(QueueOptions options, ILoggerFactory loggerFactory)
         {
-            if (options is null)
-                throw new ArgumentNullException(nameof(options));
+            CheckValue(options, nameof(options));
+            CheckValue(loggerFactory, nameof(loggerFactory));
 
             Logger = loggerFactory.CreateLogger<Queue>();
             Identifier = new SharedAssetsIdentifier(

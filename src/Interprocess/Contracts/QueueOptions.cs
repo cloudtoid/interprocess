@@ -1,4 +1,5 @@
 ﻿using System;
+using static Cloudtoid.Contract;
 
 namespace Cloudtoid.Interprocess
 {
@@ -36,16 +37,12 @@ namespace Cloudtoid.Interprocess
             long bytesCapacity,
             bool createOrOverride = false)
         {
-            QueueName = queueName ?? throw new ArgumentNullException(nameof(queueName));
-            Path = path ?? throw new ArgumentNullException(nameof(path));
+            QueueName = CheckNonEmpty(queueName, nameof(queueName));
+            Path = CheckValue(path, nameof(path));
 
-            if (queueName.Length == 0)
-                throw new ArgumentException($"{nameof(queueName)} cannot be an empty string", nameof(queueName));
+            BytesCapacity = CheckGreaterThan(bytesCapacity, 16, nameof(bytesCapacity));
+            CheckParam((bytesCapacity % 8) == 0, nameof(queueName), $"{nameof(bytesCapacity)} should be a multiple of 8 (8 bytes = 64 bits).");
 
-            if (bytesCapacity < 16 && (bytesCapacity % 8) == 0)
-                throw new ArgumentException($"{nameof(bytesCapacity)} should be at least 16 bytes long and in the multiples of 8 (8 bytes = 64 bits).");
-
-            BytesCapacity = bytesCapacity;
             CreateOrOverride = createOrOverride;
         }
 

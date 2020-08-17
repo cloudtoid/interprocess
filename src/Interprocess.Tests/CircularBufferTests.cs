@@ -169,7 +169,7 @@ namespace Cloudtoid.Interprocess.Tests
                 fixed (byte* ptr = &ByteArray1[0])
                     new CircularBuffer(ptr, 0);
             };
-            action.Should().ThrowExactly<ArgumentException>("*capacity*");
+            action.Should().ThrowExactly<ArgumentOutOfRangeException>("*capacity*");
         }
 
         [Theory]

@@ -15,7 +15,7 @@
     <PackageDescription>A cross-platform shared memory queue for fast interprocess messaging.</PackageDescription>
     <Copyright>Copyright (c) Cloudtoid</Copyright>
     <RepositoryUrl>https://github.com/cloudtoid/interprocess/</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/cloudtoid/interprocess/blob/master/README.md</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/cloudtoid/interprocess/blob/main/README.md</PackageProjectUrl>
     <IsPackable>true</IsPackable>
     <PackageTags>interprocess;ipc;memory-mapped-file;queue</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

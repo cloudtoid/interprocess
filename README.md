@@ -202,7 +202,7 @@ The domain socket implementation will be replaced with [`System.Threading.Semaph
 
 ## How to Contribute
 
-- Create a branch from master.
+- Create a branch from `main`.
 - Ensure that all tests pass on Windows, Linux, and OSX.
 - Keep the code coverage number above 80% by adding new tests or modifying the existing tests.
 - Send a pull request.
