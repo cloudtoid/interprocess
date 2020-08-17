@@ -1,4 +1,3 @@
-﻿- Queue tests
-- only x64?
+﻿- only x64?
 - update from pre-release to full release
 - .net 5

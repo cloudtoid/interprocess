@@ -31,11 +31,11 @@ namespace Publisher
 
             // Enqueue messages
 
-            for (var i = 0; i < 1000;)
+            for (byte i = 0; i < 255;)
             {
                 logger.LogInformation("Enqueue #" + i);
 
-                if (publisher.TryEnqueue(Message))
+                if (publisher.TryEnqueue(new byte[] { i }))
                     i++;
 
                 await Task.Delay(2000);

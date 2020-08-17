@@ -27,12 +27,12 @@ namespace Subscriber
             using var subscriber = factory.CreateSubscriber(options);
 
             // Dequeue messages
+            var messageBuffer = new byte[1];
 
-            var i = 0;
             while (true)
             {
-                if (await subscriber.TryDequeueAsync(default, out var message))
-                    logger.LogInformation("Enqueue #" + i++);
+                if (await subscriber.TryDequeueAsync(messageBuffer, default, out var message))
+                    logger.LogInformation("Dequeue #" + messageBuffer[0]);
             }
         }
     }
