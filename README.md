@@ -89,9 +89,9 @@ await subscriber.TryDequeueAsync(messageBuffer, cancellationToken, out var messa
 
 A lot has gone into optimizing the implementation of this library. It is also mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
 
-> In average, enqueuing a message is about `5 to 15 ns` and a full enqueue followed by a dequeue takes roughly `~500 ns` on Windows and `~1.5 us` on Unix-based operating systems.
+**Summary**: In average, enqueuing a message is about `~10 ns` and a full enqueue followed by a dequeue takes roughly `~500 ns` on Windows and `~1.5 us` on Unix-based operating systems.
 
-To benchmark the performance and memory usage, we use [BenchmarkDotNet](https://benchmarkdotnet.org/) and perform the following runs:
+**Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet](https://benchmarkdotnet.org/) and perform the following runs:
 
 |                                          Method |   Description |
 |------------------------------------------------ |-------------- |
@@ -101,13 +101,13 @@ To benchmark the performance and memory usage, we use [BenchmarkDotNet](https://
 
 You can replicate the results by running the following command:
 
-```cmd
+```posh
 dotnet run Interprocess.Benchmark.csproj --configuration Release
 ```
 
 You can also be explicit about the .NET SDK and Runtime(s) versions:
 
-```cmd
+```posh
 dotnet run Interprocess.Benchmark.csproj --configuration Release --framework net5.0 --runtimes net5.0 netcoreapp3.1
 ```
 
