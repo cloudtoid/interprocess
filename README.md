@@ -85,6 +85,15 @@ using var subscriber = factory.CreateSubscriber(options);
 await subscriber.TryDequeueAsync(messageBuffer, cancellationToken, out var message);
 ```
 
+## Sample
+
+To see a sample implementation of a publisher and a subscriber process, try out the following two projects. You can run them side by side and see them in action:
+
+- [Publisher](src/Sample/Publisher/)
+- [Subscriber](src/Sample/Subscriber/)
+
+Please note that you can start multiple publishers and subscribers sending and receiving messages to and from the same message queue.
+
 ## Performance
 
 A lot has gone into optimizing the implementation of this library. For instance, it is mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.

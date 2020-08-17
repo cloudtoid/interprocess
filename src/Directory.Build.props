@@ -11,7 +11,7 @@
 
   <!-- Versions -->
   <PropertyGroup>
-    <CloudtoidFrameworkVersion>1.0.70</CloudtoidFrameworkVersion>
+    <CloudtoidFrameworkVersion>1.0.*</CloudtoidFrameworkVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp3.1'">
