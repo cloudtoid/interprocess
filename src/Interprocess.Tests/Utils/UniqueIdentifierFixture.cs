@@ -27,7 +27,7 @@ namespace Cloudtoid.Interprocess.Tests
         public void Dispose()
         {
             foreach (var file in Directory.EnumerateFiles(Identifier.Path))
-                Util.TryDeleteFile(file);
+                PathUtil.TryDeleteFile(file);
 
             try
             {

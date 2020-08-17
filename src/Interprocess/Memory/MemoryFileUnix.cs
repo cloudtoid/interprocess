@@ -105,7 +105,7 @@ namespace Cloudtoid.Interprocess.Memory.Unix
         /// </summary>
         private void ResetBackingFile()
         {
-            if (mustDeleteFileOnDispose && !Util.TryDeleteFile(filePath))
+            if (mustDeleteFileOnDispose && !PathUtil.TryDeleteFile(filePath))
                 logger.LogError("Failed to delete queue's shared memory backing file.");
         }
     }

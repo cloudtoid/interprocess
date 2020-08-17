@@ -1,6 +1,6 @@
 ﻿using System;
-using System.IO;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,19 +15,13 @@ namespace Cloudtoid.Interprocess
             || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
             || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD);
 
-        internal static Socket CreateUnixDomainSocket(bool blocking = true)
+        internal static void Ensure64Bit()
         {
-            return new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified)
-            {
-                Blocking = blocking
-            };
-        }
+            if (Environment.Is64BitProcess && Environment.Is64BitOperatingSystem)
+                return;
 
-        internal static UnixDomainSocketEndPoint CreateUnixDomainSocketEndPoint(string file)
-        {
-            // the file path length limit is 104 on macOS. therefore, we try to
-            // get the shorter path of full and relative paths.
-            return new UnixDomainSocketEndPoint(ShortenPath(file));
+            throw new NotSupportedException(
+                $"{Assembly.GetExecutingAssembly().GetName().Name} only supports 64 processor architectures.");
         }
 
         internal static void SafeDispose(this Socket? socket, ILogger? logger = null)
@@ -41,45 +35,6 @@ namespace Cloudtoid.Interprocess
                 logger?.LogError(ex, "Failed to dispose a socket.");
             }
         }
-
-        internal static bool TryDeleteFile(string file)
-        {
-            try
-            {
-                File.Delete(file);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Creates a unique file name in the <paramref name="path"/> ensuring that
-        /// such a file name does not exist. The path returned is the shorter of
-        /// absolute and relative paths to this new unique file.
-        /// </summary>
-        internal static string CreateShortUniqueFileName(
-            string path,
-            string fileName,
-            string fileExtension)
-        {
-            path = ShortenPath(path);
-            string filePath;
-            do
-            {
-                var index = DateTime.Now.Ticks % 0xFFFFF;
-                var name = fileName + index.ToStringInvariant("X5") + fileExtension;
-                filePath = Path.Combine(path, name);
-            }
-            while (File.Exists(filePath));
-
-            return filePath;
-        }
-
-        internal static string GetAbsolutePath(string path)
-            => Path.IsPathRooted(path) ? path : Path.Combine(Environment.CurrentDirectory, path);
 
         /// <summary>
         /// Logs a critical error and then crashes the process
@@ -141,13 +96,6 @@ namespace Cloudtoid.Interprocess
                 }
             }
             catch when (cancellation.IsCancellationRequested) { }
-        }
-
-        // shortens a file path by choosing the shorter of absolute and relative paths
-        private static string ShortenPath(string path)
-        {
-            var relativePath = Path.GetRelativePath(Environment.CurrentDirectory, path);
-            return relativePath.Length < path.Length ? relativePath : path;
         }
     }
 }

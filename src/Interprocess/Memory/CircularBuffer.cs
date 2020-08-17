@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using static Cloudtoid.Contract;
 
 namespace Cloudtoid.Interprocess
 {
@@ -12,14 +11,15 @@ namespace Cloudtoid.Interprocess
 
         internal CircularBuffer(byte* buffer, long capacity)
         {
-            if (buffer == null)
-                throw new ArgumentNullException(nameof(buffer));
-
             this.buffer = buffer;
-            Capacity = CheckGreaterThan(capacity, 0, nameof(capacity));
+            Capacity = capacity;
         }
 
-        internal long Capacity { get; }
+        internal long Capacity
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal byte* GetPointer(long offset)

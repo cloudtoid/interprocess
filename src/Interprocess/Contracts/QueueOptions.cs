@@ -1,5 +1,4 @@
-﻿using System;
-using static Cloudtoid.Contract;
+﻿using static Cloudtoid.Contract;
 
 namespace Cloudtoid.Interprocess
 {

@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using static Cloudtoid.Interprocess.DomainSocket.UnixDomainSocketUtil;
 
 namespace Cloudtoid.Interprocess.DomainSocket
 {
@@ -21,8 +22,8 @@ namespace Cloudtoid.Interprocess.DomainSocket
             this.file = file;
             logger = loggerFactory.CreateLogger<UnixDomainSocketClient>();
             logger.LogDebug("Creating a domain socket client - {0}", file);
-            endpoint = Util.CreateUnixDomainSocketEndPoint(file);
-            socket = Util.CreateUnixDomainSocket(blocking: false);
+            endpoint = CreateUnixDomainSocketEndPoint(file);
+            socket = CreateUnixDomainSocket(blocking: false);
         }
 
         public void Dispose()
@@ -134,7 +135,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
                             "This can only happen if an earlier process terminated without deleting the file. " +
                             "This should be treated as a bug.");
 
-                        Util.TryDeleteFile(file);
+                        PathUtil.TryDeleteFile(file);
                         throw;
                     }
 
@@ -166,7 +167,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 if (snapshot != null)
                     return snapshot;
 
-                var newSocket = Util.CreateUnixDomainSocket(blocking: false);
+                var newSocket = CreateUnixDomainSocket(blocking: false);
                 if (Interlocked.CompareExchange(ref socket, newSocket, null) == null)
                     return newSocket;
             }

@@ -2,10 +2,13 @@
 
 namespace Cloudtoid.Interprocess
 {
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Explicit, Size = 16)]
     internal struct MessageHeader
     {
+        [FieldOffset(0)]
         internal MessageState State;
+
+        [FieldOffset(8)]
         internal long BodyLength;
 
         internal MessageHeader(MessageState state, long bodyLength)

@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using static Cloudtoid.Interprocess.DomainSocket.UnixDomainSocketUtil;
 
 namespace Cloudtoid.Interprocess.DomainSocket
 {
@@ -20,11 +21,11 @@ namespace Cloudtoid.Interprocess.DomainSocket
             this.file = file;
             logger = loggerFactory.CreateLogger<UnixDomainSocketServer>();
             logger.LogDebug("Creating a domain socket server - {0}", file);
-            socket = Util.CreateUnixDomainSocket(blocking: false);
+            socket = CreateUnixDomainSocket(blocking: false);
 
             try
             {
-                socket.Bind(Util.CreateUnixDomainSocketEndPoint(file));
+                socket.Bind(CreateUnixDomainSocketEndPoint(file));
             }
             catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationNotSupported)
             {
@@ -93,7 +94,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 socket.SafeDispose(logger);
             }
 
-            if (!Util.TryDeleteFile(file))
+            if (!PathUtil.TryDeleteFile(file))
                 logger.LogError("Failed to delete a Unix Domain Socket's backing file.");
         }
     }

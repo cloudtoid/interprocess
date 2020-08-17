@@ -28,7 +28,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             this.loggerFactory = loggerFactory;
             logger = loggerFactory.CreateLogger<SemaphoreReleaser>();
 
-            filePath = Util.CreateShortUniqueFileName(
+            filePath = PathUtil.CreateShortUniqueFileName(
                 identifier.Path,
                 identifier.Name,
                 Constants.Extension);

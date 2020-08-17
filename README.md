@@ -17,6 +17,8 @@
 
 The NuGet package for this library is published [here](https://www.nuget.org/packages/Cloudtoid.Interprocess/).
 
+> Note: To improve performance, this library only supports 64 bit CLR with 64-bit processor architectures. Attempting to use this library on 32-bit processors, 32-bit operating systems, or on [WOW64](https://en.wikipedia.org/wiki/WoW64) may throw a `NotSupportedException`.
+
 ## Usage
 
 This library supports .NET Core 3.1+ and .NET 5+. It is optimized for .NET dependency injection but can also be used without DI.
@@ -210,3 +212,10 @@ The domain socket implementation will be replaced with [`System.Threading.Semaph
 ## Author
 
 [**Pedram Rezaei**](https://www.linkedin.com/in/pedramrezaei/) is a software architect at Microsoft with years of experience building highly scalable and reliable cloud-native applications for Microsoft.
+
+## What is next
+
+Here are a couple of items that we are working on.
+
+- Complete the support for .NET 5 as soon as the bugs in the current preview version of .NET are addressed by the CLR team
+- Create a documentation website

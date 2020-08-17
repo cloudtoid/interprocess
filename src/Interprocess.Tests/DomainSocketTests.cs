@@ -8,6 +8,7 @@ using Cloudtoid.Interprocess.DomainSocket;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
+using static Cloudtoid.Interprocess.DomainSocket.UnixDomainSocketUtil;
 #pragma warning disable VSTHRD103
 
 namespace Cloudtoid.Interprocess.Tests
@@ -26,7 +27,7 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public void CanCreateUnixDomainSocket()
         {
-            using var socket = Util.CreateUnixDomainSocket();
+            using var socket = CreateUnixDomainSocket();
             socket.AddressFamily.Should().Be(AddressFamily.Unix);
             socket.SocketType.Should().Be(SocketType.Stream);
             socket.ProtocolType.Should().Be(ProtocolType.Unspecified);
@@ -35,7 +36,7 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public void CanSafeDispose()
         {
-            var socket = Util.CreateUnixDomainSocket();
+            var socket = CreateUnixDomainSocket();
             socket.SafeDispose();
             socket = null;
             socket.SafeDispose();
@@ -57,20 +58,20 @@ namespace Cloudtoid.Interprocess.Tests
             {
                 task = Task.Run(() => AcceptLoop(server, s => connections.Add(s), () => cancelled.Set(), source.Token));
 
-                using (var client = Util.CreateUnixDomainSocket())
+                using (var client = CreateUnixDomainSocket())
                 {
                     client.Connect(endpoint);
                     client.Connected.Should().BeTrue();
                 }
 
-                using (var client = Util.CreateUnixDomainSocket())
+                using (var client = CreateUnixDomainSocket())
                 {
                     client.Connect(endpoint);
                     client.Connected.Should().BeTrue();
                 }
 
-                using (var client1 = Util.CreateUnixDomainSocket())
-                using (var client2 = Util.CreateUnixDomainSocket())
+                using (var client1 = CreateUnixDomainSocket())
+                using (var client2 = CreateUnixDomainSocket())
                 {
                     client1.Connect(endpoint);
                     client1.Connected.Should().BeTrue();
@@ -140,7 +141,7 @@ namespace Cloudtoid.Interprocess.Tests
 
                 task = Task.Run(() => AcceptLoop(server, s => { }, () => { }, source2.Token));
                 await Task.Delay(100);
-                using (var client = Util.CreateUnixDomainSocket())
+                using (var client = CreateUnixDomainSocket())
                 {
                     client.Connect(endpoint);
                     client.Connected.Should().BeTrue();

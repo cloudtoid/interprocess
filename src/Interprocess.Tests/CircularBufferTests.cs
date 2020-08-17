@@ -158,20 +158,6 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
-        [Fact]
-        public void ConstructorThrowsWithBadArguments()
-        {
-            Action action = () => new CircularBuffer(null, 10);
-            action.Should().ThrowExactly<ArgumentNullException>();
-
-            action = () =>
-            {
-                fixed (byte* ptr = &ByteArray1[0])
-                    new CircularBuffer(ptr, 0);
-            };
-            action.Should().ThrowExactly<ArgumentOutOfRangeException>("*capacity*");
-        }
-
         [Theory]
         [InlineData(0, 0)]
         [InlineData(0, 1)]
