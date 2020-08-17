@@ -87,7 +87,7 @@ await subscriber.TryDequeueAsync(messageBuffer, cancellationToken, out var messa
 
 ## Performance
 
-A lot has gone into optimizing the implementation of this library. It is also mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
+A lot has gone into optimizing the implementation of this library. For instance, it is mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
 
 **Summary**: In average, enqueuing a message is about `~10 ns` and a full enqueue followed by a dequeue takes roughly `~500 ns` on Windows and `~1.5 us` on Unix-based operating systems.
 
@@ -195,7 +195,7 @@ The domain socket implementation will be replaced with [`System.Threading.Semaph
 
 - Create a branch from master.
 - Ensure that all tests pass on Windows, Linux, and OSX.
-- Keep the code coverage number above 99.5% by adding new tests or modifying the existing tests.
+- Keep the code coverage number above 80% by adding new tests or modifying the existing tests.
 - Send a pull request.
 
 ## Author
