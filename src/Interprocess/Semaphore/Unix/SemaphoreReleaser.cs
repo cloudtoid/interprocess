@@ -14,7 +14,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
     internal sealed class SemaphoreReleaser : IInterprocessSemaphoreReleaser
     {
         private static readonly byte[] Message = new byte[] { 1 };
-        private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
+        private readonly CancellationTokenSource stopSource = new CancellationTokenSource();
         private readonly AutoResetEvent releaseSignal = new AutoResetEvent(false);
         private readonly Thread releaseLoopThread;
         private readonly Thread connectionAcceptThread;
@@ -39,15 +39,19 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             StartServer(out connectionAcceptThread, out releaseLoopThread);
         }
 
+        ~SemaphoreReleaser()
+            => stopSource.Cancel();  // release the threads
+
         // used for testing
         internal int ClientCount
             => clients.WhereNotNull().Count();
 
         public void Dispose()
         {
-            cancellationSource.Cancel();
+            stopSource.Cancel();
             connectionAcceptThread.Join();
             releaseLoopThread.Join();
+            GC.SuppressFinalize(this);
         }
 
         public void Release()
@@ -56,7 +60,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                 releaseSignal.Set();
         }
 
-        [SuppressMessage("Usage", "VSTHRD002:Avoid problematic synchronous waits", Justification = "Used in a creation of s thread.")]
+        [SuppressMessage("Usage", "VSTHRD002:Avoid problematic synchronous waits", Justification = "Used in a creation of a thread.")]
         private void StartServer(out Thread connectionAcceptThread, out Thread releaseLoopThread)
         {
             // using dedicated threads as these are long running and looping operations
@@ -91,7 +95,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         }
                     },
                     logger,
-                    cancellationSource.Token);
+                    stopSource.Token);
             }
             finally
             {
@@ -129,7 +133,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                             await tasks[i].ConfigureAwait(false);
                     },
                     logger,
-                    cancellationSource.Token)
+                    stopSource.Token)
                     .ConfigureAwait(false);
             }
         }

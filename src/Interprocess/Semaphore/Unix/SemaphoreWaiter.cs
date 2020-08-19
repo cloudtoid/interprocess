@@ -19,7 +19,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             ReturnSpecialDirectories = false,
         };
 
-        private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
+        private readonly CancellationTokenSource stopSource = new CancellationTokenSource();
         private readonly AutoResetEvent fileWatcherHandle = new AutoResetEvent(false);
         private readonly SysSemaphoree semaphore = new SysSemaphoree(0, int.MaxValue);
         private readonly Thread clientsLoopThread;
@@ -40,13 +40,17 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             StartFileWatcher();
         }
 
+        ~SemaphoreWaiter()
+           => stopSource.Cancel(); // release the threads
+
         public void Dispose()
         {
             StopFileWatcher();
-            cancellationSource.Cancel();
+            stopSource.Cancel();
             clientsLoopThread.Join();
             semaphore.Dispose();
             fileWatcherHandle.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         public bool WaitOne(int millisecondsTimeout)
@@ -88,7 +92,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
         private void OnWatcherError(object sender, ErrorEventArgs e)
         {
-            if (cancellationSource.Token.IsCancellationRequested)
+            if (stopSource.Token.IsCancellationRequested)
                 return;
 
             StopFileWatcher();
@@ -143,7 +147,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         fileWatcherHandle.WaitOne(100);
                     },
                     logger,
-                    cancellationSource.Token);
+                    stopSource.Token);
             }
             finally
             {
