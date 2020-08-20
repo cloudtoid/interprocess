@@ -79,7 +79,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
             try
             {
-                Util.SafeLoop(
+                Util.LoopTillCancelled(
                     cancellation =>
                     {
                         try

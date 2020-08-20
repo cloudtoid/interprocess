@@ -48,7 +48,7 @@ namespace Cloudtoid.Interprocess
             Environment.FailFast(message);
         }
 
-        internal static void SafeLoop(
+        internal static void LoopTillCancelled(
             Action<CancellationToken> action,
             ILogger logger,
             CancellationToken cancellation)
