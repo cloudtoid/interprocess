@@ -28,8 +28,8 @@ namespace Cloudtoid.Interprocess.Benchmark
         [GlobalCleanup]
         public void Cleanup()
         {
-            using (publisher)
-            using (subscriber) { }
+            subscriber.Dispose();
+            publisher.Dispose();
         }
 
         [Benchmark]
