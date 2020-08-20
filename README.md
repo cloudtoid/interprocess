@@ -51,7 +51,7 @@ options = new QueueOptions(
     bytesCapacity: 1024 * 1024);
 
 using var subscriber = factory.CreateSubscriber(options);
-await subscriber.TryDequeueAsync(messageBuffer, cancellationToken, out var message);
+subscriber.TryDequeue(messageBuffer, cancellationToken, out var message);
 ```
 
 ### Usage with DI
@@ -84,7 +84,7 @@ var options = new QueueOptions(
     bytesCapacity: 1024 * 1024);
 
 using var subscriber = factory.CreateSubscriber(options);
-await subscriber.TryDequeueAsync(messageBuffer, cancellationToken, out var message);
+subscriber.TryDequeue(messageBuffer, cancellationToken, out var message);
 ```
 
 ## Sample
@@ -188,9 +188,9 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |    `16.29`|      `0.39`|       `1.16`|        `-`|
-|                     Message enqueue and dequeue | `1,580.30`|     `45.17`|     `133.20`|     `15 B`|
-| Message enqueue and dequeue - no message buffer | `1,589.26`|     `59.46`|     `174.40`|     `47 B`|
+|                                 Message enqueue |    `14.54`|      `0.39`|       `1.16`|        `-`|
+|                     Message enqueue and dequeue | `1,431.54`|     `47.32`|     `136.55`|     `16 B`|
+| Message enqueue and dequeue - no message buffer | `1,382.78`|     `27.31`|      `51.97`|     `48 B`|
 
 ## Implementation Notes
 

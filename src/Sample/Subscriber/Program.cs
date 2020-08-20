@@ -1,12 +1,11 @@
-﻿using System.Threading.Tasks;
-using Cloudtoid.Interprocess;
+﻿using Cloudtoid.Interprocess;
 using Microsoft.Extensions.Logging;
 
 namespace Subscriber
 {
     internal class Program
     {
-        internal static async Task Main()
+        internal static void Main()
         {
             // Set up an optional logger factory to redirect the traces to he console
 
@@ -31,7 +30,7 @@ namespace Subscriber
 
             while (true)
             {
-                if (await subscriber.TryDequeueAsync(messageBuffer, default, out var message))
+                if (subscriber.TryDequeue(messageBuffer, default, out var message))
                     logger.LogInformation("Dequeue #" + messageBuffer[0]);
             }
         }

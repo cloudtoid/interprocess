@@ -65,10 +65,12 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         {
             // using dedicated threads as these are long running and looping operations
             connectionAcceptThread = new Thread(ConnectionAcceptLoop);
+            connectionAcceptThread.Name = "ConnectionAcceptLoop";
             connectionAcceptThread.IsBackground = true;
             connectionAcceptThread.Start();
 
             releaseLoopThread = new Thread(() => ReleaseLoopAsync().Wait());
+            releaseLoopThread.Name = "ReleaseLoopAsync";
             releaseLoopThread.IsBackground = true;
             releaseLoopThread.Start();
         }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess
@@ -25,22 +24,22 @@ namespace Cloudtoid.Interprocess
             base.Dispose();
         }
 
-        public ValueTask<bool> TryDequeueAsync(CancellationToken cancellation, out ReadOnlyMemory<byte> message)
-            => TryDequeueAsync(default(Memory<byte>?), cancellation, out message);
+        public bool TryDequeue(CancellationToken cancellation, out ReadOnlyMemory<byte> message)
+            => TryDequeue(default(Memory<byte>?), cancellation, out message);
 
-        public ValueTask<bool> TryDequeueAsync(
+        public bool TryDequeue(
             Memory<byte> resultBuffer,
             CancellationToken cancellation,
             out ReadOnlyMemory<byte> message)
-            => TryDequeueAsync((Memory<byte>?)resultBuffer, cancellation, out message);
+            => TryDequeue((Memory<byte>?)resultBuffer, cancellation, out message);
 
-        public ValueTask<ReadOnlyMemory<byte>> DequeueAsync(CancellationToken cancellation)
-            => DequeueAsync(default(Memory<byte>?), cancellation);
+        public ReadOnlyMemory<byte> Dequeue(CancellationToken cancellation)
+            => Dequeue(default(Memory<byte>?), cancellation);
 
-        public ValueTask<ReadOnlyMemory<byte>> DequeueAsync(Memory<byte> resultBuffer, CancellationToken cancellation)
-            => DequeueAsync((Memory<byte>?)resultBuffer, cancellation);
+        public ReadOnlyMemory<byte> Dequeue(Memory<byte> resultBuffer, CancellationToken cancellation)
+            => Dequeue((Memory<byte>?)resultBuffer, cancellation);
 
-        private unsafe ValueTask<bool> TryDequeueAsync(
+        private unsafe bool TryDequeue(
             Memory<byte>? resultBuffer,
             CancellationToken cancellation,
             out ReadOnlyMemory<byte> message)
@@ -56,7 +55,7 @@ namespace Cloudtoid.Interprocess
                 if (headOffset == header->TailOffset)
                 {
                     message = ReadOnlyMemory<byte>.Empty;
-                    return new ValueTask<bool>(false);
+                    return false;
                 }
 
                 var state = (long*)Buffer.GetPointer(headOffset);
@@ -86,11 +85,11 @@ namespace Cloudtoid.Interprocess
                 var currentHeadOffset = (long*)header;
                 Interlocked.Exchange(ref *currentHeadOffset, newHeadOffset);
 
-                return new ValueTask<bool>(true);
+                return true;
             }
         }
 
-        private async ValueTask<ReadOnlyMemory<byte>> DequeueAsync(
+        private ReadOnlyMemory<byte> Dequeue(
             Memory<byte>? resultBuffer,
             CancellationToken cancellation)
         {
@@ -103,7 +102,7 @@ namespace Cloudtoid.Interprocess
                 else
                     wait = false;
 
-                if (await TryDequeueAsync(resultBuffer, cancellation, out var message).ConfigureAwait(false))
+                if (TryDequeue(resultBuffer, cancellation, out var message))
                     return message;
             }
         }

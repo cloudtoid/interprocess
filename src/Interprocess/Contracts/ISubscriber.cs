@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Cloudtoid.Interprocess
 {
@@ -13,14 +12,14 @@ namespace Cloudtoid.Interprocess
         /// This overload allocates a <see cref="byte"/> array the size of the message in the
         /// queue and copies the message from the shared memory to it. To avoid this memory
         /// allocation, consider reusing a previously allocated <see cref="byte"/> array with
-        /// <see cref="TryDequeueAsync(Memory{byte}, CancellationToken, out ReadOnlyMemory{byte})"/>.
+        /// <see cref="TryDequeue(Memory{byte}, CancellationToken, out ReadOnlyMemory{byte})"/>.
         /// <see cref="ArrayPool{T}"/> can be a good way of pooling and
         /// reusing byte arrays.
         /// </summary>
         /// <param name="cancellation">A cancellation token to observe while waiting for the task to complete.</param>
         /// <param name="message">The dequeued message.</param>
         /// <returns>Returns <see langword="false"/> if the queue is empty.</returns>
-        ValueTask<bool> TryDequeueAsync(
+        bool TryDequeue(
             CancellationToken cancellation,
             out ReadOnlyMemory<byte> message);
 
@@ -36,7 +35,7 @@ namespace Cloudtoid.Interprocess
         /// <param name="cancellation">A cancellation token to observe while waiting for the task to complete.</param>
         /// <param name="message">The dequeued message.</param>
         /// <returns>Returns <see langword="false"/> if the queue is empty.</returns>
-        ValueTask<bool> TryDequeueAsync(
+        bool TryDequeue(
             Memory<byte> buffer,
             CancellationToken cancellation,
             out ReadOnlyMemory<byte> message);
@@ -47,13 +46,12 @@ namespace Cloudtoid.Interprocess
         /// This overload allocates a <see cref="byte"/> array the size of the message in the
         /// queue and copies the message from the shared memory to it. To avoid this memory
         /// allocation, consider reusing a previously allocated <see cref="byte"/> array with
-        /// <see cref="DequeueAsync(Memory{byte}, CancellationToken)"/>.
+        /// <see cref="Dequeue(Memory{byte}, CancellationToken)"/>.
         /// <see cref="ArrayPool{T}"/> can be a good way of pooling and
         /// reusing byte arrays.
         /// </summary>
         /// <param name="cancellation">A cancellation token to observe while waiting for the task to complete.</param>
-        ValueTask<ReadOnlyMemory<byte>> DequeueAsync(
-            CancellationToken cancellation);
+        ReadOnlyMemory<byte> Dequeue(CancellationToken cancellation);
 
         /// <summary>
         /// Dequeues a message from the queue. If the queue is empty, it *waits* for the
@@ -66,7 +64,7 @@ namespace Cloudtoid.Interprocess
         /// that the buffer is large enough to receive the entire message, or the message is
         /// truncated to fit the buffer.</param>
         /// <param name="cancellation">A cancellation token to observe while waiting for the task to complete.</param>
-        ValueTask<ReadOnlyMemory<byte>> DequeueAsync(
+        ReadOnlyMemory<byte> Dequeue(
             Memory<byte> buffer,
             CancellationToken cancellation);
     }

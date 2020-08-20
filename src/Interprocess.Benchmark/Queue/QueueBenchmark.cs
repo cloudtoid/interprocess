@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 
@@ -36,23 +35,21 @@ namespace Cloudtoid.Interprocess.Benchmark
         // Expecting that there are NO managed heap allocations.
         [Benchmark(Description = "Message enqueue")]
         public bool Enqueue()
-        {
-            return publisher!.TryEnqueue(Message);
-        }
+            => publisher!.TryEnqueue(Message);
 
         [Benchmark(Description = "Message enqueue and dequeue - no message buffer")]
-        public async ValueTask<ReadOnlyMemory<byte>> EnqueueDequeue_WithResultArrayAllocationAsync()
+        public ReadOnlyMemory<byte> EnqueueDequeue_WithResultArrayAllocation()
         {
             publisher.TryEnqueue(Message);
-            return await subscriber.DequeueAsync(default);
+            return subscriber.Dequeue(default);
         }
 
         // Expecting that there are NO managed heap allocations.
         [Benchmark(Description = "Message enqueue and dequeue")]
-        public async ValueTask<ReadOnlyMemory<byte>> EnqueueAndDequeue_WithPooledResultArrayAsync()
+        public ReadOnlyMemory<byte> EnqueueAndDequeue_WithPooledResultArray()
         {
             publisher.TryEnqueue(Message);
-            return await subscriber.DequeueAsync(MessageBuffer, default);
+            return subscriber.Dequeue(MessageBuffer, default);
         }
     }
 }

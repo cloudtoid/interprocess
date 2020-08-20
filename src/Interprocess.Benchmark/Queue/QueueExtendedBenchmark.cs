@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 
@@ -33,20 +32,20 @@ namespace Cloudtoid.Interprocess.Benchmark
         }
 
         [Benchmark]
-        public async Task<ReadOnlyMemory<byte>> EnqueueDequeue_LongMessageAsync()
+        public ReadOnlyMemory<byte> EnqueueDequeue_LongMessage()
         {
             publisher.TryEnqueue(Message);
-            return await subscriber.DequeueAsync(MessageBuffer, default);
+            return subscriber.Dequeue(MessageBuffer, default);
         }
 
         // when a message is wrapped in the circular buffer
         [Benchmark]
-        public async Task<ReadOnlyMemory<byte>> EnqueueDequeue_WrappedMessagesAsync()
+        public ReadOnlyMemory<byte> EnqueueDequeue_WrappedMessages()
         {
             publisher.TryEnqueue(Message);
-            await subscriber.DequeueAsync(MessageBuffer, default);
+            subscriber.Dequeue(MessageBuffer, default);
             publisher.TryEnqueue(Message);
-            return await subscriber.DequeueAsync(MessageBuffer, default);
+            return subscriber.Dequeue(MessageBuffer, default);
         }
     }
 }
