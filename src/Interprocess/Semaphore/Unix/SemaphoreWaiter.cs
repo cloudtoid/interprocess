@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using SysSemaphoree = System.Threading.Semaphore;
 
 namespace Cloudtoid.Interprocess.Semaphore.Unix
 {
@@ -21,7 +20,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
         private readonly CancellationTokenSource stopSource = new CancellationTokenSource();
         private readonly AutoResetEvent fileWatcherHandle = new AutoResetEvent(false);
-        private readonly SysSemaphoree semaphore = new SysSemaphoree(0, int.MaxValue);
+        private readonly SemaphoreSlim semaphore = new SemaphoreSlim(0, int.MaxValue);
+        private readonly Action releaseDelegate;
         private readonly Thread clientsLoopThread;
         private readonly SharedAssetsIdentifier identifier;
         private readonly ILoggerFactory loggerFactory;
@@ -35,6 +35,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             this.identifier = identifier;
             this.loggerFactory = loggerFactory;
             logger = loggerFactory.CreateLogger<SemaphoreWaiter>();
+            releaseDelegate = () => semaphore.Release();
 
             clientsLoopThread = StartRceivers();
             StartFileWatcher();
@@ -53,11 +54,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             GC.SuppressFinalize(this);
         }
 
-        public bool WaitOne(int millisecondsTimeout)
-            => semaphore.WaitOne(millisecondsTimeout);
-
-        private void Release()
-            => semaphore.Release();
+        public bool Wait(int millisecondsTimeout)
+            => semaphore.Wait(millisecondsTimeout);
 
         private void StartFileWatcher()
         {
@@ -138,7 +136,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         // new clients to add
                         foreach (var add in files.Where(file => !receivers.ContainsKey(file)))
                         {
-                            var receiver = new Receiver(add, Release, loggerFactory);
+                            var receiver = new Receiver(add, releaseDelegate, loggerFactory);
                             receivers.Add(add, receiver);
                             logger.LogInformation(
                                 "A Unix Domain Socket server for '{0}' is discovered and a receiver is created for it.",

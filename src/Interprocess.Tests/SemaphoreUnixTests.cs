@@ -59,12 +59,12 @@ namespace Cloudtoid.Interprocess.Tests
 
             using (var client = new SemaphoreWaiter(fixture.Identifier, loggerFactory))
             {
-                client.WaitOne(50).Should().BeFalse();
+                client.Wait(50).Should().BeFalse();
             }
 
             using (var client = new SemaphoreWaiter(fixture.Identifier, loggerFactory))
             {
-                client.WaitOne(500).Should().BeFalse();
+                client.Wait(500).Should().BeFalse();
             }
         }
 
@@ -77,20 +77,20 @@ namespace Cloudtoid.Interprocess.Tests
 
             await WaitForClientCountAsync(server, 2);
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
 
             const int Count = 10000;
             for (var i = 0; i < Count; i++)
             {
                 server.Release();
 
-                client1.WaitOne(1000).Should().BeTrue();
-                client2.WaitOne(1000).Should().BeTrue();
+                client1.Wait(1000).Should().BeTrue();
+                client2.Wait(1000).Should().BeTrue();
             }
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
         }
 
         [Fact]
@@ -102,22 +102,22 @@ namespace Cloudtoid.Interprocess.Tests
 
             await WaitForClientCountAsync(server, 2);
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
 
             const int Count = 10000;
             for (var i = 0; i < Count; i++)
             {
                 server.Release();
-                client1.WaitOne(1000).Should().BeTrue();
+                client1.Wait(1000).Should().BeTrue();
             }
 
-            client1.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
 
             for (var i = 0; i < Count; i++)
-                client2.WaitOne(1000).Should().BeTrue();
+                client2.Wait(1000).Should().BeTrue();
 
-            client2.WaitOne(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
         }
 
         [Fact]
@@ -129,26 +129,26 @@ namespace Cloudtoid.Interprocess.Tests
 
             await WaitForClientCountAsync(server, 2);
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
 
             server.Release();
 
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
 
             using var client3 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
             await WaitForClientCountAsync(server, 3);
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
-            client3.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
+            client3.Wait(50).Should().BeFalse();
 
             server.Release();
 
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
-            client3.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
+            client3.Wait(1000).Should().BeTrue();
         }
 
         [Fact]
@@ -185,32 +185,32 @@ namespace Cloudtoid.Interprocess.Tests
             await WaitForClientCountAsync(server1, 2);
 
             server1.Release();
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
 
             using var server2 = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
             await WaitForClientCountAsync(server2, 2);
 
             server1.Release();
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
 
             server2.Release();
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
 
             server1.Release();
             server2.Release();
-            client1.WaitOne(1000).Should().BeTrue();
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
         }
 
         // this is complex test that sends and receives many times in a variety
@@ -225,90 +225,90 @@ namespace Cloudtoid.Interprocess.Tests
 
             await WaitForClientCountAsync(server1, 2);
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
 
             server1.Release();
 
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
 
             server1.Release();
 
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
 
             using var client3 = new SemaphoreWaiter(fixture.Identifier, loggerFactory);
             await WaitForClientCountAsync(server1, 3);
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
-            client3.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
+            client3.Wait(50).Should().BeFalse();
 
             server1.Release();
 
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
-            client3.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
+            client3.Wait(1000).Should().BeTrue();
 
             using var server2 = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
             await WaitForClientCountAsync(server2, 3);
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
-            client3.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
+            client3.Wait(50).Should().BeFalse();
 
             server2.Release();
 
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
-            client3.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
+            client3.Wait(1000).Should().BeTrue();
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
-            client3.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
+            client3.Wait(50).Should().BeFalse();
 
             for (var i = 0; i < 10000; i++)
             {
                 server1.Release();
 
-                client1.WaitOne(1000).Should().BeTrue();
-                client2.WaitOne(1000).Should().BeTrue();
-                client3.WaitOne(1000).Should().BeTrue();
+                client1.Wait(1000).Should().BeTrue();
+                client2.Wait(1000).Should().BeTrue();
+                client3.Wait(1000).Should().BeTrue();
             }
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
-            client3.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
+            client3.Wait(50).Should().BeFalse();
 
             server1.Release();
             server1.Release();
 
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
-            client3.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
+            client3.Wait(1000).Should().BeTrue();
 
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
-            client3.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
+            client3.Wait(1000).Should().BeTrue();
 
             server1.Release();
             server2.Release();
 
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
-            client3.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
+            client3.Wait(1000).Should().BeTrue();
 
-            client1.WaitOne(1000).Should().BeTrue();
-            client2.WaitOne(1000).Should().BeTrue();
-            client3.WaitOne(1000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1000).Should().BeTrue();
+            client3.Wait(1000).Should().BeTrue();
 
-            client1.WaitOne(50).Should().BeFalse();
-            client2.WaitOne(50).Should().BeFalse();
-            client3.WaitOne(50).Should().BeFalse();
+            client1.Wait(50).Should().BeFalse();
+            client2.Wait(50).Should().BeFalse();
+            client3.Wait(50).Should().BeFalse();
         }
 
         private static async Task WaitForClientCountAsync(SemaphoreReleaser server, int count)

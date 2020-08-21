@@ -21,7 +21,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Windows
         public void Release()
             => handle.Release();
 
-        public bool WaitOne(int millisecondsTimeout)
+        public bool Wait(int millisecondsTimeout)
             => handle.WaitOne(millisecondsTimeout);
     }
 }

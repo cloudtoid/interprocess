@@ -98,7 +98,7 @@ namespace Cloudtoid.Interprocess
             while (true)
             {
                 if (wait)
-                    signal.WaitOne(millisecondsTimeout: 100);
+                    signal.Wait(millisecondsTimeout: 100);
                 else
                     wait = false;
 

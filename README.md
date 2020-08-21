@@ -10,7 +10,7 @@
 - **Cross-platform**: It supports Windows, and Unix-based operating systems such as Linux, [OSX](https://en.wikipedia.org/wiki/MacOS), and [FreeBSD](https://www.freebsd.org/).
 - [**API**](#Usage): Provides a simple and intuitive API to enqueue/send and dequeue/receive messages.
 - **Multiple publishers and subscribers**: It supports multiple publishers and subscribers to a shared queue.
-- [**Efficient**](#performance): Sending and receiving messages is an almost heap memory allocation free reducing garbage collections.
+- [**Efficient**](#performance): Sending and receiving messages is heap memory allocation free reducing garbage collections.
 - [**Developer**](#Author): Developed by folks at Microsoft.
 
 ## NuGet Package
@@ -100,7 +100,7 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 A lot has gone into optimizing the implementation of this library. For instance, it is mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
 
-**Summary**: In average, enqueuing a message is about `~10 ns` and a full enqueue followed by a dequeue takes roughly `~500 ns` on Windows and `~1.5 us` on Unix-based operating systems.
+**Summary**: In average, enqueuing a message is about `~10 ns` and a full enqueue followed by a dequeue takes roughly `~500 ns` on Windows and `~1 us` on Unix-based operating systems.
 
 **Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet](https://benchmarkdotnet.org/) and perform the following runs:
 
@@ -164,11 +164,11 @@ Intel Core i7-7567U CPU 3.50GHz (Kaby Lake), 1 CPU, 4 logical and 2 physical cor
 |                                          Method | .NET | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |-----:|----------:|-----------:|------------:|----------:|
 |                                 Message enqueue |  3.1 |    `14.53`|      `0.11`|       `0.10`|        `-`|
-|                     Message enqueue and dequeue |  3.1 | `1,649.06`|     `27.14`|      `24.06`|     `40 B`|
-| Message enqueue and dequeue - no message buffer |  3.1 | `1,596.43`|     `21.43`|      `19.00`|     `72 B`|
+|                     Message enqueue and dequeue |  3.1 | `1,649.06`|     `27.14`|      `24.06`|        `-`|
+| Message enqueue and dequeue - no message buffer |  3.1 | `1,596.43`|     `21.43`|      `19.00`|     `32 B`|
 |                                 Message enqueue |  5.0 |     `4.97`|      `0.12`|       `0.14`|        `-`|
-|                     Message enqueue and dequeue |  5.0 | `1,656.19`|     `17.30`|      `13.51`|     `43 B`|
-| Message enqueue and dequeue - no message buffer |  5.0 | `1,721.16`|     `11.03`|       `9.78`|     `76 B`|
+|                     Message enqueue and dequeue |  5.0 | `1,656.19`|     `17.30`|      `13.51`|        `-`|
+| Message enqueue and dequeue - no message buffer |  5.0 | `1,721.16`|     `11.03`|       `9.78`|     `32 B`|
 
 ---
 
@@ -188,9 +188,9 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |    `14.54`|      `0.39`|       `1.16`|        `-`|
-|                     Message enqueue and dequeue | `1,431.54`|     `47.32`|     `136.55`|     `16 B`|
-| Message enqueue and dequeue - no message buffer | `1,382.78`|     `27.31`|      `51.97`|     `48 B`|
+|                                 Message enqueue |    `14.47`|      `0.15`|       `0.14`|        `-`|
+|                     Message enqueue and dequeue | `1,069.74`|     `21.35`|      `44.57`|        `-`|
+| Message enqueue and dequeue - no message buffer | `1,085.23`|     `21.66`|      `44.25`|     `32 B`|
 
 ## Implementation Notes
 
