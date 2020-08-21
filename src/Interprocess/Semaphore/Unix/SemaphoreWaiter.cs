@@ -116,7 +116,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             var receivers = new Dictionary<string, Receiver>(StringComparer.OrdinalIgnoreCase);
             try
             {
-                Util.LoopTillCancelled(
+                Async.LoopTillCancelled(
                     cancellation =>
                     {
                         var files = Directory.GetFiles(identifier.Path, fileSearchPattern, EnumerationOptions);

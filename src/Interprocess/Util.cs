@@ -2,7 +2,6 @@
 using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess
@@ -45,31 +44,6 @@ namespace Cloudtoid.Interprocess
         {
             logger.LogCritical(exception, message);
             Environment.FailFast(message);
-        }
-
-        internal static void LoopTillCancelled(
-            Action<CancellationToken> action,
-            ILogger logger,
-            CancellationToken cancellation)
-        {
-            try
-            {
-                while (!cancellation.IsCancellationRequested)
-                {
-                    try
-                    {
-                        action(cancellation);
-                    }
-                    catch (Exception ex) when (!cancellation.IsCancellationRequested && !ex.IsFatal())
-                    {
-                        logger.LogError(
-                            ex,
-                            $"Received an unexpected error in a safe loop while the cancellation token is still active. " +
-                            $"We will ignore this exception and continue with the loop.");
-                    }
-                }
-            }
-            catch when (cancellation.IsCancellationRequested) { }
         }
     }
 }

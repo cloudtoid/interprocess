@@ -81,7 +81,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
 
             try
             {
-                Util.LoopTillCancelled(
+                Async.LoopTillCancelled(
                     cancellation =>
                     {
                         try

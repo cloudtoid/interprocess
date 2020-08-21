@@ -11,6 +11,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
     internal sealed class UnixDomainSocketClient : IDisposable
     {
         private const int ConnectMillisecondTimeout = 500;
+        private readonly Func<Memory<byte>, CancellationToken, ValueTask<int>> receiveDelegate;
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly UnixDomainSocketEndPoint endpoint;
         private readonly string file;
@@ -20,6 +21,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
         internal UnixDomainSocketClient(string file, ILoggerFactory loggerFactory)
         {
             this.file = file;
+            receiveDelegate = ConnectAndReceiveAsync;
             logger = loggerFactory.CreateLogger<UnixDomainSocketClient>();
             logger.LogDebug("Creating a domain socket client - {0}", file);
             endpoint = CreateUnixDomainSocketEndPoint(file);
@@ -33,22 +35,29 @@ namespace Cloudtoid.Interprocess.DomainSocket
             Interlocked.Exchange(ref socket, null).SafeDispose();
         }
 
-        internal async ValueTask<int> ReceiveAsync(
+        internal ValueTask<int> ReceiveAsync(
             Memory<byte> buffer,
             CancellationToken cancellation)
         {
             cancellation.ThrowIfCancellationRequested();
 
-            using var source = CancellationTokenSource.CreateLinkedTokenSource(
+            return CancellationScope.ExecuteAsync(
                 cancellationSource.Token,
-                cancellation);
+                cancellation,
+                receiveDelegate,
+                buffer);
+        }
 
+        private async ValueTask<int> ConnectAndReceiveAsync(
+            Memory<byte> buffer,
+            CancellationToken cancellation)
+        {
             var socket = GetSocket();
 
             try
             {
-                await EnsureConnectedAsync(socket, source.Token).ConfigureAwait(false);
-                return await ReceiveAsync(socket, buffer, source.Token).ConfigureAwait(false);
+                await EnsureConnectedAsync(socket, cancellation).ConfigureAwait(false);
+                return await ReceiveAsync(socket, buffer, cancellation).ConfigureAwait(false);
             }
             finally
             {
@@ -57,7 +66,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
                     logger.LogInformation(
                         "Disposing a Unix Domain Socket as it is no longer connected. Endpoint = {0}. IsCancelled = {1}",
                         file,
-                        source.Token.IsCancellationRequested);
+                        cancellation.IsCancellationRequested);
 
                     Interlocked.CompareExchange(ref this.socket, null, socket).SafeDispose(logger);
                 }
