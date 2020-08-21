@@ -3,7 +3,6 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess
@@ -21,7 +20,7 @@ namespace Cloudtoid.Interprocess
                 return;
 
             throw new NotSupportedException(
-                $"{Assembly.GetExecutingAssembly().GetName().Name} only supports 64 processor architectures.");
+                $"{Assembly.GetExecutingAssembly().GetName().Name} only supports 64-bit processor architectures.");
         }
 
         internal static void SafeDispose(this Socket? socket, ILogger? logger = null)
@@ -60,31 +59,6 @@ namespace Cloudtoid.Interprocess
                     try
                     {
                         action(cancellation);
-                    }
-                    catch (Exception ex) when (!cancellation.IsCancellationRequested && !ex.IsFatal())
-                    {
-                        logger.LogError(
-                            ex,
-                            $"Received an unexpected error in a safe loop while the cancellation token is still active. " +
-                            $"We will ignore this exception and continue with the loop.");
-                    }
-                }
-            }
-            catch when (cancellation.IsCancellationRequested) { }
-        }
-
-        internal static async Task SafeLoopAsync(
-            Func<CancellationToken, Task> action,
-            ILogger logger,
-            CancellationToken cancellation)
-        {
-            try
-            {
-                while (!cancellation.IsCancellationRequested)
-                {
-                    try
-                    {
-                        await action(cancellation).ConfigureAwait(false);
                     }
                     catch (Exception ex) when (!cancellation.IsCancellationRequested && !ex.IsFatal())
                     {

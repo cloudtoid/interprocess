@@ -114,7 +114,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             var tasks = new ValueTask[MaxClientCount];
             using (releaseSignal)
             {
-                await Util.SafeLoopAsync(
+                await Async.LoopTillCancelledAsync(
                     async cancellation =>
                     {
                         if (!releaseSignal.WaitOne(10))

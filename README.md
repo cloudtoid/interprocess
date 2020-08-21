@@ -151,24 +151,20 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
 #### Host
 
 ```ini
-OS=macOS Catalina 10.15.5
-Intel Core i7-7567U CPU 3.50GHz (Kaby Lake), 1 CPU, 4 logical and 2 physical cores
-.NET Core SDK=5.0.100-preview.7.20366.6
-  [Host]        : .NET Core 3.1.6, X64 RyuJIT
-  .NET Core 3.1 : .NET Core 3.1.6, X64 RyuJIT
-  .NET Core 5.0 : .NET Core 5.0.0, X64 RyuJIT
+OS=macOS Catalina 10.15.6
+Intel Core i5-8279U CPU 2.40GHz (Coffee Lake), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=3.1.401
+  [Host]        : .NET Core 3.1.7, X64 RyuJIT
+  .NET Core 3.1 : .NET Core 3.1.7, X64 RyuJIT
 ```
 
 #### Results
 
-|                                          Method | .NET | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
-|------------------------------------------------ |-----:|----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |  3.1 |    `14.53`|      `0.11`|       `0.10`|        `-`|
-|                     Message enqueue and dequeue |  3.1 | `1,649.06`|     `27.14`|      `24.06`|        `-`|
-| Message enqueue and dequeue - no message buffer |  3.1 | `1,596.43`|     `21.43`|      `19.00`|     `32 B`|
-|                                 Message enqueue |  5.0 |     `4.97`|      `0.12`|       `0.14`|        `-`|
-|                     Message enqueue and dequeue |  5.0 | `1,656.19`|     `17.30`|      `13.51`|        `-`|
-| Message enqueue and dequeue - no message buffer |  5.0 | `1,721.16`|     `11.03`|       `9.78`|     `32 B`|
+|                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
+|------------------------------------------------ |----------:|-----------:|------------:|----------:|
+|                                 Message enqueue |    `14.19`|      `0.05`|       `0.04`|        `-`|
+|                     Message enqueue and dequeue | `1,147.20`|     `22.76`|      `29.59`|        `-`|
+| Message enqueue and dequeue - no message buffer | `1,088.64`|     `15.75`|      `13.15`|     `32 B`|
 
 ---
 
@@ -189,7 +185,7 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
 |                                 Message enqueue |    `14.47`|      `0.15`|       `0.14`|        `-`|
-|                     Message enqueue and dequeue | `1,069.74`|     `21.35`|      `44.57`|        `-`|
+|                     Message enqueue and dequeue |   `986.74`|     `21.35`|      `44.57`|        `-`|
 | Message enqueue and dequeue - no message buffer | `1,085.23`|     `21.66`|      `44.25`|     `32 B`|
 
 ## Implementation Notes

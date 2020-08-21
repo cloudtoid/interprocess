@@ -35,7 +35,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             private async Task ReceiveLoopAsync(string file, Action onMessage, ILoggerFactory loggerFactory)
             {
                 using var client = new UnixDomainSocketClient(file, loggerFactory);
-                await Util.SafeLoopAsync(
+                await Async.LoopTillCancelledAsync(
                     async cancellation =>
                     {
                         await client
@@ -43,6 +43,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                             .ConfigureAwait(false);
 
                         onMessage();
+                        await Task.CompletedTask;
                     },
                     logger,
                     cancellationSource.Token)
