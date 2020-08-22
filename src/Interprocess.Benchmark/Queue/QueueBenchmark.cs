@@ -11,7 +11,7 @@ namespace Cloudtoid.Interprocess.Benchmark
     public class QueueBenchmark
     {
         private static readonly byte[] Message = new byte[] { 100, 110, 120 };
-        private static readonly byte[] MessageBuffer = new byte[Message.Length];
+        private static readonly Memory<byte> MessageBuffer = new byte[Message.Length];
 #pragma warning disable CS8618
         private IPublisher publisher;
         private ISubscriber subscriber;
