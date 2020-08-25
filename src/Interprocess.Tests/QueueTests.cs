@@ -90,8 +90,8 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public void CanEnqueueAndDequeue()
         {
-            using var p = CreatePublisher(24, createOrOverride: true);
-            using var s = CreateSubscriber(24);
+            using var p = CreatePublisher(40, createOrOverride: true);
+            using var s = CreateSubscriber(40);
 
             p.TryEnqueue(ByteArray3).Should().BeTrue();
             var message = s.Dequeue(default);
@@ -132,7 +132,7 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public void CannotEnqueuePastCapacity()
         {
-            using var p = CreatePublisher(24, createOrOverride: true);
+            using var p = CreatePublisher(40, createOrOverride: true);
 
             p.TryEnqueue(ByteArray3).Should().BeTrue();
             p.TryEnqueue(ByteArray1).Should().BeFalse();
@@ -141,10 +141,10 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public void DisposeShouldNotThrow()
         {
-            var p = CreatePublisher(24, createOrOverride: true);
+            var p = CreatePublisher(40, createOrOverride: true);
             p.TryEnqueue(ByteArray3).Should().BeTrue();
 
-            using var s = CreateSubscriber(24);
+            using var s = CreateSubscriber(40);
             p.Dispose();
 
             s.Dequeue(default);
@@ -153,13 +153,13 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact]
         public void CannotReadAfterProducerIsDisposed()
         {
-            var p = CreatePublisher(24, createOrOverride: true);
+            var p = CreatePublisher(40, createOrOverride: true);
             p.TryEnqueue(ByteArray3).Should().BeTrue();
-            using (var s = CreateSubscriber(24))
+            using (var s = CreateSubscriber(40))
                 p.Dispose();
 
-            using (CreatePublisher(24))
-            using (var s = CreateSubscriber(24))
+            using (CreatePublisher(40))
+            using (var s = CreateSubscriber(40))
             {
                 s.TryDequeue(default, out var message).Should().BeFalse();
             }
