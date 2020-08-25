@@ -175,6 +175,22 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
+        [Fact]
+        public void CanCircleBuffer()
+        {
+            using var p = CreatePublisher(1024, createOrOverride: true);
+            using var s = CreateSubscriber(1024);
+
+            var message = Enumerable.Range(100, 66).Select(i => (byte)i).ToArray();
+
+            for (var i = 0; i < 20000; i++)
+            {
+                p.TryEnqueue(message).Should().BeTrue();
+                var result = s.Dequeue(default);
+                result.ToArray().Should().BeEquivalentTo(message);
+            }
+        }
+
         private IPublisher CreatePublisher(long capacity, bool createOrOverride = false)
             => queueFactory.CreatePublisher(
                 new QueueOptions(fixture.Identifier.Name, fixture.Identifier.Path, capacity, createOrOverride));

@@ -18,7 +18,7 @@ namespace Cloudtoid.Interprocess
             view = new MemoryView(options, loggerFactory);
             try
             {
-                Buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.BytesCapacity);
+                Buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.BytesCapacity - sizeof(QueueHeader));
             }
             catch
             {

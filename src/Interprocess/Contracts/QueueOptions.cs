@@ -30,7 +30,7 @@ namespace Cloudtoid.Interprocess
         /// <param name="bytesCapacity">The maximum capacity of the queue in bytes. This should be at least 16 bytes long and in the multiples of 8</param>
         /// <param name="createOrOverride">Specifies whether the backing shared memory storage for a queue
         /// with the same <paramref name="queueName"/> in the same <paramref name="path"/> should be overwritten.</param>
-        public QueueOptions(
+        public unsafe QueueOptions(
             string queueName,
             string path,
             long bytesCapacity,
@@ -39,7 +39,7 @@ namespace Cloudtoid.Interprocess
             QueueName = CheckNonEmpty(queueName, nameof(queueName));
             Path = CheckValue(path, nameof(path));
 
-            BytesCapacity = CheckGreaterThan(bytesCapacity, 16, nameof(bytesCapacity));
+            BytesCapacity = CheckGreaterThan(bytesCapacity, sizeof(QueueHeader), nameof(bytesCapacity));
             CheckParam((bytesCapacity % 8) == 0, nameof(queueName), $"{nameof(bytesCapacity)} should be a multiple of 8 (8 bytes = 64 bits).");
 
             CreateOrOverride = createOrOverride;
