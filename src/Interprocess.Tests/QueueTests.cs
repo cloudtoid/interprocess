@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -161,6 +162,16 @@ namespace Cloudtoid.Interprocess.Tests
             using (var s = CreateSubscriber(24))
             {
                 s.TryDequeue(default, out var message).Should().BeFalse();
+            }
+        }
+
+        [Fact]
+        public async Task CanDisposeQueueAsync()
+        {
+            using (var s = CreateSubscriber(1024, false))
+            {
+                _ = Task.Run(() => s.Dequeue(default));
+                await Task.Delay(200);
             }
         }
 

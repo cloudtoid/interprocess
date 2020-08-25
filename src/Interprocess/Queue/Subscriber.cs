@@ -10,6 +10,8 @@ namespace Cloudtoid.Interprocess
         private const long BeingCreated = (long)MessageState.BeingCreated;
         private const long LockedToBeConsumed = (long)MessageState.LockedToBeConsumed;
         private const long ReadyToBeConsumed = (long)MessageState.ReadyToBeConsumed;
+        private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
+        private readonly CountdownEvent countdownEvent = new CountdownEvent(1);
         private readonly IInterprocessSemaphoreWaiter signal;
 
         internal Subscriber(QueueOptions options, ILoggerFactory loggerFactory)
@@ -20,6 +22,11 @@ namespace Cloudtoid.Interprocess
 
         public override void Dispose()
         {
+            // drain the Dequeue/TryDequeue requests
+            cancellationSource.Cancel();
+            countdownEvent.Signal();
+            countdownEvent.Wait();
+
             signal.Dispose();
             base.Dispose();
         }
@@ -39,71 +46,78 @@ namespace Cloudtoid.Interprocess
         public ReadOnlyMemory<byte> Dequeue(Memory<byte> resultBuffer, CancellationToken cancellation)
             => Dequeue((Memory<byte>?)resultBuffer, cancellation);
 
+        private ReadOnlyMemory<byte> Dequeue(Memory<byte>? resultBuffer, CancellationToken cancellation)
+        {
+            if (TryDequeue(resultBuffer, cancellation, out var message))
+                return message;
+
+            while (true)
+            {
+                signal.Wait(millisecondsTimeout: 100);
+
+                if (TryDequeue(resultBuffer, cancellation, out message))
+                    return message;
+            }
+        }
+
         private unsafe bool TryDequeue(
             Memory<byte>? resultBuffer,
             CancellationToken cancellation,
             out ReadOnlyMemory<byte> message)
         {
-            while (true)
+            countdownEvent.AddCount();
+            try
             {
-                cancellation.ThrowIfCancellationRequested();
+                using var linkedSource = new LinkedCancellationToken(cancellationSource.Token, cancellation);
+                cancellation = linkedSource.Token;
 
-                var header = Header;
-                var headOffset = header->HeadOffset;
-
-                // is this is an empty queue?
-                if (headOffset == header->TailOffset)
+                while (true)
                 {
-                    message = ReadOnlyMemory<byte>.Empty;
-                    return false;
+                    cancellation.ThrowIfCancellationRequested();
+
+                    var header = Header;
+                    var headOffset = header->HeadOffset;
+
+                    // is this is an empty queue?
+                    if (headOffset == header->TailOffset)
+                    {
+                        message = ReadOnlyMemory<byte>.Empty;
+                        return false;
+                    }
+
+                    var state = (long*)Buffer.GetPointer(headOffset);
+
+                    if (*state == LockedToBeConsumed)
+                        continue; // some other receiver got to this message before us
+
+                    // is the message still being written/created?
+                    if (*state != ReadyToBeConsumed)
+                        continue; // message is not ready to be consumed yet
+
+                    // take a lock so no other thread can start processing this message
+                    if (Interlocked.CompareExchange(ref *state, LockedToBeConsumed, ReadyToBeConsumed) != ReadyToBeConsumed)
+                        continue; // some other receiver got to this message before us
+
+                    // read the message body from the queue buffer
+                    var bodyOffset = GetMessageBodyOffset(headOffset);
+                    var bodyLength = ReadMessageBodyLength(headOffset);
+                    message = Buffer.Read(bodyOffset, bodyLength, resultBuffer);
+
+                    // zero out the entire message block
+                    var messageLength = GetMessageLength(bodyLength);
+                    Buffer.ZeroBlock(headOffset, messageLength);
+
+                    // updating the queue header to point the head of the queue to the next available message
+                    var newHeadOffset = SafeIncrementMessageOffset(headOffset, messageLength);
+                    var currentHeadOffset = (long*)header;
+                    Interlocked.Exchange(ref *currentHeadOffset, newHeadOffset);
+
+                    return true;
                 }
-
-                var state = (long*)Buffer.GetPointer(headOffset);
-
-                if (*state == LockedToBeConsumed)
-                    continue; // some other receiver got to this message before us
-
-                // is the message still being written/created?
-                if (*state != ReadyToBeConsumed)
-                    continue; // message is not ready to be consumed yet
-
-                // take a lock so no other thread can start processing this message
-                if (Interlocked.CompareExchange(ref *state, LockedToBeConsumed, ReadyToBeConsumed) != ReadyToBeConsumed)
-                    continue; // some other receiver got to this message before us
-
-                // read the message body from the queue buffer
-                var bodyOffset = GetMessageBodyOffset(headOffset);
-                var bodyLength = ReadMessageBodyLength(headOffset);
-                message = Buffer.Read(bodyOffset, bodyLength, resultBuffer);
-
-                // zero out the entire message block
-                var messageLength = GetMessageLength(bodyLength);
-                Buffer.ZeroBlock(headOffset, messageLength);
-
-                // updating the queue header to point the head of the queue to the next available message
-                var newHeadOffset = SafeIncrementMessageOffset(headOffset, messageLength);
-                var currentHeadOffset = (long*)header;
-                Interlocked.Exchange(ref *currentHeadOffset, newHeadOffset);
-
-                return true;
             }
-        }
-
-        private ReadOnlyMemory<byte> Dequeue(
-            Memory<byte>? resultBuffer,
-            CancellationToken cancellation)
-        {
-            var wait = false;
-
-            while (true)
+            finally
             {
-                if (wait)
-                    signal.Wait(millisecondsTimeout: 100);
-                else
-                    wait = false;
-
-                if (TryDequeue(resultBuffer, cancellation, out var message))
-                    return message;
+                countdownEvent.Signal();
             }
         }
 
