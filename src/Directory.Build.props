@@ -3,7 +3,6 @@
   <!-- Build Settings -->
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <!-- <TargetFrameworks>net5.0;netcoreapp3.1</TargetFrameworks> -->
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -12,6 +11,7 @@
   <!-- Versions -->
   <PropertyGroup>
     <CloudtoidFrameworkVersion>1.0.*</CloudtoidFrameworkVersion>
+    <CloudtoidCodeAnalysisVersion>1.0.*</CloudtoidCodeAnalysisVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp3.1'">
@@ -25,6 +25,7 @@
   <!-- Package dependencies -->
   <ItemGroup>
     <PackageReference Include="Cloudtoid.Framework" Version="$(CloudtoidFrameworkVersion)" />
+    <PackageReference Include="Cloudtoid.CodeAnalysis" Version="$(CloudtoidCodeAnalysisVersion)" />
   </ItemGroup>
 
 </Project>
