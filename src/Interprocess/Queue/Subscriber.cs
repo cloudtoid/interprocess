@@ -46,15 +46,24 @@ namespace Cloudtoid.Interprocess
 
         private ReadOnlyMemory<byte> Dequeue(Memory<byte>? resultBuffer, CancellationToken cancellation)
         {
-            if (TryDequeue(resultBuffer, cancellation, out var message))
-                return message;
+            // Chances are that the previous reader is not fully done with reading the current message.
+            // We, therefore, spin-wait before using the semaphore which is more expensive.
+            // We have seen an order of magnitude performance improvement by applying this simple trick.
+
+            for (var i = 0; i < 10; i++)
+            {
+                if (TryDequeue(resultBuffer, cancellation, out var message))
+                    return message;
+
+                Thread.SpinWait(10);
+            }
 
             while (true)
             {
-                signal.Wait(millisecondsTimeout: 100);
-
-                if (TryDequeue(resultBuffer, cancellation, out message))
+                if (TryDequeue(resultBuffer, cancellation, out var message))
                     return message;
+
+                signal.Wait(millisecondsTimeout: 100);
             }
         }
 
