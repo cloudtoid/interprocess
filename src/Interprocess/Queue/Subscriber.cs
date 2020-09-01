@@ -26,8 +26,10 @@ namespace Cloudtoid.Interprocess
             cancellationSource.Cancel();
             countdownEvent.Signal();
             countdownEvent.Wait();
+            countdownEvent.Dispose();
 
             signal.Dispose();
+            cancellationSource.Dispose();
             base.Dispose();
         }
 
@@ -66,6 +68,7 @@ namespace Cloudtoid.Interprocess
             out ReadOnlyMemory<byte> message)
         {
             countdownEvent.AddCount();
+            message = ReadOnlyMemory<byte>.Empty;
             try
             {
                 using var linkedSource = new LinkedCancellationToken(cancellationSource.Token, cancellation);
@@ -78,25 +81,18 @@ namespace Cloudtoid.Interprocess
                     var header = Header;
                     var headOffset = header->HeadOffset;
 
-                    // is this is an empty queue?
                     if (headOffset == header->TailOffset)
-                    {
-                        message = ReadOnlyMemory<byte>.Empty;
-                        return false;
-                    }
+                        return false; // this is an empty queue
 
                     var state = (long*)Buffer.GetPointer(headOffset);
 
-                    if (*state == LockedToBeConsumed)
-                        continue; // some other receiver got to this message before us
-
                     // is the message still being written/created?
-                    if (*state != ReadyToBeConsumed)
-                        continue; // message is not ready to be consumed yet
+                    if (*state == BeingCreated)
+                        continue; // message is still being created
 
                     // take a lock so no other thread can start processing this message
                     if (Interlocked.CompareExchange(ref *state, LockedToBeConsumed, ReadyToBeConsumed) != ReadyToBeConsumed)
-                        continue; // some other receiver got to this message before us
+                        return false; // some other receiver got to this message before us
 
                     // read the message body from the queue buffer
                     var bodyOffset = GetMessageBodyOffset(headOffset);
