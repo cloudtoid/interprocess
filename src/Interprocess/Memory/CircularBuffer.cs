@@ -37,6 +37,14 @@ namespace Cloudtoid.Interprocess
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal int ReadInt32(long offset)
+        {
+            AdjustedOffset(ref offset);
+            Debug.Assert(offset + sizeof(int) <= Capacity);
+            return *(int*)(buffer + offset);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ReadOnlyMemory<byte> Read(long offset, long length, Memory<byte>? resultBuffer = null)
         {
             if (length == 0)
@@ -101,7 +109,7 @@ namespace Cloudtoid.Interprocess
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ZeroBlock(long offset, long length)
+        internal void Clear(long offset, long length)
         {
             if (length == 0)
                 return;

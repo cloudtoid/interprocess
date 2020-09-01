@@ -7,9 +7,9 @@ namespace Cloudtoid.Interprocess
 {
     internal sealed class Subscriber : Queue, ISubscriber
     {
-        private const long BeingCreated = (long)MessageState.BeingCreated;
-        private const long LockedToBeConsumed = (long)MessageState.LockedToBeConsumed;
-        private const long ReadyToBeConsumed = (long)MessageState.ReadyToBeConsumed;
+        private const int BeingCreated = (int)MessageState.BeingCreated;
+        private const int LockedToBeConsumed = (int)MessageState.LockedToBeConsumed;
+        private const int ReadyToBeConsumed = (int)MessageState.ReadyToBeConsumed;
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly CountdownEvent countdownEvent = new CountdownEvent(1);
         private readonly IInterprocessSemaphoreWaiter signal;
@@ -78,20 +78,22 @@ namespace Cloudtoid.Interprocess
                 {
                     cancellation.ThrowIfCancellationRequested();
 
+                    Interlocked.MemoryBarrier();
+
                     var header = Header;
                     var headOffset = header->HeadOffset;
 
                     if (headOffset == header->TailOffset)
                         return false; // this is an empty queue
 
-                    var state = (long*)Buffer.GetPointer(headOffset);
+                    var state = *(int*)Buffer.GetPointer(headOffset);
 
                     // is the message still being written/created?
-                    if (*state == BeingCreated)
+                    if (state == BeingCreated)
                         continue; // message is still being created
 
                     // take a lock so no other thread can start processing this message
-                    if (Interlocked.CompareExchange(ref *state, LockedToBeConsumed, ReadyToBeConsumed) != ReadyToBeConsumed)
+                    if (Interlocked.CompareExchange(ref state, LockedToBeConsumed, ReadyToBeConsumed) != ReadyToBeConsumed)
                         return false; // some other receiver got to this message before us
 
                     // read the message body from the queue buffer
@@ -101,12 +103,13 @@ namespace Cloudtoid.Interprocess
 
                     // zero out the entire message block
                     var messageLength = GetMessageLength(bodyLength);
-                    Buffer.ZeroBlock(headOffset, messageLength);
+                    Buffer.Clear(headOffset, messageLength);
 
                     // updating the queue header to point the head of the queue to the next available message
                     var newHeadOffset = SafeIncrementMessageOffset(headOffset, messageLength);
                     var currentHeadOffset = (long*)header;
-                    Interlocked.Exchange(ref *currentHeadOffset, newHeadOffset);
+                    if (Interlocked.CompareExchange(ref *currentHeadOffset, newHeadOffset, headOffset) != headOffset)
+                        throw new Exception("This should never happen and is a bug if it does!");
 
                     return true;
                 }
@@ -118,7 +121,7 @@ namespace Cloudtoid.Interprocess
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private long ReadMessageBodyLength(long messageHeaderOffset)
-            => Buffer.ReadInt64(messageHeaderOffset + sizeof(long));
+        private int ReadMessageBodyLength(long messageHeaderOffset)
+            => Buffer.ReadInt32(messageHeaderOffset + sizeof(int));
     }
 }

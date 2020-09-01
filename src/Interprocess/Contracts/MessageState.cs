@@ -1,6 +1,6 @@
 ﻿namespace Cloudtoid.Interprocess
 {
-    internal enum MessageState : long
+    internal enum MessageState : int
     {
         BeingCreated = 0, // do NOT change from zero
         ReadyToBeConsumed = 1,

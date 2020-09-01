@@ -65,6 +65,20 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
+        [Fact]
+        public void CanReadInt32()
+        {
+            var bytes = BitConverter.GetBytes(100).Concat(BitConverter.GetBytes(int.MaxValue)).ToArray();
+
+            fixed (byte* bytesPtr = &bytes[0])
+            {
+                var buffer = new CircularBuffer(bytesPtr, bytes.Length);
+                buffer.ReadInt32(0).Should().Be(100);
+                buffer.ReadInt32(4).Should().Be(int.MaxValue);
+                buffer.ReadInt32(8).Should().Be(100);
+            }
+        }
+
         [Theory]
         [InlineData(0, 0, new byte[] { })]
         [InlineData(0, 1, new byte[] { 100 })]
@@ -179,7 +193,7 @@ namespace Cloudtoid.Interprocess.Tests
             {
                 var buffer = new CircularBuffer(ptr, b.Length);
                 buffer.Read(offset, length).ToArray().All(i => i == 1).Should().BeTrue();
-                buffer.ZeroBlock(offset, length);
+                buffer.Clear(offset, length);
                 buffer.Read(offset, length).ToArray().All(i => i == 0).Should().BeTrue();
             }
         }
