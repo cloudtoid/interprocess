@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 
@@ -7,9 +6,6 @@ namespace Cloudtoid.Interprocess
 {
     internal sealed class Subscriber : Queue, ISubscriber
     {
-        private const int BeingCreated = (int)MessageState.BeingCreated;
-        private const int LockedToBeConsumed = (int)MessageState.LockedToBeConsumed;
-        private const int ReadyToBeConsumed = (int)MessageState.ReadyToBeConsumed;
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly CountdownEvent countdownEvent = new CountdownEvent(1);
         private readonly IInterprocessSemaphoreWaiter signal;
@@ -78,40 +74,47 @@ namespace Cloudtoid.Interprocess
                 {
                     cancellation.ThrowIfCancellationRequested();
 
-                    Interlocked.MemoryBarrier();
-
                     var header = Header;
                     var headOffset = header->HeadOffset;
 
                     if (headOffset == header->TailOffset)
                         return false; // this is an empty queue
 
-                    var state = *(int*)Buffer.GetPointer(headOffset);
+                    var messageHeader = (MessageHeader*)Buffer.GetPointer(headOffset);
 
                     // is the message still being written/created?
-                    if (state == BeingCreated)
+                    if (messageHeader->State == MessageHeader.BeingCreatedState)
                         continue; // message is still being created
 
                     // take a lock so no other thread can start processing this message
-                    if (Interlocked.CompareExchange(ref state, LockedToBeConsumed, ReadyToBeConsumed) != ReadyToBeConsumed)
+                    if (Interlocked.CompareExchange(
+                        ref messageHeader->State,
+                        MessageHeader.LockedToBeConsumedState,
+                        MessageHeader.ReadyToBeConsumedState) != MessageHeader.ReadyToBeConsumedState)
+                    {
                         return false; // some other receiver got to this message before us
+                    }
 
                     // read the message body from the queue buffer
+                    var bodyLength = messageHeader->BodyLength;
                     var bodyOffset = GetMessageBodyOffset(headOffset);
-                    var bodyLength = ReadMessageBodyLength(headOffset);
                     message = Buffer.Read(bodyOffset, bodyLength, resultBuffer);
 
-                    // zero out the entire message block
-                    var messageLength = GetMessageLength(bodyLength);
-                    Buffer.Clear(headOffset, messageLength);
+                    // zero out the message body first
+                    Buffer.Clear(bodyOffset, bodyLength);
+
+                    // zero out the message header
+                    Buffer.Write(default(MessageHeader), headOffset);
 
                     // updating the queue header to point the head of the queue to the next available message
+                    var messageLength = GetMessageLength(bodyLength);
                     var newHeadOffset = SafeIncrementMessageOffset(headOffset, messageLength);
-                    var currentHeadOffset = (long*)header;
-                    if (Interlocked.CompareExchange(ref *currentHeadOffset, newHeadOffset, headOffset) != headOffset)
-                        throw new Exception("This should never happen and is a bug if it does!");
+                    if (Interlocked.CompareExchange(ref header->HeadOffset, newHeadOffset, headOffset) == headOffset)
+                        return true;
 
-                    return true;
+                    throw new InvalidOperationException(
+                        "This is unexpected and can be a serious bug. We take a lock on this message " +
+                        "prior to this point which should ensure that the HeadOffset is left unchanged");
                 }
             }
             finally
@@ -119,9 +122,5 @@ namespace Cloudtoid.Interprocess
                 countdownEvent.Signal();
             }
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int ReadMessageBodyLength(long messageHeaderOffset)
-            => Buffer.ReadInt32(messageHeaderOffset + sizeof(int));
     }
 }

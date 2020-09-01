@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -29,22 +28,6 @@ namespace Cloudtoid.Interprocess
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal long ReadInt64(long offset)
-        {
-            AdjustedOffset(ref offset);
-            Debug.Assert(offset + sizeof(long) <= Capacity);
-            return *(long*)(buffer + offset);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal int ReadInt32(long offset)
-        {
-            AdjustedOffset(ref offset);
-            Debug.Assert(offset + sizeof(int) <= Capacity);
-            return *(int*)(buffer + offset);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ReadOnlyMemory<byte> Read(long offset, long length, Memory<byte>? resultBuffer = null)
         {
             if (length == 0)
@@ -70,14 +53,6 @@ namespace Cloudtoid.Interprocess
             }
 
             return result.Slice(0, (int)length);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void WriteInt64(long value, long offset)
-        {
-            AdjustedOffset(ref offset);
-            Debug.Assert(offset + sizeof(long) <= Capacity);
-            *(long*)(buffer + offset) = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

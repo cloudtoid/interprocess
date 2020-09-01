@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using FluentAssertions;
 using Xunit;
 
@@ -51,34 +50,6 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
-        [Fact]
-        public void CanReadInt64()
-        {
-            var bytes = BitConverter.GetBytes(100L).Concat(BitConverter.GetBytes(long.MaxValue)).ToArray();
-
-            fixed (byte* bytesPtr = &bytes[0])
-            {
-                var buffer = new CircularBuffer(bytesPtr, bytes.Length);
-                buffer.ReadInt64(0).Should().Be(100L);
-                buffer.ReadInt64(8).Should().Be(long.MaxValue);
-                buffer.ReadInt64(16).Should().Be(100L);
-            }
-        }
-
-        [Fact]
-        public void CanReadInt32()
-        {
-            var bytes = BitConverter.GetBytes(100).Concat(BitConverter.GetBytes(int.MaxValue)).ToArray();
-
-            fixed (byte* bytesPtr = &bytes[0])
-            {
-                var buffer = new CircularBuffer(bytesPtr, bytes.Length);
-                buffer.ReadInt32(0).Should().Be(100);
-                buffer.ReadInt32(4).Should().Be(int.MaxValue);
-                buffer.ReadInt32(8).Should().Be(100);
-            }
-        }
-
         [Theory]
         [InlineData(0, 0, new byte[] { })]
         [InlineData(0, 1, new byte[] { 100 })]
@@ -108,26 +79,6 @@ namespace Cloudtoid.Interprocess.Tests
 
                 var resultBuffer = new byte[bufferLength ?? length];
                 buffer.Read(offset, length, resultBuffer).ToArray().Should().BeEquivalentTo(expectedResult);
-            }
-        }
-
-        [Fact]
-        public void CanWriteInt64()
-        {
-            var bytes = new byte[16];
-
-            fixed (byte* bytesPtr = &bytes[0])
-            {
-                var buffer = new CircularBuffer(bytesPtr, bytes.Length);
-                buffer.WriteInt64(100L, 0);
-                buffer.WriteInt64(long.MaxValue, 8);
-
-                buffer.ReadInt64(0).Should().Be(100L);
-                buffer.ReadInt64(8).Should().Be(long.MaxValue);
-                buffer.ReadInt64(16).Should().Be(100L);
-
-                buffer.WriteInt64(200L, 16);
-                buffer.ReadInt64(16).Should().Be(200L);
             }
         }
 

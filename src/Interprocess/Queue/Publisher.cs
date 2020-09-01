@@ -46,7 +46,7 @@ namespace Cloudtoid.Interprocess
 
                         // write the message header
                         Buffer.Write(
-                            new MessageHeader(MessageState.ReadyToBeConsumed, bodyLength),
+                            new MessageHeader(MessageHeader.ReadyToBeConsumedState, bodyLength),
                             tailOffset);
                     }
                     catch (Exception ex)
