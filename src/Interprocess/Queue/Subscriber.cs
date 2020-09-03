@@ -72,6 +72,7 @@ namespace Cloudtoid.Interprocess
             CancellationToken cancellation,
             out ReadOnlyMemory<byte> message)
         {
+            cancellation.ThrowIfCancellationRequested();
             countdownEvent.AddCount();
             message = ReadOnlyMemory<byte>.Empty;
             try
