@@ -173,7 +173,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Theory]
-        [Repeat(1000)]
+        [Repeat(20)]
         [SuppressMessage("Style", "IDE0060", Justification = "Parameter is needed for xUnit's repeated test to work.")]
         [SuppressMessage("Usage", "xUnit1026", Justification = "Parameter is needed for xUnit's repeated test to work.")]
         public async Task CanSupporrtMultipleServersAndClientsAsync(int i)
