@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
@@ -15,6 +16,8 @@ namespace Cloudtoid.Interprocess.DomainSocket
         private readonly UnixDomainSocketEndPoint endpoint;
         private readonly string file;
         private readonly ILogger<UnixDomainSocketClient> logger;
+
+        [SuppressMessage("CodeQuality", "IDE0069:Disposable fields should be disposed", Justification = "This is an incorrect warning as we call into SafeDispose()")]
         private Socket? socket;
 
         internal UnixDomainSocketClient(string file, ILoggerFactory loggerFactory)
@@ -31,6 +34,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
             logger.LogDebug("Disposing a domain socket client - {0}", file);
             cancellationSource.Cancel();
             Interlocked.Exchange(ref socket, null).SafeDispose();
+            cancellationSource.Dispose();
         }
 
         internal async ValueTask<int> ReceiveAsync(

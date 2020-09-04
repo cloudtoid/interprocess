@@ -107,9 +107,11 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private Thread StartRceivers()
         {
             // using a dedicated thread as this is a very long blocking call
-            var thread = new Thread(ReceiversLoop);
-            thread.Name = "ReceiversLoop";
-            thread.IsBackground = true;
+            var thread = new Thread(ReceiversLoop)
+            {
+                Name = "ReceiversLoop",
+                IsBackground = true
+            };
             thread.Start();
             return thread;
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -8,6 +9,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
 {
     internal sealed class UnixDomainSocketServer : IDisposable
     {
+        [SuppressMessage("CodeQuality", "IDE0069:Disposable fields should be disposed", Justification = "Avoiding race conditions")]
         private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
         private readonly string file;
         private readonly Socket socket;

@@ -51,6 +51,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             stopSource.Cancel();
             connectionAcceptThread.Join();
             releaseLoopThread.Join();
+            releaseSignal.Dispose();
+            stopSource.Dispose();
             GC.SuppressFinalize(this);
         }
 
