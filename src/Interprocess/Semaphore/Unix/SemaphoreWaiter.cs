@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -26,6 +27,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
         private readonly SharedAssetsIdentifier identifier;
         private readonly ILoggerFactory loggerFactory;
         private readonly ILogger<SemaphoreWaiter> logger;
+
+        [SuppressMessage("CodeQuality", "IDE0069:Disposable fields should be disposed", Justification = "It is disposed in StopFileWatcher")]
         private FileSystemWatcher? watcher;
 
         internal SemaphoreWaiter(
@@ -51,6 +54,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             clientsLoopThread.Join();
             semaphore.Dispose();
             fileWatcherHandle.Dispose();
+            stopSource.Dispose();
             GC.SuppressFinalize(this);
         }
 
