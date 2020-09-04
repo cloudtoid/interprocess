@@ -159,7 +159,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
             }
             catch (SocketException se) when (se.SocketErrorCode == SocketError.Shutdown)
             {
-                logger.LogInformation("Server has shutdown a connection to this '{0}' Unix Domain Socket server.", filePath);
+                logger.LogDebug("Server has shutdown a connection to this '{0}' Unix Domain Socket server.", filePath);
                 clients[i] = null;
                 client.SafeDispose(logger);
             }

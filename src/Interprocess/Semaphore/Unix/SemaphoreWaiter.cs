@@ -128,7 +128,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         {
                             receivers.Remove(remove.Key);
                             remove.Value.Dispose();
-                            logger.LogInformation(
+                            logger.LogDebug(
                                 "The Unix Domain Socket server on '{0}' is no longer available and the receiver for it is now removed.",
                                 remove.Key);
                         }
@@ -138,7 +138,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
                         {
                             var receiver = new Receiver(add, releaseDelegate, loggerFactory);
                             receivers.Add(add, receiver);
-                            logger.LogInformation(
+                            logger.LogDebug(
                                 "A Unix Domain Socket server for '{0}' is discovered and a receiver is created for it.",
                                 add);
                         }

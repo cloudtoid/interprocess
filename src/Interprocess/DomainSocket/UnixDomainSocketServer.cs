@@ -68,12 +68,12 @@ namespace Cloudtoid.Interprocess.DomainSocket
                 }
                 catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
                 {
-                    logger.LogInformation("Accepting a Unix Domain Socket connection was cancelled.");
+                    logger.LogDebug("Accepting a Unix Domain Socket connection was cancelled.");
                     throw new OperationCanceledException();
                 }
                 catch (OperationCanceledException)
                 {
-                    logger.LogInformation("Accepting a Unix Domain Socket connection was cancelled.");
+                    logger.LogDebug("Accepting a Unix Domain Socket connection was cancelled.");
                     throw;
                 }
                 catch (Exception ex)
