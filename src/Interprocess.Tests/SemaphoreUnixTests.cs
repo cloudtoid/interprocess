@@ -173,7 +173,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Theory]
-        [Repeat(2)]
+        [Repeat(100)]
         [SuppressMessage("Style", "IDE0060", Justification = "Parameter is needed for xUnit's repeated test to work.")]
         [SuppressMessage("Usage", "xUnit1026", Justification = "Parameter is needed for xUnit's repeated test to work.")]
         public async Task CanSupporrtMultipleServersAndClientsAsync(int i)
@@ -185,29 +185,29 @@ namespace Cloudtoid.Interprocess.Tests
             await WaitForClientCountAsync(server1, 2);
 
             server1.Release();
-            client1.Wait(2000).Should().BeTrue();
-            client2.Wait(2000).Should().BeTrue();
+            client1.Wait(1000).Should().BeTrue();
+            client2.Wait(1001).Should().BeTrue();
 
             using var server2 = new SemaphoreReleaser(fixture.Identifier, loggerFactory);
             await WaitForClientCountAsync(server2, 2);
 
             server1.Release();
-            client1.Wait(2000).Should().BeTrue();
-            client2.Wait(2000).Should().BeTrue();
+            client1.Wait(1002).Should().BeTrue();
+            client2.Wait(1003).Should().BeTrue();
 
             server2.Release();
-            client1.Wait(2000).Should().BeTrue();
-            client2.Wait(2000).Should().BeTrue();
+            client1.Wait(1004).Should().BeTrue();
+            client2.Wait(1005).Should().BeTrue();
 
             client1.Wait(50).Should().BeFalse();
             client2.Wait(50).Should().BeFalse();
 
             server1.Release();
             server2.Release();
-            client1.Wait(2000).Should().BeTrue();
-            client1.Wait(2000).Should().BeTrue();
-            client2.Wait(2000).Should().BeTrue();
-            client2.Wait(2000).Should().BeTrue();
+            client1.Wait(1006).Should().BeTrue();
+            client1.Wait(1007).Should().BeTrue();
+            client2.Wait(1008).Should().BeTrue();
+            client2.Wait(1009).Should().BeTrue();
 
             client1.Wait(50).Should().BeFalse();
             client2.Wait(50).Should().BeFalse();
@@ -315,6 +315,8 @@ namespace Cloudtoid.Interprocess.Tests
         {
             while (server.ClientCount != count)
                 await Task.Delay(5);
+
+            await Task.Delay(100);
         }
     }
 }
