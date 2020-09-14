@@ -24,7 +24,9 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: '5.0.100-rc.1.20452.10'
-      - name: Build
+      - name: Build - Release
         run: dotnet build -c Release src/Interprocess.sln
-      - name: Test
-        run: dotnet test --no-restore src/Interprocess.sln
+      - name: Build - Debug
+        run: dotnet build src/Interprocess.sln
+      - name: Test - Debug
+        run: dotnet test --no-build src/Interprocess.sln
