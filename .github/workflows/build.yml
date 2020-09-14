@@ -13,20 +13,24 @@ jobs:
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]
     name: Build and Test on ${{ matrix.os }}
+    
     steps:
+
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup .NET 5.0
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: '5.0.100-rc.1.20452.10'
+
       - name: Setup .NET Core 3.1.x
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: '3.1.x'
+
+      - name: Setup .NET 5.0
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '5.0.100-rc.1.20452.10'
+
       - name: Build - Release
         run: dotnet build -c Release src/Interprocess.sln
-      - name: Build - Debug
-        run: dotnet build src/Interprocess.sln
+
       - name: Test - Debug
-        run: dotnet test --no-build src/Interprocess.sln
+        run: dotnet test ./src/Interprocess.Tests/Interprocess.Tests.csproj
