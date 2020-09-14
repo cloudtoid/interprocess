@@ -11,9 +11,16 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Interprocess.Benchmark", "I
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sample", "Sample", "{B95A6F0E-6A43-4F1B-8698-125BFD44716F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Publisher", "Sample\Publisher\Publisher.csproj", "{FEB59965-4F4B-4DFA-B3A7-59A990DE0143}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Publisher", "Sample\Publisher\Publisher.csproj", "{FEB59965-4F4B-4DFA-B3A7-59A990DE0143}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Subscriber", "Sample\Subscriber\Subscriber.csproj", "{D19F0C91-DEEE-4BC1-B5FC-0F5ACCE09E76}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Subscriber", "Sample\Subscriber\Subscriber.csproj", "{D19F0C91-DEEE-4BC1-B5FC-0F5ACCE09E76}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{A178B233-238B-4BCB-8164-EA649C8FBB8D}"
+	ProjectSection(SolutionItems) = preProject
+		..\.github\workflows\build.yml = ..\.github\workflows\build.yml
+		Directory.Build.props = Directory.Build.props
+		..\.github\workflows\publish.yml = ..\.github\workflows\publish.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -9,6 +9,10 @@ namespace Cloudtoid.Interprocess.Memory.Windows
 
         internal MemoryFileWindows(QueueOptions options)
         {
+#if NET5_0
+            if (!System.OperatingSystem.IsWindows())
+                throw new System.PlatformNotSupportedException();
+#endif
             MappedFile = MemoryMappedFile.CreateOrOpen(
                 mapName: MapNamePrefix + options.QueueName,
                 options.BytesCapacity,

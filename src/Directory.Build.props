@@ -2,7 +2,7 @@
 
   <!-- Build Settings -->
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFrameworks>net5.0;netcoreapp3.1</TargetFrameworks>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -19,7 +19,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)'=='net5.0'">
-    <MicrosoftExtensionsVersion>5.0.0</MicrosoftExtensionsVersion>
+    <MicrosoftExtensionsVersion>5.0.0-rc.1.20451.14</MicrosoftExtensionsVersion>
   </PropertyGroup>
 
   <!-- Package dependencies -->

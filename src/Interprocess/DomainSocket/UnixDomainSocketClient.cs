@@ -26,7 +26,11 @@ namespace Cloudtoid.Interprocess.DomainSocket
             logger = loggerFactory.CreateLogger<UnixDomainSocketClient>();
             logger.LogDebug("Creating a domain socket client - {0}", file);
             endpoint = CreateUnixDomainSocketEndPoint(file);
+#if NET5_0
+            socket = CreateUnixDomainSocket(blocking: true);
+#else
             socket = CreateUnixDomainSocket(blocking: false);
+#endif
         }
 
         public void Dispose()
@@ -95,7 +99,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
             }
         }
 
-        private async Task EnsureConnectedAsync(
+        private async ValueTask EnsureConnectedAsync(
             Socket socket,
             CancellationToken cancellation)
         {
@@ -104,11 +108,15 @@ namespace Cloudtoid.Interprocess.DomainSocket
             {
                 cancellation.ThrowIfCancellationRequested();
 
+#if NET5_0
                 try
                 {
-#pragma warning disable VSTHRD103
+                    await socket.ConnectAsync(endpoint, cancellation).ConfigureAwait(false);
+                }
+#else
+                try
+                {
                     socket.Connect(endpoint);
-#pragma warning restore VSTHRD103
                     return;
                 }
                 catch (SocketException se) when (se.SocketErrorCode == SocketError.WouldBlock)
@@ -122,6 +130,7 @@ namespace Cloudtoid.Interprocess.DomainSocket
 
                     await Task.Delay(5, cancellation).ConfigureAwait(false);
                 }
+#endif
                 catch (SocketException se) when (se.SocketErrorCode == SocketError.AddressNotAvailable || se.SocketErrorCode == SocketError.ConnectionRefused)
                 {
                     if (!File.Exists(file))

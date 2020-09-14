@@ -18,7 +18,7 @@ jobs:
       - name: Build
         run: dotnet build -c Release src/Interprocess.sln
       - name: Test
-        run: dotnet test --no-restore --verbosity normal src/Interprocess.sln
+        run: dotnet test --no-restore src/Interprocess.sln
       - name: Pack
         run: dotnet pack -c Release --no-build --output . --version-suffix ${{github.run_number}} src/Interprocess/Interprocess.csproj 
       - name: Push
