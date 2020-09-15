@@ -1,14 +1,18 @@
 ﻿using System;
 using System.IO;
 using System.IO.MemoryMappedFiles;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess.Memory.Unix
 {
     internal sealed class MemoryFileUnix : IMemoryFile
     {
+        private const FileAccess FileAccessOption = FileAccess.ReadWrite;
+        private const FileShare FileShareOption = FileShare.ReadWrite | FileShare.Delete;
         private const string Folder = ".cloudtoid/interprocess/mmf";
         private const string FileExtension = ".qu";
+        private const int BufferSize = 0x1000;
         private readonly string filePath;
         private readonly bool mustDeleteFileOnDispose;
         private readonly ILogger<MemoryFileUnix> logger;
@@ -29,24 +33,54 @@ namespace Cloudtoid.Interprocess.Memory.Unix
                 stream = new FileStream(
                     filePath,
                     FileMode.CreateNew,
-                    FileAccess.ReadWrite,
-                    FileShare.ReadWrite | FileShare.Delete,
-                    bufferSize: 0x1000,
+                    FileAccessOption,
+                    FileShareOption,
+                    BufferSize,
                     FileOptions.DeleteOnClose);
 
                 mustDeleteFileOnDispose = true;
             }
             catch (IOException)
             {
-                stream = new FileStream(
-                    filePath,
-                    options.CreateOrOverride ? FileMode.Create : FileMode.Open,
-                    FileAccess.ReadWrite,
-                    FileShare.ReadWrite | FileShare.Delete,
-                    bufferSize: 0x1000,
-                    FileOptions.None);
+                if (options.CreateOrOverride)
+                {
+                    stream = new FileStream(
+                        filePath,
+                        FileMode.Create, // create or override
+                        FileAccessOption,
+                        FileShareOption,
+                        BufferSize,
+                        FileOptions.DeleteOnClose);
 
-                mustDeleteFileOnDispose = options.CreateOrOverride;
+                    mustDeleteFileOnDispose = true;
+                }
+                else
+                {
+                    try
+                    {
+                        stream = new FileStream(
+                            filePath,
+                            FileMode.Open,
+                            FileAccessOption,
+                            FileShareOption,
+                            BufferSize,
+                            FileOptions.None);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        // wait a bit in case there is a race condition and the file
+                        // is just being created
+                        Thread.Sleep(1000);
+
+                        stream = new FileStream(
+                            filePath,
+                            FileMode.Open,
+                            FileAccessOption,
+                            FileShareOption,
+                            BufferSize,
+                            FileOptions.None);
+                    }
+                }
             }
 
             try
