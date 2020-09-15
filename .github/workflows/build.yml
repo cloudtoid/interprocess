@@ -29,9 +29,18 @@ jobs:
         with:
           dotnet-version: '5.0.100-rc.1.20452.10'
 
-      - name: .net SxS
+      - name: DOTNET HACK
+        shell: pwsh
         run: |
-          rsync -a ${DOTNET_ROOT/3.1.400/5.0.100-rc.1.20452.10}/* $DOTNET_ROOT/
+          $version = Split-Path (Split-Path $ENV:DOTNET_ROOT -Parent) -Leaf;
+          $root = Split-Path (Split-Path $ENV:DOTNET_ROOT -Parent) -Parent;
+          $directories = Get-ChildItem $root | Where-Object { $_.Name -ne $version };
+          foreach ($dir in $directories) {
+            $from = $dir.FullName;
+            $to = "$root/$version";
+            Write-Host Copying from $from to $to;
+            Copy-Item "$from\*" $to -Recurse -Force;
+          }
 
       - name: Build - Release
         run: dotnet build -c Release src/Interprocess.sln
