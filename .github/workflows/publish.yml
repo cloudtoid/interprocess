@@ -40,7 +40,7 @@ jobs:
       - name: Build - Debug
         run: dotnet build src/Interprocess.sln
       - name: Test - Debug
-        run: dotnet test --no-build src/Interprocess.sln
+        run: dotnet test --no-build --verbosity=detailed src/Interprocess.sln
       - name: Build - Release
         run: dotnet build -c Release src/Interprocess.sln
       - name: Pack
