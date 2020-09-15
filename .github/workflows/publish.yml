@@ -9,16 +9,34 @@ jobs:
     runs-on: ubuntu-latest
     name: Build Test Pack and Publish
     steps:
+
       - name: Checkout
         uses: actions/checkout@v2
+   
       - name: Setup .NET Core 3.1.x
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: '3.1.x'
+   
       - name: Setup .NET 5.0
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: '5.0.100-rc.1.20452.10'
+   
+      # Total hack to run multiple .NET SDKs SxS. Remove when this issue is fixed: https://github.com/actions/setup-dotnet/issues/25
+      - name: DOTNET HACK
+        shell: pwsh
+        run: |
+          $version = Split-Path (Split-Path $ENV:DOTNET_ROOT -Parent) -Leaf;
+          $root = Split-Path (Split-Path $ENV:DOTNET_ROOT -Parent) -Parent;
+          $directories = Get-ChildItem $root | Where-Object { $_.Name -ne $version };
+          foreach ($dir in $directories) {
+            $from = $dir.FullName;
+            $to = "$root/$version";
+            Write-Host Copying from $from to $to;
+            Copy-Item "$from\*" $to -Recurse -Force;
+          }
+
       - name: Build
         run: dotnet build src/Interprocess.sln
       - name: Test

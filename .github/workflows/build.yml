@@ -29,6 +29,7 @@ jobs:
         with:
           dotnet-version: '5.0.100-rc.1.20452.10'
 
+      # Total hack to run multiple .NET SDKs SxS. Remove when this issue is fixed: https://github.com/actions/setup-dotnet/issues/25
       - name: DOTNET HACK
         shell: pwsh
         run: |
