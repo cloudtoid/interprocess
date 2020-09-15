@@ -37,11 +37,9 @@ jobs:
             Copy-Item "$from\*" $to -Recurse -Force;
           }
 
-      - name: Build
-        run: dotnet build src/Interprocess.sln
       - name: Test
-        run: dotnet test --no-build src/Interprocess.sln
+        run: dotnet test src/Interprocess.sln
       - name: Pack
-        run: dotnet pack -c Release --no-build --output . --version-suffix ${{github.run_number}} src/Interprocess/Interprocess.csproj 
+        run: dotnet pack -c Release --output . --version-suffix ${{github.run_number}} src/Interprocess/Interprocess.csproj 
       - name: Push
         run: dotnet nuget push Cloudtoid.Interprocess.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.nuget_org_api_key }}
