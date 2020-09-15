@@ -37,8 +37,10 @@ jobs:
             Copy-Item "$from\*" $to -Recurse -Force;
           }
 
+      - name: Build
+        run: dotnet build src/Interprocess.sln
       - name: Test
-        run: dotnet test src/Interprocess.sln
+        run: dotnet test --no-build src/Interprocess.sln
       - name: Pack
         run: dotnet pack -c Release --output . --version-suffix ${{github.run_number}} src/Interprocess/Interprocess.csproj 
       - name: Push
