@@ -27,17 +27,17 @@ namespace Cloudtoid.Interprocess
         internal static IInterprocessSemaphoreWaiter CreateWaiter(string name)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return new WinSemaphore(name);
+                return new SemaphoreWindows(name);
 
-            return new UnixSemaphore(name);
+            return new SemaphoreLinux(name);
         }
 
         internal static IInterprocessSemaphoreReleaser CreateReleaser(string name)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return new WinSemaphore(name);
+                return new SemaphoreWindows(name);
 
-            return new UnixSemaphore(name);
+            return new SemaphoreLinux(name);
         }
     }
 }
