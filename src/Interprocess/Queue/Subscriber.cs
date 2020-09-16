@@ -13,7 +13,7 @@ namespace Cloudtoid.Interprocess
         internal Subscriber(QueueOptions options, ILoggerFactory loggerFactory)
             : base(options, loggerFactory)
         {
-            signal = InterprocessSemaphore.CreateWaiter(Identifier, loggerFactory);
+            signal = InterprocessSemaphore.CreateWaiter(options.QueueName);
         }
 
         public override void Dispose()

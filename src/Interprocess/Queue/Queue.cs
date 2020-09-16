@@ -11,10 +11,6 @@ namespace Cloudtoid.Interprocess
         protected unsafe Queue(QueueOptions options, ILoggerFactory loggerFactory)
         {
             Logger = loggerFactory.CreateLogger<Queue>();
-            Identifier = new SharedAssetsIdentifier(
-                options.QueueName,
-                PathUtil.GetAbsolutePath(options.Path));
-
             view = new MemoryView(options, loggerFactory);
             try
             {
@@ -33,7 +29,6 @@ namespace Cloudtoid.Interprocess
             get => (QueueHeader*)view.Pointer;
         }
 
-        protected SharedAssetsIdentifier Identifier { get; }
         protected CircularBuffer Buffer { get; }
         protected ILogger<Queue> Logger { get; }
 

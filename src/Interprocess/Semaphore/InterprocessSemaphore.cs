@@ -1,7 +1,4 @@
-﻿using System.IO;
-using Cloudtoid.Interprocess.Semaphore.Unix;
-using Microsoft.Extensions.Logging;
-using WinSemaphore = Cloudtoid.Interprocess.Semaphore.Windows.Semaphore;
+﻿using System.Runtime.InteropServices;
 
 namespace Cloudtoid.Interprocess
 {
@@ -27,38 +24,20 @@ namespace Cloudtoid.Interprocess
     /// </remarks>
     internal static class InterprocessSemaphore
     {
-        internal static IInterprocessSemaphoreWaiter CreateWaiter(
-            SharedAssetsIdentifier identifier,
-            ILoggerFactory loggerFactory)
+        internal static IInterprocessSemaphoreWaiter CreateWaiter(string name)
         {
-            if (Util.IsUnixBased)
-            {
-                identifier = CreateUnixIdentifier(identifier);
-                return new SemaphoreWaiter(identifier, loggerFactory);
-            }
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return new WinSemaphore(name);
 
-            return new WinSemaphore(identifier);
+            return new UnixSemaphore(name);
         }
 
-        internal static IInterprocessSemaphoreReleaser CreateReleaser(
-            SharedAssetsIdentifier identifier,
-            ILoggerFactory loggerFactory)
+        internal static IInterprocessSemaphoreReleaser CreateReleaser(string name)
         {
-            if (Util.IsUnixBased)
-            {
-                identifier = CreateUnixIdentifier(identifier);
-                return new SemaphoreReleaser(identifier, loggerFactory);
-            }
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return new WinSemaphore(name);
 
-            return new WinSemaphore(identifier);
-        }
-
-        private static SharedAssetsIdentifier CreateUnixIdentifier(this SharedAssetsIdentifier identifier)
-        {
-            const string PathSuffix = ".cloudtoid/semaphore";
-            var path = Path.Combine(identifier.Path, PathSuffix);
-            Directory.CreateDirectory(path);
-            return new SharedAssetsIdentifier(identifier.Name, path);
+            return new UnixSemaphore(name);
         }
     }
 }
