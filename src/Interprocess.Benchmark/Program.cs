@@ -1,6 +1,4 @@
-﻿using System.Threading;
-using Cloudtoid.Interprocess.Semaphore.Linux;
-using FluentAssertions;
+﻿using BenchmarkDotNet.Running;
 
 namespace Cloudtoid.Interprocess.Benchmark
 {
@@ -8,29 +6,7 @@ namespace Cloudtoid.Interprocess.Benchmark
     {
         public static void Main()
         {
-            using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true))
-            {
-                sem.Wait(10).Should().BeFalse();
-                sem.Release();
-                sem.Wait(-1).Should().BeTrue();
-                sem.Release();
-            }
-
-            using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: false))
-            {
-                sem.Wait(10).Should().BeFalse();
-                sem.Release();
-                sem.Wait(-1).Should().BeTrue();
-                sem.Release();
-            }
-
-            using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true))
-            {
-                sem.Wait(10).Should().BeTrue();
-                sem.Release();
-                sem.Wait(-1).Should().BeTrue();
-                sem.Release();
-            }
+            _ = BenchmarkRunner.Run(typeof(Program).Assembly);
         }
     }
 }
