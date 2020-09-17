@@ -9,13 +9,13 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
     [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1310:Field names should not contain underscore", Justification = "Matching the exact names in Linux/MacOS")]
     [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1300:Element should begin with upper-case letter", Justification = "Matching the exact names in Linux/MacOS")]
     [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1513:Closing brace should be followed by blank line", Justification = "There is a bug in the rule!")]
-    internal static class SemaphoreLinuxInterop
+    internal static class Interop
     {
         private const string Lib = "librt";
         private const int SEM_VALUE_MAX = 32767;
         private const int O_CREAT = 0x040;   // create the semaphore if it does not exist
 
-        private const int ENOENT = 2;        //  The named semaphore does not exist.
+        private const int ENOENT = 2;        // The named semaphore does not exist.
         private const int EINTR = 4;         // Semaphore operation was interrupted by a signal.
         private const int ENOMEM = 12;       // Out of memory
         private const int EACCES = 13;       // Semaphore exists, but the caller does not have permission to open it.
@@ -80,6 +80,18 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
             };
         }
 
+        internal static bool Wait(IntPtr handle, int millisecondsTimeout)
+        {
+            if (millisecondsTimeout == Timeout.Infinite)
+            {
+                Wait(handle);
+                return true;
+            }
+
+            var timeout = DateTimeOffset.UtcNow.AddMilliseconds(millisecondsTimeout);
+            return Wait(handle, timeout);
+        }
+
         private static void Wait(IntPtr handle)
         {
             if (sem_wait(handle) == 0)
@@ -91,18 +103,6 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
                 EINTR => new OperationCanceledException(),
                 _ => new PosixSempahoreException(errno),
             };
-        }
-
-        internal static bool Wait(IntPtr handle, int millisecondsTimeout)
-        {
-            if (millisecondsTimeout == Timeout.Infinite)
-            {
-                Wait(handle);
-                return true;
-            }
-
-            var timeout = DateTimeOffset.UtcNow.AddMilliseconds(millisecondsTimeout);
-            return Wait(handle, timeout);
         }
 
         private static bool Wait(IntPtr handle, PosixTimespec timeout)

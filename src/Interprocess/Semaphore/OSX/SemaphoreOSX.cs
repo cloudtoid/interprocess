@@ -1,22 +1,22 @@
 ﻿using System;
 
-namespace Cloudtoid.Interprocess.Semaphore.Linux
+namespace Cloudtoid.Interprocess.Semaphore.OSX
 {
-    internal class SemaphoreLinux : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
+    internal class SemaphoreOSX : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
     {
         private const string HandleNamePrefix = @"/ct.ip.";
         private readonly string name;
         private readonly bool deleteOnDispose;
         private readonly IntPtr handle;
 
-        public SemaphoreLinux(string name, bool deleteOnDispose = false)
+        public SemaphoreOSX(string name, bool deleteOnDispose = false)
         {
             this.name = name = HandleNamePrefix + name;
             this.deleteOnDispose = deleteOnDispose;
-            handle = SemaphoreLinuxInterop.CreateOrOpenSemaphore(name, 0);
+            handle = Interop.CreateOrOpenSemaphore(name, 0);
         }
 
-        ~SemaphoreLinux()
+        ~SemaphoreOSX()
             => Dispose(false);
 
         public void Dispose()
@@ -27,16 +27,16 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
 
         protected virtual void Dispose(bool disposing)
         {
-            SemaphoreLinuxInterop.Close(handle);
+            Interop.Close(handle);
 
             if (deleteOnDispose)
-                SemaphoreLinuxInterop.Unlink(name);
+                Interop.Unlink(name);
         }
 
         public void Release()
-            => SemaphoreLinuxInterop.Release(handle);
+            => Interop.Release(handle);
 
         public bool Wait(int millisecondsTimeout)
-            => SemaphoreLinuxInterop.Wait(handle, millisecondsTimeout);
+            => Interop.Wait(handle, millisecondsTimeout);
     }
 }
