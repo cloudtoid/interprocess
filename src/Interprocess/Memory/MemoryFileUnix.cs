@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.IO.MemoryMappedFiles;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess.Memory.Unix
@@ -26,61 +25,31 @@ namespace Cloudtoid.Interprocess.Memory.Unix
 
             FileStream stream;
 
-            try
+            if (IsFileInUse(filePath))
             {
-                // assume that the file doesn't exist and try and create it
+                // just open the file
 
                 stream = new FileStream(
                     filePath,
-                    FileMode.CreateNew,
+                    FileMode.Open, // just open it
+                    FileAccessOption,
+                    FileShareOption,
+                    BufferSize,
+                    FileOptions.None);
+            }
+            else
+            {
+                // override (or create if no longer exist) as it is not being used
+
+                stream = new FileStream(
+                    filePath,
+                    FileMode.Create,
                     FileAccessOption,
                     FileShareOption,
                     BufferSize,
                     FileOptions.DeleteOnClose);
 
                 mustDeleteFileOnDispose = true;
-            }
-            catch (IOException)
-            {
-                if (options.CreateOrOverride)
-                {
-                    stream = new FileStream(
-                        filePath,
-                        FileMode.Create, // create or override
-                        FileAccessOption,
-                        FileShareOption,
-                        BufferSize,
-                        FileOptions.DeleteOnClose);
-
-                    mustDeleteFileOnDispose = true;
-                }
-                else
-                {
-                    try
-                    {
-                        stream = new FileStream(
-                            filePath,
-                            FileMode.Open,
-                            FileAccessOption,
-                            FileShareOption,
-                            BufferSize,
-                            FileOptions.None);
-                    }
-                    catch (FileNotFoundException)
-                    {
-                        // wait a bit in case there is a race condition and the file
-                        // is just being created
-                        Thread.Sleep(1000);
-
-                        stream = new FileStream(
-                            filePath,
-                            FileMode.Open,
-                            FileAccessOption,
-                            FileShareOption,
-                            BufferSize,
-                            FileOptions.None);
-                    }
-                }
             }
 
             try
@@ -141,6 +110,23 @@ namespace Cloudtoid.Interprocess.Memory.Unix
         {
             if (mustDeleteFileOnDispose && !PathUtil.TryDeleteFile(filePath))
                 logger.LogError("Failed to delete queue's shared memory backing file.");
+        }
+
+        private static bool IsFileInUse(string file)
+        {
+            try
+            {
+                using (new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.None)) { }
+                return false;
+            }
+            catch (FileNotFoundException)
+            {
+                return false;
+            }
+            catch (IOException)
+            {
+                return true;
+            }
         }
     }
 }

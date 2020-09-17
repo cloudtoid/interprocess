@@ -40,8 +40,7 @@ namespace Cloudtoid.Interprocess.Tests
             var factory = new QueueFactory();
             var options = new QueueOptions(
                 queueName: "my-queue",
-                bytesCapacity: 1024 * 1024,
-                createOrOverride: true);
+                bytesCapacity: 1024 * 1024);
 
             using var publisher = factory.CreatePublisher(options);
             publisher.TryEnqueue(message);
@@ -74,8 +73,7 @@ namespace Cloudtoid.Interprocess.Tests
 
             var options = new QueueOptions(
                 queueName: "my-queue",
-                bytesCapacity: 1024 * 1024,
-                createOrOverride: true);
+                bytesCapacity: 1024 * 1024);
 
             using var publisher = factory.CreatePublisher(options);
             publisher.TryEnqueue(message);
@@ -94,7 +92,7 @@ namespace Cloudtoid.Interprocess.Tests
         [TestBeforeAfter]
         public void CanEnqueueAndDequeue()
         {
-            using var p = CreatePublisher(40, createOrOverride: true);
+            using var p = CreatePublisher(40);
             using var s = CreateSubscriber(40);
 
             p.TryEnqueue(ByteArray3).Should().BeTrue();
@@ -118,7 +116,7 @@ namespace Cloudtoid.Interprocess.Tests
         [TestBeforeAfter]
         public void CanEnqueueDequeueWrappedMessage()
         {
-            using var p = CreatePublisher(128, createOrOverride: true);
+            using var p = CreatePublisher(128);
             using var s = CreateSubscriber(128);
 
             p.TryEnqueue(ByteArray50).Should().BeTrue();
@@ -138,7 +136,7 @@ namespace Cloudtoid.Interprocess.Tests
         [TestBeforeAfter]
         public void CannotEnqueuePastCapacity()
         {
-            using var p = CreatePublisher(40, createOrOverride: true);
+            using var p = CreatePublisher(40);
 
             p.TryEnqueue(ByteArray3).Should().BeTrue();
             p.TryEnqueue(ByteArray1).Should().BeFalse();
@@ -148,7 +146,7 @@ namespace Cloudtoid.Interprocess.Tests
         [TestBeforeAfter]
         public void DisposeShouldNotThrow()
         {
-            var p = CreatePublisher(40, createOrOverride: true);
+            var p = CreatePublisher(40);
             p.TryEnqueue(ByteArray3).Should().BeTrue();
 
             using var s = CreateSubscriber(40);
@@ -161,7 +159,7 @@ namespace Cloudtoid.Interprocess.Tests
         [TestBeforeAfter]
         public void CannotReadAfterProducerIsDisposed()
         {
-            var p = CreatePublisher(40, createOrOverride: true);
+            var p = CreatePublisher(40);
             p.TryEnqueue(ByteArray3).Should().BeTrue();
             using (var s = CreateSubscriber(40))
                 p.Dispose();
@@ -180,7 +178,7 @@ namespace Cloudtoid.Interprocess.Tests
         [SuppressMessage("Usage", "xUnit1026:Theory methods should use all of their parameters", Justification = "The extra argument is needed by the Repeat attribute.")]
         public async Task CanDisposeQueueAsync(int i)
         {
-            using (var s = CreateSubscriber(1024, false))
+            using (var s = CreateSubscriber(1024))
             {
                 _ = Task.Run(() => s.Dequeue(default));
                 await Task.Delay(200);
@@ -191,7 +189,7 @@ namespace Cloudtoid.Interprocess.Tests
         [TestBeforeAfter]
         public void CanCircleBuffer()
         {
-            using var p = CreatePublisher(1024, createOrOverride: true);
+            using var p = CreatePublisher(1024);
             using var s = CreateSubscriber(1024);
 
             var message = Enumerable.Range(100, 66).Select(i => (byte)i).ToArray();
@@ -204,12 +202,12 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
-        private IPublisher CreatePublisher(long capacity, bool createOrOverride = false)
+        private IPublisher CreatePublisher(long capacity)
             => queueFactory.CreatePublisher(
-                new QueueOptions("qn", fixture.Path, capacity, createOrOverride));
+                new QueueOptions("qn", fixture.Path, capacity));
 
-        private ISubscriber CreateSubscriber(long capacity, bool createOrOverride = false)
+        private ISubscriber CreateSubscriber(long capacity)
             => queueFactory.CreateSubscriber(
-                new QueueOptions("qn", fixture.Path, capacity, createOrOverride));
+                new QueueOptions("qn", fixture.Path, capacity));
     }
 }
