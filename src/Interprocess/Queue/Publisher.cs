@@ -11,7 +11,7 @@ namespace Cloudtoid.Interprocess
         internal Publisher(QueueOptions options, ILoggerFactory loggerFactory)
             : base(options, loggerFactory)
         {
-            signal = InterprocessSemaphore.CreateReleaser(Identifier, loggerFactory);
+            signal = InterprocessSemaphore.CreateReleaser(options.QueueName);
         }
 
         public override void Dispose()

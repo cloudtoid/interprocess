@@ -100,7 +100,7 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 A lot has gone into optimizing the implementation of this library. For instance, it is mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
 
-**Summary**: In average, enqueuing a message is about `~10 ns` and a full enqueue followed by a dequeue takes roughly `~500 ns` on Windows and `~1 us` on Unix-based operating systems.
+**Summary**: In average, enqueuing a message is about `~10 ns` and a full enqueue followed by a dequeue takes roughly `~500 ns` on Windows and OSX, and `850 ms` on linux.
 
 **Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet](https://benchmarkdotnet.org/) and perform the following runs:
 
@@ -163,8 +163,8 @@ Intel Core i5-8279U CPU 2.40GHz (Coffee Lake), 1 CPU, 8 logical and 4 physical c
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
 |                                 Message enqueue |    `14.19`|      `0.05`|       `0.04`|        `-`|
-|                     Message enqueue and dequeue | `1,147.20`|     `22.76`|      `29.59`|        `-`|
-| Message enqueue and dequeue - no message buffer | `1,088.64`|     `15.75`|      `13.15`|     `32 B`|
+|                     Message enqueue and dequeue |   `666.10`|     `10.91`|      `10.20`|        `-`|
+| Message enqueue and dequeue - no message buffer |   `689.33`|     `13.38`|      `15.41`|     `32 B`|
 
 ---
 
@@ -184,9 +184,9 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |    `14.47`|      `0.15`|       `0.14`|        `-`|
-|                     Message enqueue and dequeue |   `986.74`|     `21.35`|      `44.57`|        `-`|
-| Message enqueue and dequeue - no message buffer | `1,085.23`|     `21.66`|      `44.25`|     `32 B`|
+|                                 Message enqueue |    `16.61`|     `0.364`|       `1.01`|        `-`|
+|                     Message enqueue and dequeue |   `898.97`|     `26.12`|      `77.03`|        `-`|
+| Message enqueue and dequeue - no message buffer |   `925.49`|     `21.47`|      `62.98`|     `32 B`|
 
 ## Implementation Notes
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO.MemoryMappedFiles;
+using System.Runtime.InteropServices;
 using Cloudtoid.Interprocess.Memory.Unix;
 using Cloudtoid.Interprocess.Memory.Windows;
 using Microsoft.Extensions.Logging;
@@ -14,9 +15,9 @@ namespace Cloudtoid.Interprocess
 
         internal unsafe MemoryView(QueueOptions options, ILoggerFactory loggerFactory)
         {
-            file = Util.IsUnixBased
-                ? new MemoryFileUnix(options, loggerFactory)
-                : (IMemoryFile)new MemoryFileWindows(options);
+            file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? new MemoryFileWindows(options)
+                : (IMemoryFile)new MemoryFileUnix(options, loggerFactory);
 
             try
             {
