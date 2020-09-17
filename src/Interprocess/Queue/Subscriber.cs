@@ -22,114 +22,120 @@ namespace Cloudtoid.Interprocess
             cancellationSource.Cancel();
             countdownEvent.Signal();
             countdownEvent.Wait();
-            countdownEvent.Dispose();
 
+            // There is a potential for a  race condition in *DequeueCore if the cancellationSource.
+            // was not cancelled before AddEvent is beging called. The sleep here will prevent that.
+            Thread.Sleep(10);
+
+            countdownEvent.Dispose();
             signal.Dispose();
             cancellationSource.Dispose();
             base.Dispose();
         }
 
         public bool TryDequeue(CancellationToken cancellation, out ReadOnlyMemory<byte> message)
-            => TryDequeue(default(Memory<byte>?), cancellation, out message);
+            => TryDequeueCore(default, cancellation, out message);
 
-        public bool TryDequeue(
-            Memory<byte> resultBuffer,
-            CancellationToken cancellation,
-            out ReadOnlyMemory<byte> message)
-            => TryDequeue((Memory<byte>?)resultBuffer, cancellation, out message);
+        public bool TryDequeue(Memory<byte> resultBuffer, CancellationToken cancellation, out ReadOnlyMemory<byte> message)
+            => TryDequeueCore(resultBuffer, cancellation, out message);
 
         public ReadOnlyMemory<byte> Dequeue(CancellationToken cancellation)
-            => Dequeue(default(Memory<byte>?), cancellation);
+            => DequeueCore(default, cancellation);
 
         public ReadOnlyMemory<byte> Dequeue(Memory<byte> resultBuffer, CancellationToken cancellation)
-            => Dequeue((Memory<byte>?)resultBuffer, cancellation);
+            => DequeueCore(resultBuffer, cancellation);
 
-        private ReadOnlyMemory<byte> Dequeue(Memory<byte>? resultBuffer, CancellationToken cancellation)
+        private bool TryDequeueCore(Memory<byte>? resultBuffer, CancellationToken cancellation, out ReadOnlyMemory<byte> message)
         {
-            // Chances are that the previous reader is not fully done with reading the current message.
-            // We, therefore, spin-wait before using the semaphore which is more expensive.
-            // We have seen an order of magnitude performance improvement by applying this simple trick.
+            // do NOT reorder the cancellation and the AddCount operation below. See Dispose for more information.
+            cancellationSource.ThrowIfCancellationRequested(cancellation);
+            countdownEvent.AddCount();
 
-            for (var i = 0; i < 10; i++)
+            try
             {
-                if (TryDequeue(resultBuffer, cancellation, out var message))
-                    return message;
-
-                Thread.SpinWait(10);
+                return TryDequeueImpl(resultBuffer, cancellation, out message);
             }
-
-            while (true)
+            finally
             {
-                if (TryDequeue(resultBuffer, cancellation, out var message))
-                    return message;
-
-                signal.Wait(millisecondsTimeout: 100);
+                countdownEvent.Signal();
             }
         }
 
-        private unsafe bool TryDequeue(
-            Memory<byte>? resultBuffer,
-            CancellationToken cancellation,
-            out ReadOnlyMemory<byte> message)
+        private ReadOnlyMemory<byte> DequeueCore(Memory<byte>? resultBuffer, CancellationToken cancellation)
         {
-            cancellation.ThrowIfCancellationRequested();
+            // do NOT reorder the cancellation and the AddCount operation below. See Dispose for more information.
+            cancellationSource.ThrowIfCancellationRequested(cancellation);
             countdownEvent.AddCount();
-            message = ReadOnlyMemory<byte>.Empty;
+
             try
             {
-                using var linkedSource = new LinkedCancellationToken(cancellationSource.Token, cancellation);
-                cancellation = linkedSource.Token;
-
                 while (true)
                 {
-                    cancellation.ThrowIfCancellationRequested();
+                    if (TryDequeueImpl(resultBuffer, cancellation, out var message))
+                        return message;
 
-                    var header = Header;
-                    var headOffset = header->HeadOffset;
-
-                    if (headOffset == header->TailOffset)
-                        return false; // this is an empty queue
-
-                    var messageHeader = (MessageHeader*)Buffer.GetPointer(headOffset);
-
-                    // is the message still being written/created?
-                    if (messageHeader->State == MessageHeader.BeingCreatedState)
-                        continue; // message is still being created
-
-                    // take a lock so no other thread can start processing this message
-                    if (Interlocked.CompareExchange(
-                        ref messageHeader->State,
-                        MessageHeader.LockedToBeConsumedState,
-                        MessageHeader.ReadyToBeConsumedState) != MessageHeader.ReadyToBeConsumedState)
-                    {
-                        return false; // some other receiver got to this message before us
-                    }
-
-                    // read the message body from the queue buffer
-                    var bodyLength = messageHeader->BodyLength;
-                    var bodyOffset = GetMessageBodyOffset(headOffset);
-                    message = Buffer.Read(bodyOffset, bodyLength, resultBuffer);
-
-                    // zero out the message body first
-                    Buffer.Clear(bodyOffset, bodyLength);
-
-                    // zero out the message header
-                    Buffer.Write(default(MessageHeader), headOffset);
-
-                    // updating the queue header to point the head of the queue to the next available message
-                    var messageLength = GetMessageLength(bodyLength);
-                    var newHeadOffset = SafeIncrementMessageOffset(headOffset, messageLength);
-                    if (Interlocked.CompareExchange(ref header->HeadOffset, newHeadOffset, headOffset) == headOffset)
-                        return true;
-
-                    throw new InvalidOperationException(
-                        "This is unexpected and can be a serious bug. We take a lock on this message " +
-                        "prior to this point which should ensure that the HeadOffset is left unchanged");
+                    signal.Wait(millisecondsTimeout: 100);
                 }
             }
             finally
             {
                 countdownEvent.Signal();
+            }
+        }
+
+        private unsafe bool TryDequeueImpl(
+            Memory<byte>? resultBuffer,
+            CancellationToken cancellation,
+            out ReadOnlyMemory<byte> message)
+        {
+            while (true)
+            {
+                cancellationSource.ThrowIfCancellationRequested(cancellation);
+                var header = Header;
+                var headOffset = header->HeadOffset;
+
+                if (headOffset == header->TailOffset)
+                {
+                    message = ReadOnlyMemory<byte>.Empty;
+                    return false; // this is an empty queue
+                }
+
+                var messageHeader = (MessageHeader*)Buffer.GetPointer(headOffset);
+
+                // is the message still being written/created?
+                if (messageHeader->State == MessageHeader.BeingCreatedState)
+                    continue; // message is still being created
+
+                // take a lock so no other thread can start processing this message
+                if (Interlocked.CompareExchange(
+                    ref messageHeader->State,
+                    MessageHeader.LockedToBeConsumedState,
+                    MessageHeader.ReadyToBeConsumedState) != MessageHeader.ReadyToBeConsumedState)
+                {
+                    message = ReadOnlyMemory<byte>.Empty;
+                    return false; // some other receiver got to this message before us
+                }
+
+                // read the message body from the queue buffer
+                var bodyLength = messageHeader->BodyLength;
+                var bodyOffset = GetMessageBodyOffset(headOffset);
+                message = Buffer.Read(bodyOffset, bodyLength, resultBuffer);
+
+                // zero out the message body first
+                Buffer.Clear(bodyOffset, bodyLength);
+
+                // zero out the message header
+                Buffer.Write(default(MessageHeader), headOffset);
+
+                // updating the queue header to point the head of the queue to the next available message
+                var messageLength = GetMessageLength(bodyLength);
+                var newHeadOffset = SafeIncrementMessageOffset(headOffset, messageLength);
+                if (Interlocked.CompareExchange(ref header->HeadOffset, newHeadOffset, headOffset) == headOffset)
+                    return true;
+
+                throw new InvalidOperationException(
+                    "This is unexpected and can be a serious bug. We take a lock on this message " +
+                    "prior to this point which should ensure that the HeadOffset is left unchanged");
             }
         }
     }

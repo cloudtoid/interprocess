@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -172,9 +173,12 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
-        [Fact]
+        [Theory]
+        [Repeat(10)]
         [TestBeforeAfter]
-        public async Task CanDisposeQueueAsync()
+        [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "The extra argument is needed by the Repeat attribute.")]
+        [SuppressMessage("Usage", "xUnit1026:Theory methods should use all of their parameters", Justification = "The extra argument is needed by the Repeat attribute.")]
+        public async Task CanDisposeQueueAsync(int i)
         {
             using (var s = CreateSubscriber(1024, false))
             {

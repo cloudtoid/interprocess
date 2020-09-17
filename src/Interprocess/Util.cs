@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess
@@ -25,6 +27,15 @@ namespace Cloudtoid.Interprocess
         {
             logger.LogCritical(exception, message);
             Environment.FailFast(message);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void ThrowIfCancellationRequested(
+            this CancellationTokenSource source,
+            CancellationToken token = default)
+        {
+            if (source.IsCancellationRequested || token.IsCancellationRequested)
+                throw new OperationCanceledException();
         }
     }
 }
