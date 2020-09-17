@@ -6,7 +6,7 @@ namespace Cloudtoid.Interprocess.Tests
 {
     public class SemaphoreTests
     {
-        [Fact(Platforms = Platform.Linux | Platform.FreeBSD, Skip = "Ignore")]
+        [Fact(Platforms = Platform.Linux | Platform.FreeBSD)]
         [TestBeforeAfter]
         public void CanReleaseAndWaitLinux()
         {
@@ -38,7 +38,7 @@ namespace Cloudtoid.Interprocess.Tests
             sem.Wait(10).Should().BeTrue();
         }
 
-        [Fact(Platforms = Platform.Linux | Platform.FreeBSD, Skip = "Ignore")]
+        [Fact(Platforms = Platform.Linux | Platform.FreeBSD)]
         [TestBeforeAfter]
         public void CanCreateMultipleSemaphoresWithSameNameLinux()
         {
@@ -62,7 +62,7 @@ namespace Cloudtoid.Interprocess.Tests
             sem2.Wait(10).Should().BeFalse();
         }
 
-        [Fact(Platforms = Platform.Linux | Platform.FreeBSD, Skip = "Ignore")]
+        [Fact(Platforms = Platform.Linux | Platform.FreeBSD)]
         [TestBeforeAfter]
         public void CanReuseSameSemaphoreNameLinux()
         {
