@@ -29,6 +29,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
+        [TestBeforeAfter]
         public void Sample()
         {
             var message = new byte[] { 1, 2, 3 };
@@ -55,6 +56,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
+        [TestBeforeAfter]
         public void DependencyInjectionSample()
         {
             var message = new byte[] { 1, 2, 3 };
@@ -88,6 +90,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
+        [TestBeforeAfter]
         public void CanEnqueueAndDequeue()
         {
             using var p = CreatePublisher(40, createOrOverride: true);
@@ -111,6 +114,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
+        [TestBeforeAfter]
         public void CanEnqueueDequeueWrappedMessage()
         {
             using var p = CreatePublisher(128, createOrOverride: true);
@@ -130,6 +134,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
+        [TestBeforeAfter]
         public void CannotEnqueuePastCapacity()
         {
             using var p = CreatePublisher(40, createOrOverride: true);
@@ -139,6 +144,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
+        [TestBeforeAfter]
         public void DisposeShouldNotThrow()
         {
             var p = CreatePublisher(40, createOrOverride: true);
@@ -151,6 +157,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
+        [TestBeforeAfter]
         public void CannotReadAfterProducerIsDisposed()
         {
             var p = CreatePublisher(40, createOrOverride: true);
@@ -166,6 +173,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
+        [TestBeforeAfter]
         public async Task CanDisposeQueueAsync()
         {
             using (var s = CreateSubscriber(1024, false))
@@ -176,6 +184,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact]
+        [TestBeforeAfter]
         public void CanCircleBuffer()
         {
             using var p = CreatePublisher(1024, createOrOverride: true);

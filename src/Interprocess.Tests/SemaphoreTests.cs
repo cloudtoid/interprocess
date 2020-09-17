@@ -6,7 +6,8 @@ namespace Cloudtoid.Interprocess.Tests
 {
     public class SemaphoreTests
     {
-        [Fact(Platforms = Platform.Linux | Platform.FreeBSD)]
+        [Fact(Platforms = Platform.Linux | Platform.FreeBSD, Skip = "Ignore")]
+        [TestBeforeAfter]
         public void CanReleaseAndWaitLinux()
         {
             using var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true);
@@ -22,6 +23,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact(Platforms = Platform.OSX)]
+        [TestBeforeAfter]
         public void CanReleaseAndWaitOSX()
         {
             using var sem = new SemaphoreOSX("my-sem", deleteOnDispose: true);
@@ -36,7 +38,8 @@ namespace Cloudtoid.Interprocess.Tests
             sem.Wait(10).Should().BeTrue();
         }
 
-        [Fact(Platforms = Platform.Linux | Platform.FreeBSD)]
+        [Fact(Platforms = Platform.Linux | Platform.FreeBSD, Skip = "Ignore")]
+        [TestBeforeAfter]
         public void CanCreateMultipleSemaphoresWithSameNameLinux()
         {
             using var sem1 = new SemaphoreLinux("my-sem", deleteOnDispose: true);
@@ -48,6 +51,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact(Platforms = Platform.OSX)]
+        [TestBeforeAfter]
         public void CanCreateMultipleSemaphoresWithSameNameOSX()
         {
             using var sem1 = new SemaphoreOSX("my-sem", deleteOnDispose: true);
@@ -58,7 +62,8 @@ namespace Cloudtoid.Interprocess.Tests
             sem2.Wait(10).Should().BeFalse();
         }
 
-        [Fact(Platforms = Platform.Linux | Platform.FreeBSD)]
+        [Fact(Platforms = Platform.Linux | Platform.FreeBSD, Skip = "Ignore")]
+        [TestBeforeAfter]
         public void CanReuseSameSemaphoreNameLinux()
         {
             using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true))
@@ -87,6 +92,7 @@ namespace Cloudtoid.Interprocess.Tests
         }
 
         [Fact(Platforms = Platform.OSX)]
+        [TestBeforeAfter]
         public void CanReuseSameSemaphoreNameOSX()
         {
             using (var sem = new SemaphoreOSX("my-sem", deleteOnDispose: true))
