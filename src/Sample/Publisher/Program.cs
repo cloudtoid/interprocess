@@ -23,7 +23,7 @@ namespace Publisher
             var options = new QueueOptions(
                 queueName: "sample-queue",
                 bytesCapacity: 1024 * 1024,
-                createOrOverride: true);
+                createOrOverride: false);
 
             using var publisher = factory.CreatePublisher(options);
 
