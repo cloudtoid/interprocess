@@ -30,5 +30,33 @@ namespace Cloudtoid.Interprocess.Tests
             sem1.Wait(10).Should().BeFalse();
             sem2.Wait(10).Should().BeFalse();
         }
+
+        [Fact(Platforms = Platform.Linux | Platform.FreeBSD)]
+        public void CanReuseSameSemaphoreName()
+        {
+            using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true))
+            {
+                sem.Wait(10).Should().BeFalse();
+                sem.Release();
+                sem.Wait(-1).Should().BeTrue();
+                sem.Release();
+            }
+
+            using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: false))
+            {
+                sem.Wait(10).Should().BeFalse();
+                sem.Release();
+                sem.Wait(-1).Should().BeTrue();
+                sem.Release();
+            }
+
+            using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true))
+            {
+                sem.Wait(10).Should().BeTrue();
+                sem.Release();
+                sem.Wait(-1).Should().BeTrue();
+                sem.Release();
+            }
+        }
     }
 }

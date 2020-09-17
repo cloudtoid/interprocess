@@ -8,16 +8,29 @@ namespace Cloudtoid.Interprocess.Benchmark
     {
         public static void Main()
         {
-            using var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true);
-            sem.Wait(10).Should().BeFalse();
-            sem.Release();
-            sem.Release();
-            sem.Wait(-1).Should().BeTrue();
-            sem.Wait(10).Should().BeTrue();
-            sem.Wait(0).Should().BeFalse();
-            sem.Wait(10).Should().BeFalse();
-            sem.Release();
-            sem.Wait(10).Should().BeTrue();
+            using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true))
+            {
+                sem.Wait(10).Should().BeFalse();
+                sem.Release();
+                sem.Wait(-1).Should().BeTrue();
+                sem.Release();
+            }
+
+            using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: false))
+            {
+                sem.Wait(10).Should().BeFalse();
+                sem.Release();
+                sem.Wait(-1).Should().BeTrue();
+                sem.Release();
+            }
+
+            using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true))
+            {
+                sem.Wait(10).Should().BeTrue();
+                sem.Release();
+                sem.Wait(-1).Should().BeTrue();
+                sem.Release();
+            }
         }
     }
 }
