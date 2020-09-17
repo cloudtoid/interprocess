@@ -179,7 +179,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
                 return new Timespec
                 {
                     tv_sec = dateTime.ToUnixTimeSeconds(),
-                    tv_nsec = dateTime.ToUnixTimeMilliseconds() * 1000_000
+                    tv_nsec = 1000_000 * (dateTime.ToUnixTimeMilliseconds() % 1000)
                 };
             }
 

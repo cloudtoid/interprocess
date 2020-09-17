@@ -19,7 +19,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
     internal class InvalidUnixSempahoreException : UnixSempahoreException
     {
         public InvalidUnixSempahoreException()
-            : base($"The spoecified semaphore does not exist or it is invalid.")
+            : base($"The specified semaphore does not exist or it is invalid.")
         {
         }
     }
@@ -27,7 +27,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Unix
     internal class UnixSempahoreNotExistsException : UnixSempahoreException
     {
         public UnixSempahoreNotExistsException()
-            : base($"The spoecified semaphore does not exist.")
+            : base($"The specified semaphore does not exist.")
         {
         }
     }

@@ -9,11 +9,15 @@ namespace Cloudtoid.Interprocess.Tests
         public void CanReleaseAndWait()
         {
             using var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true);
+            sem.Wait(10).Should().BeFalse();
             sem.Release();
             sem.Release();
             sem.Wait(-1).Should().BeTrue();
             sem.Wait(10).Should().BeTrue();
             sem.Wait(0).Should().BeFalse();
+            sem.Wait(10).Should().BeFalse();
+            sem.Release();
+            sem.Wait(10).Should().BeTrue();
         }
 
         [Fact(Platforms = Platform.Linux | Platform.FreeBSD)]
@@ -23,6 +27,8 @@ namespace Cloudtoid.Interprocess.Tests
             using var sem2 = new SemaphoreLinux("my-sem", deleteOnDispose: false);
             sem2.Release();
             sem1.Wait(10).Should().BeTrue();
+            sem1.Wait(10).Should().BeFalse();
+            sem2.Wait(10).Should().BeFalse();
         }
     }
 }

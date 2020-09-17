@@ -1,4 +1,5 @@
 ﻿using System.Threading;
+using Cloudtoid.Interprocess.Semaphore.Linux;
 using FluentAssertions;
 
 namespace Cloudtoid.Interprocess.Benchmark
@@ -7,43 +8,16 @@ namespace Cloudtoid.Interprocess.Benchmark
     {
         public static void Main()
         {
-            var message = new byte[] { 1, 2, 3 };
-            var messageBuffer = new byte[3];
-            CancellationToken cancellationToken = default;
-
-            var factory = new QueueFactory();
-            var options = new QueueOptions(
-                queueName: "my-queue",
-                bytesCapacity: 1024 * 1024,
-                createOrOverride: true);
-
-            using (var publisher = factory.CreatePublisher(options))
-            {
-                publisher.TryEnqueue(message);
-
-                options = new QueueOptions(
-                    queueName: "my-queue",
-                    bytesCapacity: 1024 * 1024);
-
-                using var subscriber = factory.CreateSubscriber(options);
-                subscriber.TryDequeue(messageBuffer, cancellationToken, out var msg);
-
-                msg.ToArray().Should().BeEquivalentTo(message);
-            }
-
-            using (var publisher = factory.CreatePublisher(options))
-            {
-                publisher.TryEnqueue(message);
-
-                options = new QueueOptions(
-                    queueName: "my-queue",
-                    bytesCapacity: 1024 * 1024);
-
-                using var subscriber = factory.CreateSubscriber(options);
-                subscriber.TryDequeue(messageBuffer, cancellationToken, out var msg);
-
-                msg.ToArray().Should().BeEquivalentTo(message);
-            }
+            using var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true);
+            sem.Wait(10).Should().BeFalse();
+            sem.Release();
+            sem.Release();
+            sem.Wait(-1).Should().BeTrue();
+            sem.Wait(10).Should().BeTrue();
+            sem.Wait(0).Should().BeFalse();
+            sem.Wait(10).Should().BeFalse();
+            sem.Release();
+            sem.Wait(10).Should().BeTrue();
         }
     }
 }
