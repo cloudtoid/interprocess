@@ -1,4 +1,5 @@
 ﻿using Cloudtoid.Interprocess.Semaphore.Linux;
+using Cloudtoid.Interprocess.Semaphore.OSX;
 using FluentAssertions;
 
 namespace Cloudtoid.Interprocess.Tests
@@ -23,7 +24,7 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact(Platforms = Platform.OSX)]
         public void CanReleaseAndWaitOSX()
         {
-            using var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true);
+            using var sem = new SemaphoreOSX("my-sem", deleteOnDispose: true);
             sem.Wait(10).Should().BeFalse();
             sem.Release();
             sem.Release();
@@ -49,8 +50,8 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact(Platforms = Platform.OSX)]
         public void CanCreateMultipleSemaphoresWithSameNameOSX()
         {
-            using var sem1 = new SemaphoreLinux("my-sem", deleteOnDispose: true);
-            using var sem2 = new SemaphoreLinux("my-sem", deleteOnDispose: false);
+            using var sem1 = new SemaphoreOSX("my-sem", deleteOnDispose: true);
+            using var sem2 = new SemaphoreOSX("my-sem", deleteOnDispose: false);
             sem2.Release();
             sem1.Wait(10).Should().BeTrue();
             sem1.Wait(10).Should().BeFalse();
@@ -88,7 +89,7 @@ namespace Cloudtoid.Interprocess.Tests
         [Fact(Platforms = Platform.OSX)]
         public void CanReuseSameSemaphoreNameOSX()
         {
-            using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true))
+            using (var sem = new SemaphoreOSX("my-sem", deleteOnDispose: true))
             {
                 sem.Wait(10).Should().BeFalse();
                 sem.Release();
@@ -96,7 +97,7 @@ namespace Cloudtoid.Interprocess.Tests
                 sem.Release();
             }
 
-            using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: false))
+            using (var sem = new SemaphoreOSX("my-sem", deleteOnDispose: false))
             {
                 sem.Wait(10).Should().BeFalse();
                 sem.Release();
@@ -104,7 +105,7 @@ namespace Cloudtoid.Interprocess.Tests
                 sem.Release();
             }
 
-            using (var sem = new SemaphoreLinux("my-sem", deleteOnDispose: true))
+            using (var sem = new SemaphoreOSX("my-sem", deleteOnDispose: true))
             {
                 sem.Wait(10).Should().BeTrue();
                 sem.Release();
