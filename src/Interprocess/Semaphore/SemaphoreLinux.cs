@@ -44,13 +44,23 @@ namespace Cloudtoid.Interprocess
 
         [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1310:Field names should not contain underscore", Justification = "Matching the exact names in Linux/MacOS")]
         [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1300:Element should begin with upper-case letter", Justification = "Matching the exact names in Linux/MacOS")]
-        [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1513:Closing brace should be followed by blank line", Justification = "There is a bug in the rule!")]
         [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1307:Accessible fields should begin with upper-case letter", Justification = "Matching the exact names in Linux/MacOS")]
+        [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1513:Closing brace should be followed by blank line", Justification = "There is a bug in the rule!")]
         private static class Interop
         {
             private const string Lib = "librt";
-            private const int O_CREAT = 0x00000040; // create the semaphore if it does not exist
+            private const int O_CREAT = 0x040; // create the semaphore if it does not exist
             private const int SEM_VALUE_MAX = 32767;
+
+            /// <summary>
+            ///  O_CREAT is not set and the named semaphore does not exist.
+            /// </summary>
+            private const int ENOENT = 2;
+
+            /// <summary>
+            /// The sem_open() operation was interrupted by a signal.
+            /// </summary>
+            private const int EINTR = 4;
 
             /// <summary>
             /// Out of memory
@@ -69,11 +79,6 @@ namespace Cloudtoid.Interprocess
             private const int EEXIST = 17;
 
             /// <summary>
-            /// The sem_open() operation was interrupted by a signal.
-            /// </summary>
-            private const int EINTR = 4;
-
-            /// <summary>
             /// The shm_open() operation is not supported; or O_CREAT is specified and value exceeds SEM_VALUE_MAX.
             /// </summary>
             internal const int EINVAL = 22;
@@ -87,11 +92,6 @@ namespace Cloudtoid.Interprocess
             /// Too many semaphores or file descriptors are open on the system.
             /// </summary>
             private const int ENFILE = 23;
-
-            /// <summary>
-            ///  O_CREAT is not set and the named semaphore does not exist.
-            /// </summary>
-            private const int ENOENT = 2;
 
             /// <summary>
             /// name exceeded PSEMNAMLEN characters.
@@ -154,7 +154,6 @@ namespace Cloudtoid.Interprocess
 
             internal static IntPtr CreateOrOpenSemaphore(string name, uint initialCount)
             {
-                // 777 == Read, Write, and Execute permissions for Owner, Group, and Others
                 var handle = sem_open(name, O_CREAT, (uint)FilePermissions.ACCESSPERMS, initialCount);
                 if (handle != IntPtr.Zero)
                     return handle;
