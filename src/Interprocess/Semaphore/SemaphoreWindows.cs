@@ -1,16 +1,16 @@
-﻿using System.Threading;
+﻿using SysSemaphore = System.Threading.Semaphore;
 
-namespace Cloudtoid.Interprocess
+namespace Cloudtoid.Interprocess.Semaphore.Windows
 {
     // just a wrapper over the Windows named semaphore
     internal sealed class SemaphoreWindows : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
     {
         private const string HandleNamePrefix = @"Global\CT.IP.";
-        private readonly Semaphore handle;
+        private readonly SysSemaphore handle;
 
         internal SemaphoreWindows(string name)
         {
-            handle = new Semaphore(0, int.MaxValue, HandleNamePrefix + name);
+            handle = new SysSemaphore(0, int.MaxValue, HandleNamePrefix + name);
         }
 
         public void Dispose()

@@ -2,24 +2,25 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Cloudtoid.Interprocess.Semaphore.Linux;
 
-namespace Cloudtoid.Interprocess.Semaphore.Linux
+namespace Cloudtoid.Interprocess.Semaphore.OSX
 {
-    internal class SemaphoreLinux : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
+    internal class SemaphoreOSX : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
     {
         private const string HandleNamePrefix = @"/ct.ip.";
         private readonly string name;
         private readonly bool deleteOnDispose;
         private readonly IntPtr handle;
 
-        public SemaphoreLinux(string name, bool deleteOnDispose = false)
+        public SemaphoreOSX(string name, bool deleteOnDispose = false)
         {
             this.name = name = HandleNamePrefix + name;
             this.deleteOnDispose = deleteOnDispose;
             handle = Interop.CreateOrOpenSemaphore(name, 0);
         }
 
-        ~SemaphoreLinux()
+        ~SemaphoreOSX()
             => Dispose(false);
 
         public void Dispose()
@@ -256,51 +257,6 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
                 public long tv_sec;   // seconds
                 public long tv_nsec;  // nanoseconds
             }
-        }
-    }
-
-    internal class SempahoreException : Exception
-    {
-        public SempahoreException(string message)
-            : base(message)
-        {
-        }
-
-        public SempahoreException(int errorCode)
-            : base($"Semaphore exception with inner code = {errorCode}")
-        {
-        }
-    }
-
-    internal class InvalidSempahoreException : SempahoreException
-    {
-        public InvalidSempahoreException()
-            : base($"The spoecified semaphore does not exist or it is invalid.")
-        {
-        }
-    }
-
-    internal class SempahoreNotExistsException : SempahoreException
-    {
-        public SempahoreNotExistsException()
-            : base($"The spoecified semaphore does not exist.")
-        {
-        }
-    }
-
-    internal class SempahoreExistsException : SempahoreException
-    {
-        public SempahoreExistsException()
-            : base("A sempahore with this name already exists")
-        {
-        }
-    }
-
-    internal class SempahoreUnauthorizedAccessException : SempahoreException
-    {
-        public SempahoreUnauthorizedAccessException()
-            : base("The semaphore exists, but the caller does not have permission to open it.")
-        {
         }
     }
 }

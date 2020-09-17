@@ -1,4 +1,7 @@
 ﻿using System.Runtime.InteropServices;
+using Cloudtoid.Interprocess.Semaphore.Linux;
+using Cloudtoid.Interprocess.Semaphore.OSX;
+using Cloudtoid.Interprocess.Semaphore.Windows;
 
 namespace Cloudtoid.Interprocess
 {
@@ -29,6 +32,9 @@ namespace Cloudtoid.Interprocess
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return new SemaphoreWindows(name);
 
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                return new SemaphoreOSX(name);
+
             return new SemaphoreLinux(name);
         }
 
@@ -36,6 +42,9 @@ namespace Cloudtoid.Interprocess
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return new SemaphoreWindows(name);
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                return new SemaphoreOSX(name);
 
             return new SemaphoreLinux(name);
         }
