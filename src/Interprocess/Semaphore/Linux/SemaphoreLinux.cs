@@ -4,12 +4,12 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
 {
     internal class SemaphoreLinux : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
     {
-        private const string HandleNamePrefix = @"/ct.ip.";
+        private const string HandleNamePrefix = "/ct.ip.";
         private readonly string name;
         private readonly bool deleteOnDispose;
         private readonly IntPtr handle;
 
-        public SemaphoreLinux(string name, bool deleteOnDispose = false)
+        internal SemaphoreLinux(string name, bool deleteOnDispose = false)
         {
             this.name = name = HandleNamePrefix + name;
             this.deleteOnDispose = deleteOnDispose;

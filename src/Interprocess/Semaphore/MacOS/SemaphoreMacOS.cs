@@ -1,22 +1,22 @@
 ﻿using System;
 
-namespace Cloudtoid.Interprocess.Semaphore.OSX
+namespace Cloudtoid.Interprocess.Semaphore.MacOS
 {
-    internal class SemaphoreOSX : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
+    internal class SemaphoreMacOS : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
     {
-        private const string HandleNamePrefix = @"/ct.ip.";
+        private const string HandleNamePrefix = "/ct.ip.";
         private readonly string name;
         private readonly bool deleteOnDispose;
         private readonly IntPtr handle;
 
-        public SemaphoreOSX(string name, bool deleteOnDispose = false)
+        internal SemaphoreMacOS(string name, bool deleteOnDispose = false)
         {
             this.name = name = HandleNamePrefix + name;
             this.deleteOnDispose = deleteOnDispose;
             handle = Interop.CreateOrOpenSemaphore(name, 0);
         }
 
-        ~SemaphoreOSX()
+        ~SemaphoreMacOS()
             => Dispose(false);
 
         public void Dispose()

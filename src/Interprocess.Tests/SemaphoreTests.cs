@@ -1,5 +1,5 @@
 ﻿using Cloudtoid.Interprocess.Semaphore.Linux;
-using Cloudtoid.Interprocess.Semaphore.OSX;
+using Cloudtoid.Interprocess.Semaphore.MacOS;
 using FluentAssertions;
 
 namespace Cloudtoid.Interprocess.Tests
@@ -24,9 +24,9 @@ namespace Cloudtoid.Interprocess.Tests
 
         [Fact(Platforms = Platform.OSX)]
         [TestBeforeAfter]
-        public void CanReleaseAndWaitOSX()
+        public void CanReleaseAndWaitMacOS()
         {
-            using var sem = new SemaphoreOSX("my-sem", deleteOnDispose: true);
+            using var sem = new SemaphoreMacOS("my-sem", deleteOnDispose: true);
             sem.Wait(10).Should().BeFalse();
             sem.Release();
             sem.Release();
@@ -52,10 +52,10 @@ namespace Cloudtoid.Interprocess.Tests
 
         [Fact(Platforms = Platform.OSX)]
         [TestBeforeAfter]
-        public void CanCreateMultipleSemaphoresWithSameNameOSX()
+        public void CanCreateMultipleSemaphoresWithSameNameMacOS()
         {
-            using var sem1 = new SemaphoreOSX("my-sem", deleteOnDispose: true);
-            using var sem2 = new SemaphoreOSX("my-sem", deleteOnDispose: false);
+            using var sem1 = new SemaphoreMacOS("my-sem", deleteOnDispose: true);
+            using var sem2 = new SemaphoreMacOS("my-sem", deleteOnDispose: false);
             sem2.Release();
             sem1.Wait(10).Should().BeTrue();
             sem1.Wait(10).Should().BeFalse();
@@ -93,9 +93,9 @@ namespace Cloudtoid.Interprocess.Tests
 
         [Fact(Platforms = Platform.OSX)]
         [TestBeforeAfter]
-        public void CanReuseSameSemaphoreNameOSX()
+        public void CanReuseSameSemaphoreNameMacOS()
         {
-            using (var sem = new SemaphoreOSX("my-sem", deleteOnDispose: true))
+            using (var sem = new SemaphoreMacOS("my-sem", deleteOnDispose: true))
             {
                 sem.Wait(10).Should().BeFalse();
                 sem.Release();
@@ -103,7 +103,7 @@ namespace Cloudtoid.Interprocess.Tests
                 sem.Release();
             }
 
-            using (var sem = new SemaphoreOSX("my-sem", deleteOnDispose: false))
+            using (var sem = new SemaphoreMacOS("my-sem", deleteOnDispose: false))
             {
                 sem.Wait(10).Should().BeFalse();
                 sem.Release();
@@ -111,7 +111,7 @@ namespace Cloudtoid.Interprocess.Tests
                 sem.Release();
             }
 
-            using (var sem = new SemaphoreOSX("my-sem", deleteOnDispose: true))
+            using (var sem = new SemaphoreMacOS("my-sem", deleteOnDispose: true))
             {
                 sem.Wait(10).Should().BeTrue();
                 sem.Release();

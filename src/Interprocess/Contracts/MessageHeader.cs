@@ -8,9 +8,9 @@ namespace Cloudtoid.Interprocess
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     internal struct MessageHeader
     {
-        public const int BeingCreatedState = 0;
-        public const int LockedToBeConsumedState = 1;
-        public const int ReadyToBeConsumedState = 2;
+        internal const int BeingCreatedState = 0;
+        internal const int LockedToBeConsumedState = 1;
+        internal const int ReadyToBeConsumedState = 2;
 
         [FieldOffset(0)]
         internal int State;

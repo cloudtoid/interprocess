@@ -17,21 +17,25 @@ namespace Cloudtoid.Interprocess
         {
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(options)
-                : (IMemoryFile)new MemoryFileUnix(options, loggerFactory);
+                : new MemoryFileUnix(options, loggerFactory);
 
             try
             {
                 view = file.MappedFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
-                Pointer = AcquirePointer();
+
+                try
+                {
+                    Pointer = AcquirePointer();
+                }
+                catch
+                {
+                    view.Dispose();
+                    throw;
+                }
             }
             catch
             {
-                if (Pointer != null)
-                    view?.SafeMemoryMappedViewHandle.ReleasePointer();
-
-                view?.Dispose();
                 file.Dispose();
-
                 throw;
             }
         }

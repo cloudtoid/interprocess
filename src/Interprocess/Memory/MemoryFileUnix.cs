@@ -12,44 +12,39 @@ namespace Cloudtoid.Interprocess.Memory.Unix
         private const string Folder = ".cloudtoid/interprocess/mmf";
         private const string FileExtension = ".qu";
         private const int BufferSize = 0x1000;
-        private readonly string filePath;
-        private readonly bool mustDeleteFileOnDispose;
+        private readonly string file;
         private readonly ILogger<MemoryFileUnix> logger;
 
         internal MemoryFileUnix(QueueOptions options, ILoggerFactory loggerFactory)
         {
             logger = loggerFactory.CreateLogger<MemoryFileUnix>();
-            filePath = Path.Combine(options.Path, Folder);
-            Directory.CreateDirectory(filePath);
-            filePath = Path.Combine(filePath, options.QueueName + FileExtension);
+            file = Path.Combine(options.Path, Folder);
+            Directory.CreateDirectory(file);
+            file = Path.Combine(file, options.QueueName + FileExtension);
 
             FileStream stream;
 
-            if (IsFileInUse(filePath))
+            if (IsFileInUse(file))
             {
                 // just open the file
 
                 stream = new FileStream(
-                    filePath,
+                    file,
                     FileMode.Open, // just open it
                     FileAccessOption,
                     FileShareOption,
-                    BufferSize,
-                    FileOptions.None);
+                    BufferSize);
             }
             else
             {
                 // override (or create if no longer exist) as it is not being used
 
                 stream = new FileStream(
-                    filePath,
+                    file,
                     FileMode.Create,
                     FileAccessOption,
                     FileShareOption,
-                    BufferSize,
-                    FileOptions.DeleteOnClose);
-
-                mustDeleteFileOnDispose = true;
+                    BufferSize);
             }
 
             try
@@ -103,13 +98,15 @@ namespace Cloudtoid.Interprocess.Memory.Unix
             }
         }
 
-        /// <summary>
-        /// Deletes the backing file if it was created by this instance of <see cref="MemoryFileUnix"/>.
-        /// </summary>
         private void ResetBackingFile()
         {
-            if (mustDeleteFileOnDispose && !PathUtil.TryDeleteFile(filePath))
-                logger.LogError("Failed to delete queue's shared memory backing file.");
+            // Deletes the backing file if it is not used by any other process
+
+            if (IsFileInUse(file))
+                return;
+
+            if (!PathUtil.TryDeleteFile(file))
+                logger.LogError("Failed to delete queue's shared memory backing file even though it is not in use by any process.");
         }
 
         private static bool IsFileInUse(string file)

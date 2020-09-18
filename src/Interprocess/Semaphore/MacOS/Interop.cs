@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using Cloudtoid.Interprocess.Semaphore.Posix;
 
-namespace Cloudtoid.Interprocess.Semaphore.OSX
+namespace Cloudtoid.Interprocess.Semaphore.MacOS
 {
     [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1310:Field names should not contain underscore", Justification = "Matching the exact names in Linux/MacOS")]
     [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1300:Element should begin with upper-case letter", Justification = "Matching the exact names in Linux/MacOS")]
