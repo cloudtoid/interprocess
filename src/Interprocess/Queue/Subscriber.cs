@@ -69,12 +69,18 @@ namespace Cloudtoid.Interprocess
 
             try
             {
+                int i = -5;
                 while (true)
                 {
                     if (TryDequeueImpl(resultBuffer, cancellation, out var message))
                         return message;
 
-                    signal.Wait(millisecondsTimeout: 100);
+                    if (i > 10)
+                        signal.Wait(millisecondsTimeout: 10);
+                    else if (i++ > 0)
+                        signal.Wait(millisecondsTimeout: i);
+                    else
+                        Thread.Yield();
                 }
             }
             finally
