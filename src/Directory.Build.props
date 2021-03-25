@@ -13,14 +13,7 @@
   <PropertyGroup>
     <CloudtoidCodeAnalysisVersion>1.0.*</CloudtoidCodeAnalysisVersion>
     <CloudtoidFrameworkVersion>1.0.*</CloudtoidFrameworkVersion>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp3.1'">
-    <MicrosoftExtensionsVersion>3.1.7</MicrosoftExtensionsVersion>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)'=='net5.0'">
-    <MicrosoftExtensionsVersion>5.0.0</MicrosoftExtensionsVersion>
+    <MicrosoftExtensionsVersion>5.0.*</MicrosoftExtensionsVersion>
   </PropertyGroup>
 
   <!-- Package dependencies -->
