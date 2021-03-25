@@ -11,7 +11,7 @@
 - [**API**](#Usage): Provides a simple and intuitive API to enqueue/send and dequeue/receive messages.
 - **Multiple publishers and subscribers**: It supports multiple publishers and subscribers to a shared queue.
 - [**Efficient**](#performance): Sending and receiving messages is almost heap memory allocation free reducing garbage collections.
-- [**Developer**](#Author): Developed by folks at Microsoft.
+- [**Developer**](#Author): Developed by a guy at Microsoft.
 
 ## NuGet Package
 

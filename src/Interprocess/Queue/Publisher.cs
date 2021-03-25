@@ -55,7 +55,8 @@ namespace Cloudtoid.Interprocess
                         // treat this as a fatal exception and crash the process
                         Logger.FailFast(
                             "Publishing to the shared memory queue failed leaving the queue in a bad state. " +
-                            "The only option is to crash the application.", ex);
+                            "The only option is to crash the application.",
+                            ex);
                     }
 
                     // signal the next receiver that there is a new message in the queue
