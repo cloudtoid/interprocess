@@ -24,8 +24,8 @@ namespace Cloudtoid.Interprocess
 
             // must clean up if the application is being closed but finalizer is not called.
             // this happens in cases such as closing a console app by pressing the X button.
-            AppDomain.CurrentDomain.ProcessExit += (_, _) => Dispose(false);
-            Console.CancelKeyPress += (_, _) => Dispose(false);
+            AppDomain.CurrentDomain.ProcessExit += OnAppExit;
+            Console.CancelKeyPress += OnAppExit;
         }
 
         ~Queue()
@@ -50,6 +50,15 @@ namespace Cloudtoid.Interprocess
         {
             if (disposing)
                 view.Dispose();
+        }
+
+        private void OnAppExit(object? sender, EventArgs e)
+        {
+            try
+            {
+                Dispose(false);
+            }
+            catch { }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

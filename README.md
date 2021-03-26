@@ -190,7 +190,7 @@ Results:
 
 This library relies on [Named Semaphores](https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore#remarks) To signal the existence of a new message to all message subscribers and to do it across process boundaries. Named semaphores are synchronization constructs accessible across processes.
 
-.NET Core 3.1 and .NET 5 do not support named semaphores on Unix-based OSs (Linux, macOS, etc.). Instead we are using P/Invoke and rely on operating system's POSIX semaphore implementation. ([Linux](src/interprocess/semaphore/linux/interop.cs) and [MacOS](src/interprocess/semaphore/macos/interop.cs) implementations).
+.NET Core 3.1 and .NET 5 do not support named semaphores on Unix-based OSs (Linux, macOS, etc.). Instead we are using P/Invoke and relying on operating system's POSIX semaphore implementation. ([Linux](src/interprocess/semaphore/linux/interop.cs) and [MacOS](src/interprocess/semaphore/macos/interop.cs) implementations).
 
 This implementation will be replaced with [`System.Threading.Semaphore`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore) once .NET adds support for named semaphores on all platforms.
 
