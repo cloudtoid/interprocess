@@ -97,6 +97,7 @@ namespace Cloudtoid.Interprocess
             while (true)
             {
                 cancellationSource.ThrowIfCancellationRequested(cancellation);
+
                 var header = Header;
                 var headOffset = header->HeadOffset;
 
@@ -120,6 +121,18 @@ namespace Cloudtoid.Interprocess
                 {
                     message = ReadOnlyMemory<byte>.Empty;
                     return false; // some other receiver got to this message before us
+                }
+
+                // was the header advanced already by another subscriber?
+                if (header->HeadOffset != headOffset)
+                {
+                    // revert the lock
+                    Interlocked.CompareExchange(
+                        ref messageHeader->State,
+                        MessageHeader.ReadyToBeConsumedState,
+                        MessageHeader.LockedToBeConsumedState);
+
+                    continue;
                 }
 
                 // read the message body from the queue buffer
