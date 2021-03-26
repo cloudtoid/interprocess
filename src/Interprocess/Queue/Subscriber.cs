@@ -6,8 +6,8 @@ namespace Cloudtoid.Interprocess
 {
     internal sealed class Subscriber : Queue, ISubscriber
     {
-        private readonly CancellationTokenSource cancellationSource = new CancellationTokenSource();
-        private readonly CountdownEvent countdownEvent = new CountdownEvent(1);
+        private readonly CancellationTokenSource cancellationSource = new();
+        private readonly CountdownEvent countdownEvent = new(1);
         private readonly IInterprocessSemaphoreWaiter signal;
 
         internal Subscriber(QueueOptions options, ILoggerFactory loggerFactory)
@@ -16,7 +16,7 @@ namespace Cloudtoid.Interprocess
             signal = InterprocessSemaphore.CreateWaiter(options.QueueName);
         }
 
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
             // drain the Dequeue/TryDequeue requests
             cancellationSource.Cancel();
@@ -24,13 +24,17 @@ namespace Cloudtoid.Interprocess
             countdownEvent.Wait();
 
             // There is a potential for a  race condition in *DequeueCore if the cancellationSource.
-            // was not cancelled before AddEvent is beging called. The sleep here will prevent that.
-            Thread.Sleep(10);
+            // was not cancelled before AddEvent is being called. The sleep here will prevent that.
+            Thread.Sleep(millisecondsTimeout: 10);
 
-            countdownEvent.Dispose();
-            signal.Dispose();
-            cancellationSource.Dispose();
-            base.Dispose();
+            if (disposing)
+            {
+                countdownEvent.Dispose();
+                signal.Dispose();
+                cancellationSource.Dispose();
+            }
+
+            base.Dispose(disposing);
         }
 
         public bool TryDequeue(CancellationToken cancellation, out ReadOnlyMemory<byte> message)
@@ -120,7 +124,7 @@ namespace Cloudtoid.Interprocess
                     MessageHeader.ReadyToBeConsumedState) != MessageHeader.ReadyToBeConsumedState)
                 {
                     message = ReadOnlyMemory<byte>.Empty;
-                    return false; // some other receiver got to this message before us
+                    return false; // some other subscriber got to this message before us
                 }
 
                 // was the header advanced already by another subscriber?

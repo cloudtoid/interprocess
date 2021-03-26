@@ -14,10 +14,12 @@ namespace Cloudtoid.Interprocess
             signal = InterprocessSemaphore.CreateReleaser(options.QueueName);
         }
 
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            signal.Dispose();
-            base.Dispose();
+            if (disposing)
+                signal.Dispose();
+
+            base.Dispose(disposing);
         }
 
         public unsafe bool TryEnqueue(ReadOnlySpan<byte> message)

@@ -21,7 +21,14 @@ namespace Cloudtoid.Interprocess
                 view.Dispose();
                 throw;
             }
+
+            // must clean up if the application is being closed but finalizer is not called.
+            // this happens in cases such as closing a console app by pressing the X button.
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => Dispose(false);
         }
+
+        ~Queue()
+            => Dispose(false);
 
         public unsafe QueueHeader* Header
         {
@@ -32,11 +39,20 @@ namespace Cloudtoid.Interprocess
         protected CircularBuffer Buffer { get; }
         protected ILogger<Queue> Logger { get; }
 
-        public virtual void Dispose()
-            => view.Dispose();
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+                view.Dispose();
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected unsafe long GetMessageBodyOffset(long messageHeaderOffset)
+        protected static unsafe long GetMessageBodyOffset(long messageHeaderOffset)
             => sizeof(MessageHeader) + messageHeaderOffset;
 
         /// <summary>
@@ -48,7 +64,7 @@ namespace Cloudtoid.Interprocess
         /// </list>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected unsafe long GetMessageLength(long bodyLength)
+        protected static unsafe long GetMessageLength(long bodyLength)
         {
             var length = sizeof(MessageHeader) + bodyLength;
 

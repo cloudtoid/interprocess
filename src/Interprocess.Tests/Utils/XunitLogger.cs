@@ -55,7 +55,7 @@ namespace Cloudtoid.Interprocess.Tests
 
         private sealed class NoopDisposable : IDisposable
         {
-            public static readonly NoopDisposable Instance = new NoopDisposable();
+            public static readonly NoopDisposable Instance = new();
             public void Dispose() { }
         }
     }

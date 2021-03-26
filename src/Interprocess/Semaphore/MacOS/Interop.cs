@@ -28,7 +28,7 @@ namespace Cloudtoid.Interprocess.Semaphore.MacOS
         private const int ENAMETOOLONG = 63; // The specified semaphore name is too long
         private const int EOVERFLOW = 84;    // The maximum allowable value for a semaphore would be exceeded.
 
-        private static readonly IntPtr SemFailed = new IntPtr(-1);
+        private static readonly IntPtr SemFailed = new(-1);
 
         private static unsafe int errno => Marshal.GetLastWin32Error();
 
