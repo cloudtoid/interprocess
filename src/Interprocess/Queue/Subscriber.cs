@@ -109,10 +109,6 @@ namespace Cloudtoid.Interprocess
 
             var messageHeader = (MessageHeader*)Buffer.GetPointer(headOffset);
 
-            // is the message still being written/created?
-            if (messageHeader->State == MessageHeader.BeingCreatedState)
-                return false; // message is still being created
-
             // take a lock so no other thread can start processing this message
             if (Interlocked.CompareExchange(
                 ref messageHeader->State,
