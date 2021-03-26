@@ -98,68 +98,62 @@ namespace Cloudtoid.Interprocess
             CancellationToken cancellation,
             out ReadOnlyMemory<byte> message)
         {
-            while (true)
+            cancellationSource.ThrowIfCancellationRequested(cancellation);
+
+            message = ReadOnlyMemory<byte>.Empty;
+            var header = Header;
+            var headOffset = header->HeadOffset;
+
+            if (headOffset == header->TailOffset)
+                return false; // this is an empty queue
+
+            var messageHeader = (MessageHeader*)Buffer.GetPointer(headOffset);
+
+            // is the message still being written/created?
+            if (messageHeader->State == MessageHeader.BeingCreatedState)
+                return false; // message is still being created
+
+            // take a lock so no other thread can start processing this message
+            if (Interlocked.CompareExchange(
+                ref messageHeader->State,
+                MessageHeader.LockedToBeConsumedState,
+                MessageHeader.ReadyToBeConsumedState) != MessageHeader.ReadyToBeConsumedState)
             {
-                cancellationSource.ThrowIfCancellationRequested(cancellation);
-
-                var header = Header;
-                var headOffset = header->HeadOffset;
-
-                if (headOffset == header->TailOffset)
-                {
-                    message = ReadOnlyMemory<byte>.Empty;
-                    return false; // this is an empty queue
-                }
-
-                var messageHeader = (MessageHeader*)Buffer.GetPointer(headOffset);
-
-                // is the message still being written/created?
-                if (messageHeader->State == MessageHeader.BeingCreatedState)
-                    continue; // message is still being created
-
-                // take a lock so no other thread can start processing this message
-                if (Interlocked.CompareExchange(
-                    ref messageHeader->State,
-                    MessageHeader.LockedToBeConsumedState,
-                    MessageHeader.ReadyToBeConsumedState) != MessageHeader.ReadyToBeConsumedState)
-                {
-                    message = ReadOnlyMemory<byte>.Empty;
-                    return false; // some other subscriber got to this message before us
-                }
-
-                // was the header advanced already by another subscriber?
-                if (header->HeadOffset != headOffset)
-                {
-                    // revert the lock
-                    Interlocked.CompareExchange(
-                        ref messageHeader->State,
-                        MessageHeader.ReadyToBeConsumedState,
-                        MessageHeader.LockedToBeConsumedState);
-
-                    continue;
-                }
-
-                // read the message body from the queue buffer
-                var bodyLength = messageHeader->BodyLength;
-                var bodyOffset = GetMessageBodyOffset(headOffset);
-                message = Buffer.Read(bodyOffset, bodyLength, resultBuffer);
-
-                // zero out the message body first
-                Buffer.Clear(bodyOffset, bodyLength);
-
-                // zero out the message header
-                Buffer.Write(default(MessageHeader), headOffset);
-
-                // updating the queue header to point the head of the queue to the next available message
-                var messageLength = GetMessageLength(bodyLength);
-                var newHeadOffset = SafeIncrementMessageOffset(headOffset, messageLength);
-                if (Interlocked.CompareExchange(ref header->HeadOffset, newHeadOffset, headOffset) == headOffset)
-                    return true;
-
-                throw new InvalidOperationException(
-                    "This is unexpected and can be a serious bug. We take a lock on this message " +
-                    "prior to this point which should ensure that the HeadOffset is left unchanged");
+                return false; // some other subscriber got to this message before us
             }
+
+            // was the header advanced already by another subscriber?
+            if (header->HeadOffset != headOffset)
+            {
+                // revert the lock
+                Interlocked.CompareExchange(
+                    ref messageHeader->State,
+                    MessageHeader.ReadyToBeConsumedState,
+                    MessageHeader.LockedToBeConsumedState);
+
+                return false;
+            }
+
+            // read the message body from the queue buffer
+            var bodyLength = messageHeader->BodyLength;
+            var bodyOffset = GetMessageBodyOffset(headOffset);
+            message = Buffer.Read(bodyOffset, bodyLength, resultBuffer);
+
+            // zero out the message body first
+            Buffer.Clear(bodyOffset, bodyLength);
+
+            // zero out the message header
+            Buffer.Write(default(MessageHeader), headOffset);
+
+            // updating the queue header to point the head of the queue to the next available message
+            var messageLength = GetMessageLength(bodyLength);
+            var newHeadOffset = SafeIncrementMessageOffset(headOffset, messageLength);
+            if (Interlocked.CompareExchange(ref header->HeadOffset, newHeadOffset, headOffset) == headOffset)
+                return true;
+
+            throw new InvalidOperationException(
+                "This is unexpected and can be a serious bug. We take a lock on this message " +
+                "prior to this point which should ensure that the HeadOffset is left unchanged");
         }
     }
 }
