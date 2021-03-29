@@ -98,7 +98,7 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 A lot has gone into optimizing the implementation of this library. For instance, it is mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
 
-**Summary**: In average, enqueuing a message is about `~10 ns` and a full enqueue followed by a dequeue takes roughly `~500 ns` on Windows and OSX, and `850 ms` on linux.
+**Summary**: In average, enqueuing a message is about `~10 ns` and a full enqueue followed by a dequeue takes roughly `~400 ns` on Windows, `~300 ns` on linux, and `~700 ns`.
 
 **Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet](https://benchmarkdotnet.org/) and perform the following runs:
 
@@ -127,20 +127,20 @@ dotnet run Interprocess.Benchmark.csproj --configuration Release --framework net
 Host:
 
 ```ini
-OS=Windows 10.0.19041.450
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
 Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
-.NET Core SDK=3.1.401
-  [Host]        : .NET Core 3.1.7, X64 RyuJIT
-  .NET Core 3.1 : .NET Core 3.1.7, X64 RyuJIT
+.NET Core SDK=5.0.201
+  [Host]        : .NET Core 5.0.4, X64 RyuJIT
+  .NET Core 3.1 : .NET Core 3.1.13, X64 RyuJIT
 ```
 
 Results:
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |    `6.138`|    `0.1641`|     `0.3315`|       `-` |
-|                     Message enqueue and dequeue |  `584.651`|   `11.5850`|    `23.6650`|       `-` |
-| Message enqueue and dequeue - no message buffer |  `581.341`|   `11.5766`|    `30.2940`|    `32 B` |
+|                                 Message enqueue |    `7.041`|    `0.0753`|     `0.0629`|       `-` |
+|                     Message enqueue and dequeue |  `390.081`|     `3.940`|     `3.4930`|       `-` |
+| Message enqueue and dequeue - no message buffer |  `375.899`|     `3.706`|     `3.4664`|    `32 B` |
 
 ---
 
@@ -171,20 +171,20 @@ Results:
 Host:
 
 ```ini
-OS=ubuntu 20.04
+BenchmarkDotNet=v0.12.1, OS=ubuntu 20.04
 Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
-.NET Core SDK=5.0.100-preview.7.20366.6
-  [Host]        : .NET Core 3.1.7, X64 RyuJIT
-  .NET Core 3.1 : .NET Core 3.1.7, X64 RyuJIT
+.NET Core SDK=5.0.201
+  [Host]        : .NET Core 5.0.4, X64 RyuJIT
+  .NET Core 3.1 : .NET Core 3.1.13, X64 RyuJIT
 ```
 
 Results:
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |    `16.61`|     `0.364`|       `1.01`|        `-`|
-|                     Message enqueue and dequeue |   `898.97`|     `26.12`|      `77.03`|        `-`|
-| Message enqueue and dequeue - no message buffer |   `925.49`|     `21.47`|      `62.98`|     `32 B`|
+|                                 Message enqueue |    `13.89`|     `0.102`|      `0.080`|        `-`|
+|                     Message enqueue and dequeue |   `283.55`|     `5.592`|      `7.839`|        `-`|
+| Message enqueue and dequeue - no message buffer |   `271.17`|     `4.355`|      `3.400`|     `32 B`|
 
 ## Implementation Notes
 
