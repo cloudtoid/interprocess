@@ -22,5 +22,8 @@
     <VersionSuffix Condition=" '$(VersionSuffix)'=='' ">0</VersionSuffix>
     <Version>1.0.$(VersionSuffix)</Version>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Threading.AccessControl" Version="5.0.0" />
+  </ItemGroup>
 
 </Project>
