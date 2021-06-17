@@ -6,7 +6,7 @@ using BenchmarkDotNet.Jobs;
 namespace Cloudtoid.Interprocess.Benchmark
 {
     [SimpleJob(RuntimeMoniker.NetCoreApp31)]
-    [SimpleJob(RuntimeMoniker.NetCoreApp50)]
+    [SimpleJob(RuntimeMoniker.Net50)]
     [MemoryDiagnoser]
     public class QueueBenchmark
     {
