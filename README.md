@@ -1,13 +1,13 @@
-<a href="https://github.com/cloudtoid"><img src="https://raw.githubusercontent.com/cloudtoid/assets/master/logos/cloudtoid-black-red.png" width="100"></a>
+[<img src="https://raw.githubusercontent.com/cloudtoid/assets/master/logos/cloudtoid-blue.svg" width="100px">][Cloudtoid]
 
 # Interprocess
 
-![](https://github.com/cloudtoid/interprocess/workflows/publish/badge.svg) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/cloudtoid/url-patterns/blob/master/LICENSE) ![https://www.nuget.org/packages/Cloudtoid.Interprocess/](https://img.shields.io/nuget/vpre/Cloudtoid.Interprocess) ![](https://img.shields.io/badge/.net%20core-%3E%203.1.0-blue)
+[![][WorkflowBadgePublish]][PublishWorkflow] [![License: MIT][LicenseBadge]][License] [![][NuGetBadge]][NuGet] ![][DotNetBadge]
 
-**Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC](https://en.wikipedia.org/wiki/Inter-process_communication)). It uses a shared memory-mapped file for extremely fast and efficient communication between processes and it is used internally by Microsoft.
+**Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC][IPCWiki]). It uses a shared memory-mapped file for extremely fast and efficient communication between processes and it is used internally by Microsoft.
 
 - [**Fast**](#performance): It is *extremely* fast.
-- **Cross-platform**: It supports Windows, and Unix-based operating systems such as Linux, [OSX](https://en.wikipedia.org/wiki/MacOS), and [FreeBSD](https://www.freebsd.org/).
+- **Cross-platform**: It supports Windows, and Unix-based operating systems such as Linux, [MacOS][MacOSWiki], and [FreeBSD][FreeBSDOrg].
 - [**API**](#Usage): Provides a simple and intuitive API to enqueue/send and dequeue/receive messages.
 - **Multiple publishers and subscribers**: It supports multiple publishers and subscribers to a shared queue.
 - [**Efficient**](#performance): Sending and receiving messages is almost heap memory allocation free reducing garbage collections.
@@ -15,9 +15,9 @@
 
 ## NuGet Package
 
-The NuGet package for this library is published [here](https://www.nuget.org/packages/Cloudtoid.Interprocess/).
+The NuGet package for this library is published [here][NuGet].
 
-> Note: To improve performance, this library only supports 64-bit CLR with 64-bit processor architectures. Attempting to use this library on 32-bit processors, 32-bit operating systems, or on [WOW64](https://en.wikipedia.org/wiki/WoW64) may throw a `NotSupportedException`.
+> Note: To improve performance, this library only supports 64-bit CLR with 64-bit processor architectures. Attempting to use this library on 32-bit processors, 32-bit operating systems, or on [WOW64][Wow64Wiki] may throw a `NotSupportedException`.
 
 ## Usage
 
@@ -100,7 +100,7 @@ A lot has gone into optimizing the implementation of this library. For instance,
 
 **Summary**: In average, enqueuing a message is about `~10 ns` and a full enqueue followed by a dequeue takes roughly `~400 ns` on Windows, `~300 ns` on linux, and `~700 ns`.
 
-**Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet](https://benchmarkdotnet.org/) and perform the following runs:
+**Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet][BenchmarkOrg] and perform the following runs:
 
 |                                          Method |   Description |
 |------------------------------------------------ |-------------- |
@@ -144,7 +144,7 @@ Results:
 
 ---
 
-### On OSX
+### On MacOS
 
 Host:
 
@@ -166,7 +166,7 @@ Results:
 
 ---
 
-### On Ubuntu (through [WSL](https://docs.microsoft.com/en-us/windows/wsl/about))
+### On Ubuntu (through [WSL][WslDoc])
 
 Host:
 
@@ -188,25 +188,42 @@ Results:
 
 ## Implementation Notes
 
-This library relies on [Named Semaphores](https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore#remarks) To signal the existence of a new message to all message subscribers and to do it across process boundaries. Named semaphores are synchronization constructs accessible across processes.
+This library relies on [Named Semaphores][NamedSemaphoresDoc] To signal the existence of a new message to all message subscribers and to do it across process boundaries. Named semaphores are synchronization constructs accessible across processes.
 
 .NET Core 3.1 and .NET 5 do not support named semaphores on Unix-based OSs (Linux, macOS, etc.). Instead we are using P/Invoke and relying on operating system's POSIX semaphore implementation. ([Linux](src/interprocess/semaphore/linux/interop.cs) and [MacOS](src/interprocess/semaphore/macos/interop.cs) implementations).
 
-This implementation will be replaced with [`System.Threading.Semaphore`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore) once .NET adds support for named semaphores on all platforms.
+This implementation will be replaced with [`System.Threading.Semaphore`][SemaphoreDoc] once .NET adds support for named semaphores on all platforms.
 
 ## How to Contribute
 
 - Create a branch from `main`.
-- Ensure that all tests pass on Windows, Linux, and OSX.
+- Ensure that all tests pass on Windows, Linux, and MacOS.
 - Keep the code coverage number above 80% by adding new tests or modifying the existing tests.
 - Send a pull request.
 
 ## Author
 
-[**Pedram Rezaei**](https://www.linkedin.com/in/pedramrezaei/) is a software architect at Microsoft with years of experience building highly scalable and reliable cloud-native applications for Microsoft.
+[**Pedram Rezaei**][PedramLinkedIn] is a software architect at Microsoft with years of experience building highly scalable and reliable cloud-native applications for Microsoft.
 
 ## What is next
 
 Here are a couple of items that we are working on.
 
 - Create a documentation website
+
+[Cloudtoid]:https://github.com/cloudtoid
+[License]:https://github.com/cloudtoid/interprocess/blob/master/LICENSE
+[LicenseBadge]:https://img.shields.io/badge/License-MIT-blue.svg
+[WorkflowBadgePublish]:https://github.com/cloudtoid/interprocess/workflows/publish/badge.svg
+[PublishWorkflow]:https://github.com/cloudtoid/interprocess/actions/workflows/publish.yml
+[NuGetBadge]:https://img.shields.io/nuget/vpre/Cloudtoid.Interprocess
+[DotNetBadge]:https://img.shields.io/badge/.net%20core-%3E%203.1.0-blue
+[NuGet]:https://www.nuget.org/packages/Cloudtoid.Interprocess/
+[IPCWiki]:https://en.wikipedia.org/wiki/Inter-process_communication
+[MacOSWiki]:https://en.wikipedia.org/wiki/MacOS
+[FreeBSDOrg]:https://www.freebsd.org/
+[Wow64Wiki]:https://en.wikipedia.org/wiki/WoW64
+[WslDoc]:https://docs.microsoft.com/en-us/windows/wsl/about
+[BenchmarkOrg]:https://benchmarkdotnet.org/
+[SemaphoreDoc]:https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore
+[PedramLinkedIn]:https://www.linkedin.com/in/pedramrezaei/
