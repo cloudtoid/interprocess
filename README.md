@@ -1,4 +1,4 @@
-[<img src="https://raw.githubusercontent.com/cloudtoid/assets/master/logos/cloudtoid-blue.svg" width="100px">][Cloudtoid]
+[<img src="https://raw.githubusercontent.com/cloudtoid/assets/main/logos/cloudtoid-blue.svg" width="100px">][Cloudtoid]
 
 # Interprocess
 
@@ -212,7 +212,7 @@ Here are a couple of items that we are working on.
 - Create a documentation website
 
 [Cloudtoid]:https://github.com/cloudtoid
-[License]:https://github.com/cloudtoid/interprocess/blob/master/LICENSE
+[License]:https://github.com/cloudtoid/interprocess/blob/main/LICENSE
 [LicenseBadge]:https://img.shields.io/badge/License-MIT-blue.svg
 [WorkflowBadgePublish]:https://github.com/cloudtoid/interprocess/workflows/publish/badge.svg
 [PublishWorkflow]:https://github.com/cloudtoid/interprocess/actions/workflows/publish.yml
