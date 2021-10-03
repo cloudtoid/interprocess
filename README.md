@@ -2,7 +2,7 @@
 
 # Interprocess
 
-[![][WorkflowBadgePublish]][PublishWorkflow] [![License: MIT][LicenseBadge]][License] [![][NuGetBadge]][NuGet] ![][DotNetBadge]
+[![][WorkflowBadgePublish]][PublishWorkflow] [![License: MIT][LicenseBadge]][License] [![][NuGetBadge]][NuGet] ![][DotNet31Badge] ![][DotNet50Badge]
 
 **Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC][IPCWiki]). It uses a shared memory-mapped file for extremely fast and efficient communication between processes and it is used internally by Microsoft.
 
@@ -98,7 +98,7 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 A lot has gone into optimizing the implementation of this library. For instance, it is mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
 
-**Summary**: In average, enqueuing a message is about `~10 ns` and a full enqueue followed by a dequeue takes roughly `~400 ns` on Windows, `~300 ns` on linux, and `~700 ns`.
+**Summary**: In average, enqueuing a message is about `~250 ns` and a full enqueue followed by a dequeue takes roughly `~400 ns` on Windows, `~300 ns` on Linux, and `~700 ns` on MacOS.
 
 **Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet][BenchmarkOrg] and perform the following runs:
 
@@ -111,13 +111,13 @@ A lot has gone into optimizing the implementation of this library. For instance,
 You can replicate the results by running the following command:
 
 ```posh
-dotnet run Interprocess.Benchmark.csproj --configuration Release
+dotnet run Interprocess.Benchmark.csproj -c Release
 ```
 
 You can also be explicit about the .NET SDK and Runtime(s) versions:
 
 ```posh
-dotnet run Interprocess.Benchmark.csproj --configuration Release --framework net5.0 --runtimes net5.0 netcoreapp3.1
+dotnet run Interprocess.Benchmark.csproj -c Release -f net5.0 --runtimes net5.0 netcoreapp3.1
 ```
 
 ---
@@ -217,7 +217,8 @@ Here are a couple of items that we are working on.
 [WorkflowBadgePublish]:https://github.com/cloudtoid/interprocess/workflows/publish/badge.svg
 [PublishWorkflow]:https://github.com/cloudtoid/interprocess/actions/workflows/publish.yml
 [NuGetBadge]:https://img.shields.io/nuget/vpre/Cloudtoid.Interprocess
-[DotNetBadge]:https://img.shields.io/badge/.net%20core-%3E%203.1.0-blue
+[DotNet31Badge]:https://img.shields.io/badge/.net%20core-%3E%203.1-blue
+[DotNet50Badge]:https://img.shields.io/badge/.net-%3E%205.0-blue
 [NuGet]:https://www.nuget.org/packages/Cloudtoid.Interprocess/
 [IPCWiki]:https://en.wikipedia.org/wiki/Inter-process_communication
 [MacOSWiki]:https://en.wikipedia.org/wiki/MacOS
@@ -225,5 +226,6 @@ Here are a couple of items that we are working on.
 [Wow64Wiki]:https://en.wikipedia.org/wiki/WoW64
 [WslDoc]:https://docs.microsoft.com/en-us/windows/wsl/about
 [BenchmarkOrg]:https://benchmarkdotnet.org/
+[NamedSemaphoresDoc]:https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore#remarks
 [SemaphoreDoc]:https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore
 [PedramLinkedIn]:https://www.linkedin.com/in/pedramrezaei/

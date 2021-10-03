@@ -9,7 +9,7 @@ namespace Cloudtoid.Interprocess.Benchmark
     [SimpleJob(RuntimeMoniker.Net50)]
     [MemoryDiagnoser]
     [MarkdownExporterAttribute.GitHub]
-    public class QueueBenchmark
+    public class EnqueueBenchmark
     {
         private static readonly byte[] Message = new byte[] { 100, 110, 120 };
         private static readonly Memory<byte> MessageBuffer = new byte[Message.Length];
@@ -22,8 +22,8 @@ namespace Cloudtoid.Interprocess.Benchmark
         public void Setup()
         {
             var queueFactory = new QueueFactory();
-            publisher = queueFactory.CreatePublisher(new QueueOptions("qn", Path.GetTempPath(), 128));
-            subscriber = queueFactory.CreateSubscriber(new QueueOptions("qn", Path.GetTempPath(), 128));
+            publisher = queueFactory.CreatePublisher(new QueueOptions("qn", Path.GetTempPath(), 5120000));
+            subscriber = queueFactory.CreateSubscriber(new QueueOptions("qn", Path.GetTempPath(), 5120000));
         }
 
         [GlobalCleanup]
@@ -33,23 +33,19 @@ namespace Cloudtoid.Interprocess.Benchmark
             publisher.Dispose();
         }
 
-        [Benchmark(Description = "Message enqueue and dequeue - no message buffer")]
-        public ReadOnlyMemory<byte> EnqueueDequeue_WithResultArrayAllocation()
+        [IterationCleanup]
+        public void DrainQueue()
         {
-            if (!publisher.TryEnqueue(Message))
-                throw new Exception("Failed to enqueue");
-
-            return subscriber.Dequeue(default);
+            for (int i = 8; i < 320000; i++)
+                subscriber.Dequeue(MessageBuffer, default);
         }
 
         // Expecting that there are NO managed heap allocations.
-        [Benchmark(Description = "Message enqueue and dequeue")]
-        public ReadOnlyMemory<byte> EnqueueAndDequeue_WithPooledResultArray()
+        [Benchmark(Description = "Message enqueue (320,000 times)")]
+        public void Enqueue()
         {
-            if (!publisher.TryEnqueue(Message))
-                throw new Exception("Failed to enqueue");
-
-            return subscriber.Dequeue(MessageBuffer, default);
+            for (int i = 8; i < 320000; i++)
+                publisher.TryEnqueue(Message);
         }
     }
 }

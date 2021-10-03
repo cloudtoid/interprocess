@@ -7,6 +7,7 @@ namespace Cloudtoid.Interprocess.Benchmark
 {
     [SimpleJob(RuntimeMoniker.NetCoreApp31)]
     [SimpleJob(RuntimeMoniker.Net50)]
+    [MarkdownExporterAttribute.GitHub]
     public class QueueExtendedBenchmark
     {
         private static readonly byte[] Message = new byte[50];
@@ -31,20 +32,26 @@ namespace Cloudtoid.Interprocess.Benchmark
             publisher.Dispose();
         }
 
-        [Benchmark]
+        [Benchmark(Description = "Message enqueue and dequeue - long message")]
         public ReadOnlyMemory<byte> EnqueueDequeue_LongMessage()
         {
-            publisher.TryEnqueue(Message);
+            if (!publisher.TryEnqueue(Message))
+                throw new Exception("Failed to enqueue");
+
             return subscriber.Dequeue(MessageBuffer, default);
         }
 
-        // when a message is wrapped in the circular buffer
-        [Benchmark]
+        [Benchmark(Description = "Message enqueue and dequeue - wrapped message in circular buffer")]
         public ReadOnlyMemory<byte> EnqueueDequeue_WrappedMessages()
         {
-            publisher.TryEnqueue(Message);
+            if (!publisher.TryEnqueue(Message))
+                throw new Exception("Failed to enqueue");
+
             subscriber.Dequeue(MessageBuffer, default);
-            publisher.TryEnqueue(Message);
+
+            if (!publisher.TryEnqueue(Message))
+                throw new Exception("Failed to enqueue");
+
             return subscriber.Dequeue(MessageBuffer, default);
         }
     }
