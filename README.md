@@ -149,11 +149,11 @@ Results:
 Host:
 
 ```text
-OS=macOS Catalina 10.15.6
+BenchmarkDotNet=v0.13.1, OS=macOS Big Sur 11.6 (20G165) [Darwin 20.6.0]
 Intel Core i5-8279U CPU 2.40GHz (Coffee Lake), 1 CPU, 8 logical and 4 physical cores
-.NET Core SDK=3.1.401
-  [Host]        : .NET Core 3.1.7, X64 RyuJIT
-  .NET Core 3.1 : .NET Core 3.1.7, X64 RyuJIT
+.NET SDK=5.0.401
+  [Host]        : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
+  .NET 5.0      : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
 ```
 
 Results:
