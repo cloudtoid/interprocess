@@ -98,7 +98,7 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 A lot has gone into optimizing the implementation of this library. For instance, it is mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
 
-**Summary**: In average, enqueuing a message is about `~250 ns` and a full enqueue followed by a dequeue takes roughly `~400 ns` on Windows, `~300 ns` on Linux, and `~700 ns` on MacOS.
+**Summary**: A full enqueue followed by a dequeue takes `~700 ns` on Windows, `~250 ns` on Linux, and `~650 ns` on MacOS.
 
 **Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet][BenchmarkOrg] and perform the following runs:
 
@@ -126,21 +126,21 @@ dotnet run Interprocess.Benchmark.csproj -c Release -f net5.0 --runtimes net5.0 
 
 Host:
 
-```ini
-BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+```text
+BenchmarkDotNet=v0.13.1, OS=Windows 10.0.19043.1237 (21H1/May2021Update)
 Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
-.NET Core SDK=5.0.201
-  [Host]        : .NET Core 5.0.4, X64 RyuJIT
-  .NET Core 3.1 : .NET Core 3.1.13, X64 RyuJIT
+.NET SDK=5.0.401
+  [Host]        : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
+  .NET 5.0      : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
 ```
 
 Results:
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |    `7.041`|    `0.0753`|     `0.0629`|       `-` |
-|                     Message enqueue and dequeue |  `390.081`|     `3.940`|     `3.4930`|       `-` |
-| Message enqueue and dequeue - no message buffer |  `375.899`|     `3.706`|     `3.4664`|    `32 B` |
+|                                 Message enqueue |    `620.1`|     `10.86`|      `10.18`|       `-` |
+|                     Message enqueue and dequeue |    `712.9`|     `13.57`|      `14.52`|       `-` |
+| Message enqueue and dequeue - no message buffer |    `744.7`|     `14.81`|      `31.88`|    `32 B` |
 
 ---
 
@@ -148,7 +148,7 @@ Results:
 
 Host:
 
-```ini
+```text
 OS=macOS Catalina 10.15.6
 Intel Core i5-8279U CPU 2.40GHz (Coffee Lake), 1 CPU, 8 logical and 4 physical cores
 .NET Core SDK=3.1.401
@@ -160,7 +160,7 @@ Results:
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |    `14.19`|      `0.05`|       `0.04`|        `-`|
+|                                 Message enqueue |   `487.50`|      `4.75`|       `3.96`|        `-`|
 |                     Message enqueue and dequeue |   `666.10`|     `10.91`|      `10.20`|        `-`|
 | Message enqueue and dequeue - no message buffer |   `689.33`|     `13.38`|      `15.41`|     `32 B`|
 
@@ -170,21 +170,21 @@ Results:
 
 Host:
 
-```ini
-BenchmarkDotNet=v0.12.1, OS=ubuntu 20.04
+```text
+BenchmarkDotNet=v0.13.1, OS=ubuntu 20.04
 Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
-.NET Core SDK=5.0.201
-  [Host]        : .NET Core 5.0.4, X64 RyuJIT
-  .NET Core 3.1 : .NET Core 3.1.13, X64 RyuJIT
+.NET SDK=5.0.401
+  [Host]        : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
+  .NET 5.0      : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
 ```
 
 Results:
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |    `13.89`|     `0.102`|      `0.080`|        `-`|
-|                     Message enqueue and dequeue |   `283.55`|     `5.592`|      `7.839`|        `-`|
-| Message enqueue and dequeue - no message buffer |   `271.17`|     `4.355`|      `3.400`|     `32 B`|
+|                                 Message enqueue |     `81.3`|      `5.98`|      `1.659`|        `-`|
+|                     Message enqueue and dequeue |    `247.9`|      `4.96`|      `12.16`|        `-`|
+| Message enqueue and dequeue - no message buffer |    `265.8`|      `5.33`|      `15.03`|     `32 B`|
 
 ## Implementation Notes
 
