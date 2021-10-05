@@ -2,7 +2,11 @@
 
 # Interprocess
 
-[![][WorkflowBadgePublish]][PublishWorkflow] [![License: MIT][LicenseBadge]][License] [![][NuGetBadge]][NuGet] ![][DotNet31Badge] ![][DotNet50Badge]
+[![Publish Workflow][WorkflowBadgePublish]][PublishWorkflow]
+[![Latest NuGet][NuGetBadge]][NuGet]
+[![License: MIT][LicenseBadge]][License]
+![.NET Core][DotNet31Badge]
+![.NET Platform][DotNet50Badge]
 
 **Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC][IPCWiki]). It uses a shared memory-mapped file for extremely fast and efficient communication between processes and it is used internally by Microsoft.
 
@@ -98,7 +102,7 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 A lot has gone into optimizing the implementation of this library. For instance, it is mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
 
-**Summary**: A full enqueue followed by a dequeue takes `~700 ns` on Windows, `~250 ns` on Linux, and `~650 ns` on MacOS.
+**Summary**: A full enqueue followed by a dequeue takes `~250 ns` on Linux, `~650 ns` on MacOS, and `~700 ns` on Windows.
 
 **Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet][BenchmarkOrg] and perform the following runs:
 
@@ -209,7 +213,8 @@ This implementation will be replaced with [`System.Threading.Semaphore`][Semapho
 
 Here are a couple of items that we are working on.
 
-- Create a documentation website
+- Create a marketing/documentation website
+- Once .NET supports named semaphores on Linux, then start using them.
 
 [Cloudtoid]:https://github.com/cloudtoid
 [License]:https://github.com/cloudtoid/interprocess/blob/main/LICENSE
