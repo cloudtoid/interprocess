@@ -27,7 +27,7 @@ namespace Cloudtoid.Interprocess
             Path = CheckValue(path, nameof(path));
 
             BytesCapacity = CheckGreaterThan(bytesCapacity, sizeof(QueueHeader), nameof(bytesCapacity));
-            CheckParam((bytesCapacity % 8) == 0, nameof(queueName), $"{nameof(bytesCapacity)} should be a multiple of 8 (8 bytes = 64 bits).");
+            CheckParam((bytesCapacity % 8) == 0, nameof(queueName), "bytesCapacity should be a multiple of 8 (8 bytes = 64 bits).");
         }
 
         /// <summary>

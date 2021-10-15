@@ -5,6 +5,7 @@
     <TargetFrameworks>net5.0;netcoreapp3.1</TargetFrameworks>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <LangVersion>9.0</LangVersion>
   </PropertyGroup>
@@ -16,7 +17,7 @@
     <MicrosoftExtensionsVersion>5.0.*</MicrosoftExtensionsVersion>
   </PropertyGroup>
 
-  <!-- Package dependencies -->
+  <!-- Package Dependencies -->
   <ItemGroup>
     <PackageReference Include="Cloudtoid.CodeAnalysis" Version="$(CloudtoidCodeAnalysisVersion)">
       <PrivateAssets>all</PrivateAssets>
