@@ -23,8 +23,8 @@ namespace Cloudtoid.Interprocess
             countdownEvent.Signal();
             countdownEvent.Wait();
 
-            // There is a potential for a  race condition in *DequeueCore if the cancellationSource.
-            // was not cancelled before AddEvent is being called. The sleep here will prevent that.
+            // There is a potential for a race condition in *DequeueCore if the cancellationSource.
+            // was not cancelled before AddEvent is called. The sleep here will prevent that.
             Thread.Sleep(millisecondsTimeout: 10);
 
             if (disposing)
@@ -149,7 +149,7 @@ namespace Cloudtoid.Interprocess
 
             throw new InvalidOperationException(
                 "This is unexpected and can be a serious bug. We take a lock on this message " +
-                "prior to this point which should ensure that the HeadOffset is left unchanged");
+                "prior to this point which should ensure that the HeadOffset is left unchanged.");
         }
     }
 }
