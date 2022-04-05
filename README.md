@@ -5,8 +5,8 @@
 [![Publish Workflow][WorkflowBadgePublish]][PublishWorkflow]
 [![Latest NuGet][NuGetBadge]][NuGet]
 [![License: MIT][LicenseBadge]][License]
-![.NET Core][DotNet31Badge]
 ![.NET Platform][DotNet50Badge]
+![.NET Core][DotNetPlatformBadge]
 
 **Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC][IPCWiki]). It uses a shared memory-mapped file for extremely fast and efficient communication between processes and it is used internally by Microsoft.
 
@@ -121,7 +121,7 @@ dotnet run Interprocess.Benchmark.csproj -c Release
 You can also be explicit about the .NET SDK and Runtime(s) versions:
 
 ```posh
-dotnet run Interprocess.Benchmark.csproj -c Release -f net5.0 --runtimes net5.0 netcoreapp3.1
+dotnet run Interprocess.Benchmark.csproj -c Release -f net6.0 --runtimes net6.0 net5.0 netcoreapp3.1
 ```
 
 ---
@@ -136,15 +136,21 @@ Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
 .NET SDK=5.0.401
   [Host]        : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
   .NET 5.0      : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
+
+BenchmarkDotNet=v0.13.1, OS=Windows 10.0.22000
+Intel Core i9-10900X CPU 3.70GHz, 1 CPU, 20 logical and 10 physical cores
+.NET SDK=6.0.201
+  [Host]   : .NET 6.0.3 (6.0.322.12309), X64 RyuJIT
+  .NET 6.0 : .NET 6.0.3 (6.0.322.12309), X64 RyuJIT
 ```
 
 Results:
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |    `620.1`|     `10.86`|      `10.18`|       `-` |
-|                     Message enqueue and dequeue |    `712.9`|     `13.57`|      `14.52`|       `-` |
-| Message enqueue and dequeue - no message buffer |    `744.7`|     `14.81`|      `31.88`|    `32 B` |
+|                                 Message enqueue |    `192.7`|      `3.61`|       `3.21`|       `-` |
+|                     Message enqueue and dequeue |    `305.6`|      `5.96`|       `6.62`|       `-` |
+| Message enqueue and dequeue - no message buffer |    `311.5`|      `5.90`|       `9.85`|    `32 B` |
 
 ---
 
@@ -223,7 +229,7 @@ Here are a couple of items that we are working on.
 [PublishWorkflow]:https://github.com/cloudtoid/interprocess/actions/workflows/publish.yml
 [NuGetBadge]:https://img.shields.io/nuget/vpre/Cloudtoid.Interprocess
 [DotNet31Badge]:https://img.shields.io/badge/.net%20core-%3E%203.1-blue
-[DotNet50Badge]:https://img.shields.io/badge/.net-%3E%205.0-blue
+[DotNetPlatformBadge]:https://img.shields.io/badge/.net-%3E%205.0-blue
 [NuGet]:https://www.nuget.org/packages/Cloudtoid.Interprocess/
 [IPCWiki]:https://en.wikipedia.org/wiki/Inter-process_communication
 [MacOSWiki]:https://en.wikipedia.org/wiki/MacOS

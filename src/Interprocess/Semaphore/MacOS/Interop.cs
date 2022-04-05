@@ -7,7 +7,6 @@ using Cloudtoid.Interprocess.Semaphore.Posix;
 namespace Cloudtoid.Interprocess.Semaphore.MacOS
 {
     [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1300:Element should begin with upper-case letter", Justification = "Matching the exact names in Linux/MacOS")]
-    [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1513:Closing brace should be followed by blank line", Justification = "There is a bug in the rule!")]
     internal static class Interop
     {
         private const string Lib = "libSystem.dylib";

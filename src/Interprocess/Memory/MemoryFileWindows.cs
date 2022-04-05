@@ -9,7 +9,7 @@ namespace Cloudtoid.Interprocess.Memory.Windows
 
         internal MemoryFileWindows(QueueOptions options)
         {
-#if NET5_0
+#if NET5_0 || NET6_0
             if (!System.OperatingSystem.IsWindows())
                 throw new System.PlatformNotSupportedException();
 #endif

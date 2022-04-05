@@ -7,12 +7,11 @@ using Cloudtoid.Interprocess.Semaphore.Posix;
 namespace Cloudtoid.Interprocess.Semaphore.Linux
 {
     [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1300:Element should begin with upper-case letter", Justification = "Matching the exact names in Linux/MacOS")]
-    [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1513:Closing brace should be followed by blank line", Justification = "There is a bug in the rule!")]
     internal static class Interop
     {
         private const string Lib = "librt";
         private const uint SEMVALUEMAX = 32767;
-        private const int OCREAT = 0x040;   // create the semaphore if it does not exist
+        private const int OCREAT = 0x040;    // create the semaphore if it does not exist
 
         private const int ENOENT = 2;        // The named semaphore does not exist.
         private const int EINTR = 4;         // Semaphore operation was interrupted by a signal.

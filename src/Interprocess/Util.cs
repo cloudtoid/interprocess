@@ -34,7 +34,7 @@ namespace Cloudtoid.Interprocess
             this CancellationTokenSource source,
             CancellationToken token = default)
         {
-            // NOTE: The source could have been Disposed. We can still access the IsCancellationRequested
+            // NOTE: The source could have been disposed. We can still access the IsCancellationRequested
             // property BUT we cannot access its Token property. Do NOT change this code.
             if (source.IsCancellationRequested)
                 throw new OperationCanceledException();

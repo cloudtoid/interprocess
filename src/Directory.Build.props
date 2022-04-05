@@ -2,19 +2,19 @@
 
   <!-- Build Settings -->
   <PropertyGroup>
-    <TargetFrameworks>net5.0;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net6.0;net5.0;netcoreapp3.1</TargetFrameworks>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <LangVersion>9.0</LangVersion>
+    <LangVersion>10.0</LangVersion>
   </PropertyGroup>
 
   <!-- Versions -->
   <PropertyGroup>
     <CloudtoidCodeAnalysisVersion>1.0.*</CloudtoidCodeAnalysisVersion>
     <CloudtoidFrameworkVersion>1.0.*</CloudtoidFrameworkVersion>
-    <MicrosoftExtensionsVersion>5.0.*</MicrosoftExtensionsVersion>
+    <MicrosoftExtensionsVersion>6.0.*</MicrosoftExtensionsVersion>
   </PropertyGroup>
 
   <!-- Package Dependencies -->
