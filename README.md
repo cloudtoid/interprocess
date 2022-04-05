@@ -5,8 +5,8 @@
 [![Publish Workflow][WorkflowBadgePublish]][PublishWorkflow]
 [![Latest NuGet][NuGetBadge]][NuGet]
 [![License: MIT][LicenseBadge]][License]
-![.NET Platform][DotNet50Badge]
-![.NET Core][DotNetPlatformBadge]
+![.NET Platform][DotNetPlatformBadge]
+![.NET Core][DotNet31Badge]
 
 **Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC][IPCWiki]). It uses a shared memory-mapped file for extremely fast and efficient communication between processes and it is used internally by Microsoft.
 
@@ -102,7 +102,7 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 A lot has gone into optimizing the implementation of this library. For instance, it is mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
 
-**Summary**: A full enqueue followed by a dequeue takes `~250 ns` on Linux, `~650 ns` on MacOS, and `~700 ns` on Windows.
+**Summary**: A full enqueue followed by a dequeue takes `~250 ns` on Linux, `~650 ns` on MacOS, and `~300 ns` on Windows.
 
 **Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet][BenchmarkOrg] and perform the following runs:
 
@@ -131,12 +131,6 @@ dotnet run Interprocess.Benchmark.csproj -c Release -f net6.0 --runtimes net6.0 
 Host:
 
 ```text
-BenchmarkDotNet=v0.13.1, OS=Windows 10.0.19043.1237 (21H1/May2021Update)
-Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
-.NET SDK=5.0.401
-  [Host]        : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
-  .NET 5.0      : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
-
 BenchmarkDotNet=v0.13.1, OS=Windows 10.0.22000
 Intel Core i9-10900X CPU 3.70GHz, 1 CPU, 20 logical and 10 physical cores
 .NET SDK=6.0.201
