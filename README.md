@@ -25,7 +25,7 @@ The NuGet package for this library is published [here][NuGet].
 
 ## Usage
 
-This library supports .NET Core 3.1+ and .NET 5+. It is optimized for .NET dependency injection but can also be used without DI.
+This library supports .NET Core 3.1+ and .NET 6+. It is optimized for .NET dependency injection but can also be used without DI.
 
 ### Usage without DI
 
@@ -121,7 +121,7 @@ dotnet run Interprocess.Benchmark.csproj -c Release
 You can also be explicit about the .NET SDK and Runtime(s) versions:
 
 ```posh
-dotnet run Interprocess.Benchmark.csproj -c Release -f net6.0 --runtimes net6.0 net5.0 netcoreapp3.1
+dotnet run Interprocess.Benchmark.csproj -c Release -f net6.0 --runtimes net7.0 net6.0 netcoreapp3.1
 ```
 
 ---
@@ -223,7 +223,7 @@ Here are a couple of items that we are working on.
 [PublishWorkflow]:https://github.com/cloudtoid/interprocess/actions/workflows/publish.yml
 [NuGetBadge]:https://img.shields.io/nuget/vpre/Cloudtoid.Interprocess
 [DotNet31Badge]:https://img.shields.io/badge/.net%20core-%3E%203.1-blue
-[DotNetPlatformBadge]:https://img.shields.io/badge/.net-%3E%205.0-blue
+[DotNetPlatformBadge]:https://img.shields.io/badge/.net-%3E%206.0-blue
 [NuGet]:https://www.nuget.org/packages/Cloudtoid.Interprocess/
 [IPCWiki]:https://en.wikipedia.org/wiki/Inter-process_communication
 [MacOSWiki]:https://en.wikipedia.org/wiki/MacOS
