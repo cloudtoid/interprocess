@@ -9,7 +9,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
     [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1300:Element should begin with upper-case letter", Justification = "Matching the exact names in Linux/MacOS")]
     internal static class Interop
     {
-        private const string Lib = "librt";
+        private const string Lib = "librt.so.1";
         private const uint SEMVALUEMAX = 32767;
         private const int OCREAT = 0x040;    // create the semaphore if it does not exist
 
