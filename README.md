@@ -175,20 +175,20 @@ Results:
 Host:
 
 ```text
-BenchmarkDotNet=v0.13.1, OS=ubuntu 20.04
-Intel Xeon CPU E5-1620 v3 3.50GHz, 1 CPU, 8 logical and 4 physical cores
-.NET SDK=5.0.401
-  [Host]        : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
-  .NET 5.0      : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
+BenchmarkDotNet=v0.13.2, OS=ubuntu 20.04
+Intel Core i9-10900X CPU 3.70GHz, 1 CPU, 20 logical and 10 physical cores
+.NET SDK=6.0.403
+  [Host]   : .NET 6.0.11 (6.0.1122.52304), X64 RyuJIT AVX2
+  .NET 6.0 : .NET 6.0.11 (6.0.1122.52304), X64 RyuJIT AVX2
 ```
 
 Results:
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |     `81.3`|      `5.98`|      `1.659`|        `-`|
-|                     Message enqueue and dequeue |    `247.9`|      `4.96`|      `12.16`|        `-`|
-| Message enqueue and dequeue - no message buffer |    `265.8`|      `5.33`|      `15.03`|     `32 B`|
+|                                 Message enqueue |      `5.3`|         `-`|          `-`|        `-`|
+|                     Message enqueue and dequeue |    `169.9`|      `3.08`|       `4.01`|        `-`|
+| Message enqueue and dequeue - no message buffer |    `179.4`|      `1.91`|       `1.60`|     `32 B`|
 
 ## Implementation Notes
 
