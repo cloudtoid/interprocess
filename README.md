@@ -121,7 +121,7 @@ dotnet run Interprocess.Benchmark.csproj -c Release
 You can also be explicit about the .NET SDK and Runtime(s) versions:
 
 ```posh
-dotnet run Interprocess.Benchmark.csproj -c Release -f net6.0 --runtimes net7.0 net6.0 netcoreapp3.1
+dotnet run Interprocess.Benchmark.csproj -c Release -f net7.0 --runtimes net7.0 net6.0 netcoreapp3.1
 ```
 
 ---
