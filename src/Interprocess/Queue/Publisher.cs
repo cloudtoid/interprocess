@@ -28,12 +28,20 @@ namespace Cloudtoid.Interprocess
             while (true)
             {
                 var header = *Header;
+                var headOffset = header.HeadOffset;
                 var tailOffset = header.TailOffset;
 
                 var messageLength = GetMessageLength(bodyLength);
-                var capacity = Buffer.Capacity - tailOffset + header.HeadOffset;
-                if (messageLength > capacity)
-                    return false;
+                if (tailOffset >= headOffset)
+                {
+                    if (messageLength > Buffer.Capacity - (tailOffset - headOffset))
+                        return false;
+                }
+                else
+                {
+                    if (messageLength > headOffset - tailOffset)
+                        return false;
+                }
 
                 var newTailOffset = SafeIncrementMessageOffset(tailOffset, messageLength);
 
