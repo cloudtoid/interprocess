@@ -206,23 +206,36 @@ namespace Cloudtoid.Interprocess.Tests
         [TestBeforeAfter]
         public void CanRejectLargeMessages()
         {
-            using var p = CreatePublisher(40);
-            using var s = CreateSubscriber(40);
+            using (var p = CreatePublisher(40))
+            using (var s = CreateSubscriber(40))
+            {
+                p.TryEnqueue(ByteArray3).Should().BeTrue();
+                var message = s.Dequeue(default);
+                message.ToArray().Should().BeEquivalentTo(ByteArray3);
 
-            p.TryEnqueue(ByteArray3).Should().BeTrue();
-            var message = s.Dequeue(default);
-            message.ToArray().Should().BeEquivalentTo(ByteArray3);
+                p.TryEnqueue(ByteArray3).Should().BeTrue();
 
-            p.TryEnqueue(ByteArray3).Should().BeTrue();
+                // This should fail because the queue is out of capacity
+                p.TryEnqueue(ByteArray3).Should().BeFalse();
 
-            // This should fail because the queue is out of capacity
-            p.TryEnqueue(ByteArray3).Should().BeFalse();
+                message = s.Dequeue(default);
+                message.ToArray().Should().BeEquivalentTo(ByteArray3);
 
-            message = s.Dequeue(default);
-            message.ToArray().Should().BeEquivalentTo(ByteArray3);
+                p.TryEnqueue(ByteArray3).Should().BeTrue();
+                p.TryEnqueue(ByteArray3).Should().BeFalse();
+            }
 
-            p.TryEnqueue(ByteArray3).Should().BeTrue();
-            p.TryEnqueue(ByteArray3).Should().BeFalse();
+            using (var p = CreatePublisher(48))
+            {
+                // p.Buffer.Capacity == 32; (48 - 16)
+
+                p.TryEnqueue(ByteArray3).Should().BeTrue();
+                // HeadOffset == 0; TailOffset == 16;
+                p.TryEnqueue(ByteArray3).Should().BeTrue();
+                // HeadOffset == 0; TailOffset == 0;
+                p.TryEnqueue(ByteArray3).Should().BeFalse();
+                // HeadOffset == 0; TailOffset == 16;
+            }
         }
 
         private IPublisher CreatePublisher(long capacity)

@@ -84,6 +84,6 @@ namespace Cloudtoid.Interprocess
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected long SafeIncrementMessageOffset(long offset, long increment)
-            => (offset + increment) % Buffer.Capacity;
+            => (offset + increment) % (Buffer.Capacity * 2);
     }
 }
