@@ -236,6 +236,9 @@ namespace Cloudtoid.Interprocess.Tests
                 p.TryEnqueue(ByteArray3).Should().BeFalse();
                 // HeadOffset == 0; TailOffset == 16;
             }
+
+            using (var p = CreatePublisher(48))
+                p.TryEnqueue(ByteArray50).Should().BeFalse(); // failed here
         }
 
         private IPublisher CreatePublisher(long capacity)

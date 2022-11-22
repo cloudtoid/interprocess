@@ -32,7 +32,12 @@ namespace Cloudtoid.Interprocess
                 var tailOffset = header.TailOffset;
 
                 var messageLength = GetMessageLength(bodyLength);
-                if (tailOffset != headOffset)
+                if (tailOffset == headOffset)
+                {
+                    if (messageLength > Buffer.Capacity)
+                        return false;
+                }
+                else
                 {
                     var tail = tailOffset % Buffer.Capacity;
                     var head = headOffset % Buffer.Capacity;
