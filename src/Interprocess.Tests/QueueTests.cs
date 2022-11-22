@@ -230,11 +230,11 @@ namespace Cloudtoid.Interprocess.Tests
                 // p.Buffer.Capacity == 32; (48 - 16)
 
                 p.TryEnqueue(ByteArray3).Should().BeTrue();
-                // HeadOffset == 0; TailOffset == 16;
+                // ReadOffset == 0; WriteOffset == 16;
                 p.TryEnqueue(ByteArray3).Should().BeTrue();
-                // HeadOffset == 0; TailOffset == 0;
+                // ReadOffset == 0; WriteOffset == 0;
                 p.TryEnqueue(ByteArray3).Should().BeFalse();
-                // HeadOffset == 0; TailOffset == 16;
+                // ReadOffset == 0; WriteOffset == 16;
             }
 
             using (var p = CreatePublisher(48))

@@ -30,26 +30,26 @@ namespace Cloudtoid.Interprocess
             while (true)
             {
                 var header = *Header;
-                var tailOffset = header.TailOffset;
+                var writeOffset = header.WriteOffset;
 
                 if (!CheckCapacity(header, messageLength))
                     return false;
 
-                var newTailOffset = SafeIncrementMessageOffset(tailOffset, messageLength);
+                var newWriteOffset = SafeIncrementMessageOffset(writeOffset, messageLength);
 
-                // try to atomically update the tail-offset that is stored in the queue header
+                // try to atomically update the writeOffset-offset that is stored in the queue header
                 var currentTailOffset = ((long*)Header) + 1;
-                if (Interlocked.CompareExchange(ref *currentTailOffset, newTailOffset, tailOffset) == tailOffset)
+                if (Interlocked.CompareExchange(ref *currentTailOffset, newWriteOffset, writeOffset) == writeOffset)
                 {
                     try
                     {
-                        // write the message body
-                        Buffer.Write(message, GetMessageBodyOffset(tailOffset));
+                        // writeOffset the message body
+                        Buffer.Write(message, GetMessageBodyOffset(writeOffset));
 
-                        // write the message header
+                        // writeOffset the message header
                         Buffer.Write(
                             new MessageHeader(MessageHeader.ReadyToBeConsumedState, bodyLength),
-                            tailOffset);
+                            writeOffset);
                     }
                     catch (Exception ex)
                     {
@@ -70,29 +70,29 @@ namespace Cloudtoid.Interprocess
 
         private bool CheckCapacity(QueueHeader header, long messageLength)
         {
-            var head = header.HeadOffset;
-            var tail = header.TailOffset;
+            var readOffset = header.ReadOffset;
+            var writeOffset = header.WriteOffset;
 
             if (messageLength > Buffer.Capacity)
                 return false;
 
-            if (head == tail)
+            if (readOffset == writeOffset)
                 return true; // it is an empty queue
 
-            head %= Buffer.Capacity;
-            tail %= Buffer.Capacity;
+            readOffset %= Buffer.Capacity;
+            writeOffset %= Buffer.Capacity;
 
-            if (head == tail)
-                return false; // queue is 100% full (read a message to open room)
+            if (readOffset == writeOffset)
+                return false; // queue is 100% full (readOffset a message to open room)
 
-            if (head < tail)
+            if (readOffset < writeOffset)
             {
-                if (messageLength > Buffer.Capacity + head - tail)
+                if (messageLength > Buffer.Capacity + readOffset - writeOffset)
                     return false;
             }
             else
             {
-                if (messageLength > head - tail)
+                if (messageLength > readOffset - writeOffset)
                     return false;
             }
 
