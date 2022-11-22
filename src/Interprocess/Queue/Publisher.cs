@@ -37,16 +37,16 @@ namespace Cloudtoid.Interprocess
 
                 var newWriteOffset = SafeIncrementMessageOffset(writeOffset, messageLength);
 
-                // try to atomically update the writeOffset-offset that is stored in the queue header
+                // try to atomically update the write-offset that is stored in the queue header
                 var currentTailOffset = ((long*)Header) + 1;
                 if (Interlocked.CompareExchange(ref *currentTailOffset, newWriteOffset, writeOffset) == writeOffset)
                 {
                     try
                     {
-                        // writeOffset the message body
+                        // write the message body
                         Buffer.Write(message, GetMessageBodyOffset(writeOffset));
 
-                        // writeOffset the message header
+                        // write the message header
                         Buffer.Write(
                             new MessageHeader(MessageHeader.ReadyToBeConsumedState, bodyLength),
                             writeOffset);
@@ -83,7 +83,7 @@ namespace Cloudtoid.Interprocess
             writeOffset %= Buffer.Capacity;
 
             if (readOffset == writeOffset)
-                return false; // queue is 100% full (readOffset a message to open room)
+                return false; // queue is 100% full (read a message to open room)
 
             if (readOffset < writeOffset)
             {
