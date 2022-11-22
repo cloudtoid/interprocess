@@ -73,29 +73,27 @@ namespace Cloudtoid.Interprocess
             var head = header.HeadOffset;
             var tail = header.TailOffset;
 
-            if (tail == head)
+            if (messageLength > Buffer.Capacity)
+                return false;
+
+            if (head == tail)
+                return true; // it is an empty queue
+
+            head %= Buffer.Capacity;
+            tail %= Buffer.Capacity;
+
+            if (head == tail)
+                return false; // queue is 100% full (read a message to open room)
+
+            if (head < tail)
             {
-                if (messageLength > Buffer.Capacity)
+                if (messageLength > Buffer.Capacity + head - tail)
                     return false;
             }
             else
             {
-                tail %= Buffer.Capacity;
-                head %= Buffer.Capacity;
-
-                if (head == tail)
+                if (messageLength > head - tail)
                     return false;
-
-                if (tail > head)
-                {
-                    if (messageLength > Buffer.Capacity + head - tail)
-                        return false;
-                }
-                else
-                {
-                    if (messageLength > head - tail)
-                        return false;
-                }
             }
 
             return true;
