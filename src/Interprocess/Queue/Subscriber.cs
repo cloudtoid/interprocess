@@ -101,55 +101,64 @@ namespace Cloudtoid.Interprocess
             cancellationSource.ThrowIfCancellationRequested(cancellation);
 
             message = ReadOnlyMemory<byte>.Empty;
-            var header = Header;
-            var readOffset = header->ReadOffset;
+            var header = *Header;
 
-            if (readOffset == header->WriteOffset)
-                return false; // this is an empty queue
-
-            var messageHeader = (MessageHeader*)Buffer.GetPointer(readOffset);
-
-            // take a lock so no other thread can start processing this message
-            if (Interlocked.CompareExchange(
-                ref messageHeader->State,
-                MessageHeader.LockedToBeConsumedState,
-                MessageHeader.ReadyToBeConsumedState) != MessageHeader.ReadyToBeConsumedState)
-            {
-                return false; // some other subscriber got to this message before us
-            }
-
-            // was the header advanced already by another subscriber?
-            if (header->ReadOffset != readOffset)
-            {
-                // revert the lock
-                Interlocked.CompareExchange(
-                    ref messageHeader->State,
-                    MessageHeader.ReadyToBeConsumedState,
-                    MessageHeader.LockedToBeConsumedState);
-
+            // is there already a lock?
+            if (header.ReadOffset == QueueHeader.LockedState)
                 return false;
+
+            // is this an empty queue?
+            if (header.ReadOffset == header.WriteOffset)
+                return false;
+
+            // take a lock so no other thread can read a message
+            var readOffset = Interlocked.Exchange(ref Header->ReadOffset, QueueHeader.LockedState);
+
+            // did another subscriber get a lock before us?
+            if (readOffset == QueueHeader.LockedState)
+                return false;
+
+            try
+            {
+                // is the queue empty now?
+                if (readOffset == Header->WriteOffset)
+                    return false;
+
+                // now we have the lock and the queue is not empty
+
+                var messageHeader = (MessageHeader*)Buffer.GetPointer(readOffset);
+
+                // was this message fully written by the publisher? if not, release the lock and retry again later
+                if (Interlocked.CompareExchange(
+                    ref messageHeader->State,
+                    MessageHeader.LockedToBeConsumedState,
+                    MessageHeader.ReadyToBeConsumedState) != MessageHeader.ReadyToBeConsumedState)
+                {
+                    return false;
+                }
+
+                // read the message body from the queue buffer
+                var bodyLength = messageHeader->BodyLength;
+                var bodyOffset = GetMessageBodyOffset(readOffset);
+                message = Buffer.Read(bodyOffset, bodyLength, resultBuffer);
+
+                // zero out the message body first
+                Buffer.Clear(bodyOffset, bodyLength);
+
+                // zero out the message header
+                Buffer.Write(default(MessageHeader), readOffset);
+
+                // updating the queue header to point the head of the queue to the next available message
+                var messageLength = GetMessageLength(bodyLength);
+                readOffset = SafeIncrementMessageOffset(readOffset, messageLength);
+            }
+            finally
+            {
+                // Release the lock
+                Interlocked.Exchange(ref Header->ReadOffset, readOffset);
             }
 
-            // read the message body from the queue buffer
-            var bodyLength = messageHeader->BodyLength;
-            var bodyOffset = GetMessageBodyOffset(readOffset);
-            message = Buffer.Read(bodyOffset, bodyLength, resultBuffer);
-
-            // zero out the message body first
-            Buffer.Clear(bodyOffset, bodyLength);
-
-            // zero out the message header
-            Buffer.Write(default(MessageHeader), readOffset);
-
-            // updating the queue header to point the head of the queue to the next available message
-            var messageLength = GetMessageLength(bodyLength);
-            var newReadOffset = SafeIncrementMessageOffset(readOffset, messageLength);
-            if (Interlocked.CompareExchange(ref header->ReadOffset, newReadOffset, readOffset) == readOffset)
-                return true;
-
-            throw new InvalidOperationException(
-                "This is unexpected and can be a serious bug. We took a lock on this message " +
-                "prior to this point which should ensure that the ReadOffset is left unchanged.");
+            return true;
         }
     }
 }
