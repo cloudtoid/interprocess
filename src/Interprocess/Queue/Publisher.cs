@@ -25,14 +25,14 @@ namespace Cloudtoid.Interprocess
         public unsafe bool TryEnqueue(ReadOnlySpan<byte> message)
         {
             var bodyLength = message.Length;
+            var messageLength = GetMessageLength(bodyLength);
+
             while (true)
             {
                 var header = *Header;
                 var tailOffset = header.TailOffset;
 
-                var messageLength = GetMessageLength(bodyLength);
-                var capacity = Buffer.Capacity - tailOffset + header.HeadOffset;
-                if (messageLength > capacity)
+                if (!CheckCapacity(header, messageLength))
                     return false;
 
                 var newTailOffset = SafeIncrementMessageOffset(tailOffset, messageLength);
@@ -66,6 +66,37 @@ namespace Cloudtoid.Interprocess
                     return true;
                 }
             }
+        }
+
+        private bool CheckCapacity(QueueHeader header, long messageLength)
+        {
+            var head = header.HeadOffset;
+            var tail = header.TailOffset;
+
+            if (messageLength > Buffer.Capacity)
+                return false;
+
+            if (head == tail)
+                return true; // it is an empty queue
+
+            head %= Buffer.Capacity;
+            tail %= Buffer.Capacity;
+
+            if (head == tail)
+                return false; // queue is 100% full (read a message to open room)
+
+            if (head < tail)
+            {
+                if (messageLength > Buffer.Capacity + head - tail)
+                    return false;
+            }
+            else
+            {
+                if (messageLength > head - tail)
+                    return false;
+            }
+
+            return true;
         }
     }
 }

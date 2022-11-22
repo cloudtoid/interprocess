@@ -148,7 +148,7 @@ namespace Cloudtoid.Interprocess
                 return true;
 
             throw new InvalidOperationException(
-                "This is unexpected and can be a serious bug. We take a lock on this message " +
+                "This is unexpected and can be a serious bug. We took a lock on this message " +
                 "prior to this point which should ensure that the HeadOffset is left unchanged.");
         }
     }

@@ -202,6 +202,45 @@ namespace Cloudtoid.Interprocess.Tests
             }
         }
 
+        [Fact]
+        [TestBeforeAfter]
+        public void CanRejectLargeMessages()
+        {
+            using (var p = CreatePublisher(40))
+            using (var s = CreateSubscriber(40))
+            {
+                p.TryEnqueue(ByteArray3).Should().BeTrue();
+                var message = s.Dequeue(default);
+                message.ToArray().Should().BeEquivalentTo(ByteArray3);
+
+                p.TryEnqueue(ByteArray3).Should().BeTrue();
+
+                // This should fail because the queue is out of capacity
+                p.TryEnqueue(ByteArray3).Should().BeFalse();
+
+                message = s.Dequeue(default);
+                message.ToArray().Should().BeEquivalentTo(ByteArray3);
+
+                p.TryEnqueue(ByteArray3).Should().BeTrue();
+                p.TryEnqueue(ByteArray3).Should().BeFalse();
+            }
+
+            using (var p = CreatePublisher(48))
+            {
+                // p.Buffer.Capacity == 32; (48 - 16)
+
+                p.TryEnqueue(ByteArray3).Should().BeTrue();
+                // HeadOffset == 0; TailOffset == 16;
+                p.TryEnqueue(ByteArray3).Should().BeTrue();
+                // HeadOffset == 0; TailOffset == 0;
+                p.TryEnqueue(ByteArray3).Should().BeFalse();
+                // HeadOffset == 0; TailOffset == 16;
+            }
+
+            using (var p = CreatePublisher(48))
+                p.TryEnqueue(ByteArray50).Should().BeFalse(); // failed here
+        }
+
         private IPublisher CreatePublisher(long capacity)
             => queueFactory.CreatePublisher(
                 new QueueOptions("qn", fixture.Path, capacity));
