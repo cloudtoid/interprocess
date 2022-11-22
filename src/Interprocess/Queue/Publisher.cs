@@ -25,37 +25,15 @@ namespace Cloudtoid.Interprocess
         public unsafe bool TryEnqueue(ReadOnlySpan<byte> message)
         {
             var bodyLength = message.Length;
+            var messageLength = GetMessageLength(bodyLength);
+
             while (true)
             {
                 var header = *Header;
-                var headOffset = header.HeadOffset;
                 var tailOffset = header.TailOffset;
 
-                var messageLength = GetMessageLength(bodyLength);
-                if (tailOffset == headOffset)
-                {
-                    if (messageLength > Buffer.Capacity)
-                        return false;
-                }
-                else
-                {
-                    var tail = tailOffset % Buffer.Capacity;
-                    var head = headOffset % Buffer.Capacity;
-
-                    if (head == tail)
-                        return false;
-
-                    if (tail > head)
-                    {
-                        if (messageLength > Buffer.Capacity - (tail - head))
-                            return false;
-                    }
-                    else
-                    {
-                        if (messageLength > head - tail)
-                            return false;
-                    }
-                }
+                if (!CheckCapacity(header, messageLength))
+                    return false;
 
                 var newTailOffset = SafeIncrementMessageOffset(tailOffset, messageLength);
 
@@ -88,6 +66,39 @@ namespace Cloudtoid.Interprocess
                     return true;
                 }
             }
+        }
+
+        private bool CheckCapacity(QueueHeader header, long messageLength)
+        {
+            var head = header.HeadOffset;
+            var tail = header.TailOffset;
+
+            if (tail == head)
+            {
+                if (messageLength > Buffer.Capacity)
+                    return false;
+            }
+            else
+            {
+                tail %= Buffer.Capacity;
+                head %= Buffer.Capacity;
+
+                if (head == tail)
+                    return false;
+
+                if (tail > head)
+                {
+                    if (messageLength > Buffer.Capacity + head - tail)
+                        return false;
+                }
+                else
+                {
+                    if (messageLength > head - tail)
+                        return false;
+                }
+            }
+
+            return true;
         }
     }
 }
