@@ -21,7 +21,7 @@ namespace Subscriber
 
             var options = new QueueOptions(
                 queueName: "sample-queue",
-                bytesCapacity: 1024 * 1024);
+                messageCapacityInBytes: 1024 * 1024);
 
             using var subscriber = factory.CreateSubscriber(options);
 

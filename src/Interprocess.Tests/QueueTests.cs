@@ -40,14 +40,14 @@ namespace Cloudtoid.Interprocess.Tests
             var factory = new QueueFactory();
             var options = new QueueOptions(
                 queueName: "my-queue",
-                bytesCapacity: 1024 * 1024);
+                messageCapacityInBytes: 1024 * 1024);
 
             using var publisher = factory.CreatePublisher(options);
             publisher.TryEnqueue(message);
 
             options = new QueueOptions(
                 queueName: "my-queue",
-                bytesCapacity: 1024 * 1024);
+                messageCapacityInBytes: 1024 * 1024);
 
             using var subscriber = factory.CreateSubscriber(options);
             subscriber.TryDequeue(messageBuffer, cancellationToken, out var msg);
@@ -73,14 +73,14 @@ namespace Cloudtoid.Interprocess.Tests
 
             var options = new QueueOptions(
                 queueName: "my-queue",
-                bytesCapacity: 1024 * 1024);
+                messageCapacityInBytes: 1024 * 1024);
 
             using var publisher = factory.CreatePublisher(options);
             publisher.TryEnqueue(message);
 
             options = new QueueOptions(
                 queueName: "my-queue",
-                bytesCapacity: 1024 * 1024);
+                messageCapacityInBytes: 1024 * 1024);
 
             using var subscriber = factory.CreateSubscriber(options);
             subscriber.TryDequeue(messageBuffer, cancellationToken, out var msg);
@@ -92,8 +92,8 @@ namespace Cloudtoid.Interprocess.Tests
         [TestBeforeAfter]
         public void CanEnqueueAndDequeue()
         {
-            using var p = CreatePublisher(40);
-            using var s = CreateSubscriber(40);
+            using var p = CreatePublisher(24);
+            using var s = CreateSubscriber(24);
 
             p.TryEnqueue(ByteArray3).Should().BeTrue();
             var message = s.Dequeue(default);
@@ -130,13 +130,17 @@ namespace Cloudtoid.Interprocess.Tests
             p.TryEnqueue(ByteArray50).Should().BeTrue();
             message = s.Dequeue(default);
             message.ToArray().Should().BeEquivalentTo(ByteArray50);
+
+            p.TryEnqueue(ByteArray50).Should().BeTrue();
+            message = s.Dequeue(default);
+            message.ToArray().Should().BeEquivalentTo(ByteArray50);
         }
 
         [Fact]
         [TestBeforeAfter]
         public void CannotEnqueuePastCapacity()
         {
-            using var p = CreatePublisher(40);
+            using var p = CreatePublisher(24);
 
             p.TryEnqueue(ByteArray3).Should().BeTrue();
             p.TryEnqueue(ByteArray1).Should().BeFalse();
@@ -146,10 +150,10 @@ namespace Cloudtoid.Interprocess.Tests
         [TestBeforeAfter]
         public void DisposeShouldNotThrow()
         {
-            var p = CreatePublisher(40);
+            var p = CreatePublisher(24);
             p.TryEnqueue(ByteArray3).Should().BeTrue();
 
-            using var s = CreateSubscriber(40);
+            using var s = CreateSubscriber(24);
             p.Dispose();
 
             s.Dequeue(default);
@@ -159,13 +163,13 @@ namespace Cloudtoid.Interprocess.Tests
         [TestBeforeAfter]
         public void CannotReadAfterProducerIsDisposed()
         {
-            var p = CreatePublisher(40);
+            var p = CreatePublisher(24);
             p.TryEnqueue(ByteArray3).Should().BeTrue();
-            using (var s = CreateSubscriber(40))
+            using (var s = CreateSubscriber(24))
                 p.Dispose();
 
-            using (CreatePublisher(40))
-            using (var s = CreateSubscriber(40))
+            using (CreatePublisher(24))
+            using (var s = CreateSubscriber(24))
             {
                 s.TryDequeue(default, out var message).Should().BeFalse();
             }
@@ -206,8 +210,8 @@ namespace Cloudtoid.Interprocess.Tests
         [TestBeforeAfter]
         public void CanRejectLargeMessages()
         {
-            using (var p = CreatePublisher(40))
-            using (var s = CreateSubscriber(40))
+            using (var p = CreatePublisher(24))
+            using (var s = CreateSubscriber(24))
             {
                 p.TryEnqueue(ByteArray3).Should().BeTrue();
                 var message = s.Dequeue(default);
@@ -225,19 +229,14 @@ namespace Cloudtoid.Interprocess.Tests
                 p.TryEnqueue(ByteArray3).Should().BeFalse();
             }
 
-            using (var p = CreatePublisher(48))
+            using (var p = CreatePublisher(32))
             {
-                // p.Buffer.Capacity == 32; (48 - 16)
-
                 p.TryEnqueue(ByteArray3).Should().BeTrue();
-                // ReadOffset == 0; WriteOffset == 16;
                 p.TryEnqueue(ByteArray3).Should().BeTrue();
-                // ReadOffset == 0; WriteOffset == 0;
                 p.TryEnqueue(ByteArray3).Should().BeFalse();
-                // ReadOffset == 0; WriteOffset == 16;
             }
 
-            using (var p = CreatePublisher(48))
+            using (var p = CreatePublisher(32))
                 p.TryEnqueue(ByteArray50).Should().BeFalse(); // failed here
         }
 
