@@ -62,8 +62,8 @@ namespace Cloudtoid.Interprocess
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static unsafe long GetMessageBodyOffset(long messageHeaderOffset)
-            => sizeof(MessageHeader) + messageHeaderOffset;
+        protected static unsafe long GetMessageBodyOffset(long startOffset)
+            => startOffset + sizeof(MessageHeader);
 
         /// <summary>
         /// Calculates the total length of a message which consists of [header][body][padding].

@@ -30,16 +30,15 @@ namespace Cloudtoid.Interprocess
             while (true)
             {
                 var header = *Header;
-                var writeOffset = header.WriteOffset;
 
                 if (!CheckCapacity(header, messageLength))
                     return false;
 
+                var writeOffset = header.WriteOffset;
                 var newWriteOffset = SafeIncrementMessageOffset(writeOffset, messageLength);
 
                 // try to atomically update the write-offset that is stored in the queue header
-                var currentTailOffset = ((long*)Header) + 1;
-                if (Interlocked.CompareExchange(ref *currentTailOffset, newWriteOffset, writeOffset) == writeOffset)
+                if (Interlocked.CompareExchange(ref Header->WriteOffset, newWriteOffset, writeOffset) == writeOffset)
                 {
                     try
                     {

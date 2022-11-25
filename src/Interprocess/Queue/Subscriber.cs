@@ -6,6 +6,7 @@ namespace Cloudtoid.Interprocess
 {
     internal sealed class Subscriber : Queue, ISubscriber
     {
+        private static readonly long TicksForTenSeconds = TimeSpan.FromSeconds(10).Ticks;
         private readonly CancellationTokenSource cancellationSource = new();
         private readonly CountdownEvent countdownEvent = new(1);
         private readonly IInterprocessSemaphoreWaiter signal;
@@ -102,30 +103,29 @@ namespace Cloudtoid.Interprocess
 
             message = ReadOnlyMemory<byte>.Empty;
             var header = *Header;
+            var readLockTimestamp = header.ReadLockTimestamp;
+            var nowInTicks = DateTime.UtcNow.Ticks;
 
-            // is there already a lock?
-            if (header.ReadOffset == QueueHeader.LockedState)
+            // is there already a lock or has the previous lock timed out meaning that a subscriber crashed?
+            if (nowInTicks - readLockTimestamp < TicksForTenSeconds)
                 return false;
 
             // is this an empty queue?
-            if (header.ReadOffset == header.WriteOffset)
+            if (header.IsEmpty())
                 return false;
 
-            // take a lock so no other thread can read a message
-            var readOffset = Interlocked.Exchange(ref Header->ReadOffset, QueueHeader.LockedState);
-
-            // did another subscriber get a lock before us?
-            if (readOffset == QueueHeader.LockedState)
+            // take a read-lock so no other thread can read a message
+            if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, nowInTicks, readLockTimestamp) != readLockTimestamp)
                 return false;
 
             try
             {
-                // is the queue empty now?
-                if (readOffset == Header->WriteOffset)
+                // is the queue empty now that we were able to get a read-lock?
+                if (Header->IsEmpty())
                     return false;
 
                 // now we have the lock and the queue is not empty
-
+                var readOffset = Header->ReadOffset;
                 var messageHeader = (MessageHeader*)Buffer.GetPointer(readOffset);
 
                 // was this message fully written by the publisher? if not, release the lock and retry again later
@@ -139,23 +139,22 @@ namespace Cloudtoid.Interprocess
 
                 // read the message body from the queue buffer
                 var bodyLength = messageHeader->BodyLength;
-                var bodyOffset = GetMessageBodyOffset(readOffset);
-                message = Buffer.Read(bodyOffset, bodyLength, resultBuffer);
+                message = Buffer.Read(
+                    GetMessageBodyOffset(readOffset),
+                    bodyLength,
+                    resultBuffer);
 
-                // zero out the message body first
-                Buffer.Clear(bodyOffset, bodyLength);
-
-                // zero out the message header
-                Buffer.Write(default(MessageHeader), readOffset);
-
-                // updating the queue header to point the head of the queue to the next available message
+                // zero out the message, including the message header
                 var messageLength = GetMessageLength(bodyLength);
+                Buffer.Clear(readOffset, messageLength);
+
+                // update the read offset of the queue
                 readOffset = SafeIncrementMessageOffset(readOffset, messageLength);
+                Interlocked.Exchange(ref Header->ReadOffset, readOffset);
             }
             finally
             {
-                // Release the lock
-                Interlocked.Exchange(ref Header->ReadOffset, readOffset);
+                Interlocked.Exchange(ref Header->ReadLockTimestamp, 0L);
             }
 
             return true;
