@@ -20,7 +20,7 @@
     <PackageTags>interprocess;interprocess-communication;ipc;shared-memory-communication;shared-memory-queue;shared-memory;memory-mapped-file;queue;cross-process-communication;cross-process</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <VersionSuffix Condition=" '$(VersionSuffix)'=='' ">0</VersionSuffix>
-    <Version>1.0.$(VersionSuffix)</Version>
+    <PackageVersion>2.0.0-alpha$(VersionSuffix)</PackageVersion>
   </PropertyGroup>
 
 </Project>
