@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
 using Cloudtoid.Interprocess;
 using Microsoft.Extensions.Logging;
 
@@ -6,7 +6,7 @@ namespace Publisher
 {
     internal class Program
     {
-        internal static async Task Main()
+        internal static void Main()
         {
             // Set up an optional logger factory to redirect the traces to he console
 
@@ -28,14 +28,15 @@ namespace Publisher
 
             // Enqueue messages
 
-            for (byte i = 0; i < 255;)
+            byte i = 0;
+            while (true)
             {
                 logger.LogInformation("Enqueue #" + i);
 
                 if (publisher.TryEnqueue(new byte[] { i }))
                     i++;
 
-                await Task.Delay(2000);
+                Thread.Yield();
             }
         }
     }
