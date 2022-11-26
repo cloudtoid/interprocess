@@ -41,11 +41,14 @@ namespace Cloudtoid.Interprocess
         public string Path { get; }
 
         /// <summary>
-        /// Gets the size of the queue on disk in bytes.
+        /// Gets the size of the queue in bytes. This does NOT include the size needed for the queue header.
         /// </summary>
         public long Capacity { get; }
 
-        internal unsafe long GetQueueDiskSize()
+        /// <summary>
+        /// Gets the full size of the queue that includes both the header and message sections
+        /// </summary>
+        internal unsafe long GetQueueStorageSize()
             => sizeof(QueueHeader) + Capacity;
     }
 }
