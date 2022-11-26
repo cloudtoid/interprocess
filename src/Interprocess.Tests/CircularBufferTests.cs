@@ -114,12 +114,9 @@ namespace Cloudtoid.Interprocess.Tests
             fixed (byte* ptr = &b[0])
             {
                 var buffer = new CircularBuffer(ptr, b.Length);
-                var value = new QueueHeader { ReadOffset = 1, WriteOffset = 2 };
+                var value = new QueueHeader { ReadOffset = 1, WriteOffset = 2, ReadLockTimestamp = long.MaxValue, Reserved = long.MinValue };
                 buffer.Write(value, 0);
                 value.Should().BeEquivalentTo(*(QueueHeader*)ptr);
-
-                buffer.Write(value, 3);
-                value.Should().BeEquivalentTo(*(QueueHeader*)(ptr + 3));
             }
         }
 
