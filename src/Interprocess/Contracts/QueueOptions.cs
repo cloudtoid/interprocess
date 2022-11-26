@@ -9,9 +9,9 @@ namespace Cloudtoid.Interprocess
         /// Initializes a new instance of the <see cref="QueueOptions"/> class.
         /// </summary>
         /// <param name="queueName">The unique name of the queue.</param>
-        /// <param name="messageCapacityInBytes">The maximum capacity of the queue in bytes. This should be at least 16 bytes long and in the multiples of 8</param>
-        public QueueOptions(string queueName, long messageCapacityInBytes)
-            : this(queueName, SysPath.GetTempPath(), messageCapacityInBytes)
+        /// <param name="capacity">The maximum capacity of the queue in bytes. This should be at least 16 bytes long and in the multiples of 8</param>
+        public QueueOptions(string queueName, long capacity)
+            : this(queueName, SysPath.GetTempPath(), capacity)
         {
         }
 
@@ -20,14 +20,14 @@ namespace Cloudtoid.Interprocess
         /// </summary>
         /// <param name="queueName">The unique name of the queue.</param>
         /// <param name="path">The path to the directory/folder in which the memory mapped and other files are stored in</param>
-        /// <param name="messageCapacityInBytes">The maximum capacity of the queue in bytes. This should be at least 16 bytes long and in the multiples of 8</param>
-        public unsafe QueueOptions(string queueName, string path, long messageCapacityInBytes)
+        /// <param name="capacity">The maximum capacity of the queue in bytes. This should be at least 16 bytes long and in the multiples of 8</param>
+        public unsafe QueueOptions(string queueName, string path, long capacity)
         {
             QueueName = CheckNonEmpty(queueName, nameof(queueName));
             Path = CheckValue(path, nameof(path));
 
-            MessageCapacityInBytes = CheckGreaterThan(messageCapacityInBytes, 16, nameof(messageCapacityInBytes));
-            CheckParam((messageCapacityInBytes % 8) == 0, nameof(queueName), "messageCapacityInBytes should be a multiple of 8 (8 bytes = 64 bits).");
+            MessageCapacityInBytes = CheckGreaterThan(capacity, 16, nameof(capacity));
+            CheckParam((capacity % 8) == 0, nameof(queueName), "messageCapacityInBytes should be a multiple of 8 (8 bytes = 64 bits).");
         }
 
         /// <summary>

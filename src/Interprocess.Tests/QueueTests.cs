@@ -40,14 +40,14 @@ namespace Cloudtoid.Interprocess.Tests
             var factory = new QueueFactory();
             var options = new QueueOptions(
                 queueName: "my-queue",
-                messageCapacityInBytes: 1024 * 1024);
+                capacity: 1024 * 1024);
 
             using var publisher = factory.CreatePublisher(options);
             publisher.TryEnqueue(message);
 
             options = new QueueOptions(
                 queueName: "my-queue",
-                messageCapacityInBytes: 1024 * 1024);
+                capacity: 1024 * 1024);
 
             using var subscriber = factory.CreateSubscriber(options);
             subscriber.TryDequeue(messageBuffer, cancellationToken, out var msg);
@@ -73,14 +73,14 @@ namespace Cloudtoid.Interprocess.Tests
 
             var options = new QueueOptions(
                 queueName: "my-queue",
-                messageCapacityInBytes: 1024 * 1024);
+                capacity: 1024 * 1024);
 
             using var publisher = factory.CreatePublisher(options);
             publisher.TryEnqueue(message);
 
             options = new QueueOptions(
                 queueName: "my-queue",
-                messageCapacityInBytes: 1024 * 1024);
+                capacity: 1024 * 1024);
 
             using var subscriber = factory.CreateSubscriber(options);
             subscriber.TryDequeue(messageBuffer, cancellationToken, out var msg);
