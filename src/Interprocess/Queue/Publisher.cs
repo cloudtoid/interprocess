@@ -69,20 +69,17 @@ namespace Cloudtoid.Interprocess
 
         private bool CheckCapacity(QueueHeader header, long messageLength)
         {
-            var readOffset = header.ReadOffset;
-            var writeOffset = header.WriteOffset;
-
             if (messageLength > Buffer.Capacity)
                 return false;
 
-            if (readOffset == writeOffset)
+            if (header.IsEmpty())
                 return true; // it is an empty queue
 
-            readOffset %= Buffer.Capacity;
-            writeOffset %= Buffer.Capacity;
+            var readOffset = header.ReadOffset % Buffer.Capacity;
+            var writeOffset = header.WriteOffset % Buffer.Capacity;
 
             if (readOffset == writeOffset)
-                return false; // queue is 100% full (read a message to open room)
+                return false; // queue is full
 
             if (readOffset < writeOffset)
             {
