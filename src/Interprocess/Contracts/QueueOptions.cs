@@ -9,9 +9,9 @@ namespace Cloudtoid.Interprocess
         /// Initializes a new instance of the <see cref="QueueOptions"/> class.
         /// </summary>
         /// <param name="queueName">The unique name of the queue.</param>
-        /// <param name="bytesCapacity">The maximum capacity of the queue in bytes. This should be at least 16 bytes long and in the multiples of 8</param>
-        public QueueOptions(string queueName, long bytesCapacity)
-            : this(queueName, SysPath.GetTempPath(), bytesCapacity)
+        /// <param name="capacity">The maximum capacity of the queue in bytes. This should be at least 16 bytes long and in the multiples of 8</param>
+        public QueueOptions(string queueName, long capacity)
+            : this(queueName, SysPath.GetTempPath(), capacity)
         {
         }
 
@@ -20,14 +20,14 @@ namespace Cloudtoid.Interprocess
         /// </summary>
         /// <param name="queueName">The unique name of the queue.</param>
         /// <param name="path">The path to the directory/folder in which the memory mapped and other files are stored in</param>
-        /// <param name="bytesCapacity">The maximum capacity of the queue in bytes. This should be at least 16 bytes long and in the multiples of 8</param>
-        public unsafe QueueOptions(string queueName, string path, long bytesCapacity)
+        /// <param name="capacity">The maximum capacity of the queue in bytes. This should be at least 16 bytes long and in the multiples of 8</param>
+        public unsafe QueueOptions(string queueName, string path, long capacity)
         {
             QueueName = CheckNonEmpty(queueName, nameof(queueName));
             Path = CheckValue(path, nameof(path));
 
-            BytesCapacity = CheckGreaterThan(bytesCapacity, sizeof(QueueHeader), nameof(bytesCapacity));
-            CheckParam((bytesCapacity % 8) == 0, nameof(queueName), "bytesCapacity should be a multiple of 8 (8 bytes = 64 bits).");
+            Capacity = CheckGreaterThan(capacity, 16, nameof(capacity));
+            CheckParam((capacity % 8) == 0, nameof(queueName), "messageCapacityInBytes should be a multiple of 8 (8 bytes = 64 bits).");
         }
 
         /// <summary>
@@ -41,8 +41,14 @@ namespace Cloudtoid.Interprocess
         public string Path { get; }
 
         /// <summary>
-        /// Gets the maximum capacity of the queue in bytes.
+        /// Gets the size of the queue in bytes. This does NOT include the space needed for the queue header.
         /// </summary>
-        public long BytesCapacity { get; }
+        public long Capacity { get; }
+
+        /// <summary>
+        /// Gets the full size of the queue that includes both the header and message sections
+        /// </summary>
+        internal unsafe long GetQueueStorageSize()
+            => sizeof(QueueHeader) + Capacity;
     }
 }

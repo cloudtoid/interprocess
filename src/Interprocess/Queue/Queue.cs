@@ -14,7 +14,7 @@ namespace Cloudtoid.Interprocess
             view = new MemoryView(options, loggerFactory);
             try
             {
-                Buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.BytesCapacity - sizeof(QueueHeader));
+                Buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);
             }
             catch
             {
@@ -62,8 +62,8 @@ namespace Cloudtoid.Interprocess
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static unsafe long GetMessageBodyOffset(long messageHeaderOffset)
-            => sizeof(MessageHeader) + messageHeaderOffset;
+        protected static unsafe long GetMessageBodyOffset(long startOffset)
+            => startOffset + sizeof(MessageHeader);
 
         /// <summary>
         /// Calculates the total length of a message which consists of [header][body][padding].
@@ -74,7 +74,7 @@ namespace Cloudtoid.Interprocess
         /// </list>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static unsafe long GetMessageLength(long bodyLength)
+        protected static unsafe long GetPaddedMessageLength(long bodyLength)
         {
             var length = sizeof(MessageHeader) + bodyLength;
 
