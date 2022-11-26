@@ -26,7 +26,7 @@ namespace Cloudtoid.Interprocess
             QueueName = CheckNonEmpty(queueName, nameof(queueName));
             Path = CheckValue(path, nameof(path));
 
-            MessageCapacityInBytes = CheckGreaterThan(capacity, 16, nameof(capacity));
+            Capacity = CheckGreaterThan(capacity, 16, nameof(capacity));
             CheckParam((capacity % 8) == 0, nameof(queueName), "messageCapacityInBytes should be a multiple of 8 (8 bytes = 64 bits).");
         }
 
@@ -43,9 +43,9 @@ namespace Cloudtoid.Interprocess
         /// <summary>
         /// Gets the maximum capacity of the queue in bytes.
         /// </summary>
-        public long MessageCapacityInBytes { get; }
+        public long Capacity { get; }
 
-        internal unsafe long GetQueueCapacityInBytes()
-            => MessageCapacityInBytes + sizeof(QueueHeader);
+        internal unsafe long GetQueueDiskSize()
+            => sizeof(QueueHeader) + Capacity;
     }
 }

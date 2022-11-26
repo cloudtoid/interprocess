@@ -15,7 +15,7 @@ namespace Cloudtoid.Interprocess.Memory.Windows
 #endif
             MappedFile = MemoryMappedFile.CreateOrOpen(
                 mapName: MapNamePrefix + options.QueueName,
-                options.GetQueueCapacityInBytes(),
+                options.GetQueueDiskSize(),
                 MemoryMappedFileAccess.ReadWrite,
                 MemoryMappedFileOptions.None,
                 HandleInheritability.None);
