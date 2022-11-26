@@ -41,7 +41,7 @@ namespace Cloudtoid.Interprocess
         public string Path { get; }
 
         /// <summary>
-        /// Gets the size of the queue in bytes. This does NOT include the size needed for the queue header.
+        /// Gets the size of the queue in bytes. This does NOT include the space needed for the queue header.
         /// </summary>
         public long Capacity { get; }
 
