@@ -74,7 +74,7 @@ namespace Cloudtoid.Interprocess
         /// </list>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static unsafe long GetMessageLength(long bodyLength)
+        protected static unsafe long GetPaddedMessageLength(long bodyLength)
         {
             var length = sizeof(MessageHeader) + bodyLength;
 

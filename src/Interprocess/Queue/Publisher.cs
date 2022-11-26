@@ -25,7 +25,7 @@ namespace Cloudtoid.Interprocess
         public unsafe bool TryEnqueue(ReadOnlySpan<byte> message)
         {
             var bodyLength = message.Length;
-            var messageLength = GetMessageLength(bodyLength);
+            var messageLength = GetPaddedMessageLength(bodyLength);
 
             while (true)
             {

@@ -103,19 +103,20 @@ namespace Cloudtoid.Interprocess
 
             message = ReadOnlyMemory<byte>.Empty;
             var header = *Header;
-            var readLockTimestamp = header.ReadLockTimestamp;
-            var nowInTicks = DateTime.UtcNow.Ticks;
-
-            // is there already a lock or has the previous lock timed out meaning that a subscriber crashed?
-            if (nowInTicks - readLockTimestamp < TicksForTenSeconds)
-                return false;
 
             // is this an empty queue?
             if (header.IsEmpty())
                 return false;
 
+            var readLockTimestamp = header.ReadLockTimestamp;
+            var now = DateTime.UtcNow.Ticks;
+
+            // is there already a read-lock or has the previous lock timed out meaning that a subscriber crashed?
+            if (now - readLockTimestamp < TicksForTenSeconds)
+                return false;
+
             // take a read-lock so no other thread can read a message
-            if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, nowInTicks, readLockTimestamp) != readLockTimestamp)
+            if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, now, readLockTimestamp) != readLockTimestamp)
                 return false;
 
             try
@@ -124,20 +125,20 @@ namespace Cloudtoid.Interprocess
                 if (Header->IsEmpty())
                     return false;
 
-                // now we have the lock and the queue is not empty
+                // now finally have a read-lock and the queue is not empty
                 var readOffset = Header->ReadOffset;
                 var messageHeader = (MessageHeader*)Buffer.GetPointer(readOffset);
 
-                // was this message fully written by the publisher? if not, release the lock and retry again later
-                if (Interlocked.CompareExchange(
+                // was this message fully written by the publisher? if not, wait for the publisher to finish writting it
+                while (Interlocked.CompareExchange(
                     ref messageHeader->State,
                     MessageHeader.LockedToBeConsumedState,
                     MessageHeader.ReadyToBeConsumedState) != MessageHeader.ReadyToBeConsumedState)
                 {
-                    return false;
+                    Thread.Yield();
                 }
 
-                // read the message body from the queue buffer
+                // read the message body from the queue
                 var bodyLength = messageHeader->BodyLength;
                 message = Buffer.Read(
                     GetMessageBodyOffset(readOffset),
@@ -145,15 +146,16 @@ namespace Cloudtoid.Interprocess
                     resultBuffer);
 
                 // zero out the message, including the message header
-                var messageLength = GetMessageLength(bodyLength);
+                var messageLength = GetPaddedMessageLength(bodyLength);
                 Buffer.Clear(readOffset, messageLength);
 
                 // update the read offset of the queue
-                readOffset = SafeIncrementMessageOffset(readOffset, messageLength);
-                Interlocked.Exchange(ref Header->ReadOffset, readOffset);
+                var newReadOffset = SafeIncrementMessageOffset(readOffset, messageLength);
+                Interlocked.Exchange(ref Header->ReadOffset, newReadOffset);
             }
             finally
             {
+                // release the read-lock
                 Interlocked.Exchange(ref Header->ReadLockTimestamp, 0L);
             }
 
