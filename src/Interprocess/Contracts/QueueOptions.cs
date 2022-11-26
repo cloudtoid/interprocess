@@ -41,7 +41,7 @@ namespace Cloudtoid.Interprocess
         public string Path { get; }
 
         /// <summary>
-        /// Gets the maximum capacity of the queue in bytes.
+        /// Gets the size of the queue on disk in bytes.
         /// </summary>
         public long Capacity { get; }
 
