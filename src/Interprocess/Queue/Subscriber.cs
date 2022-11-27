@@ -102,22 +102,28 @@ namespace Cloudtoid.Interprocess
             cancellationSource.ThrowIfCancellationRequested(cancellation);
 
             message = ReadOnlyMemory<byte>.Empty;
-            var header = *Header;
 
-            // is this an empty queue?
-            if (header.IsEmpty())
-                return false;
+            while (true)
+            {
+                var header = *Header;
 
-            var readLockTimestamp = header.ReadLockTimestamp;
-            var now = DateTime.UtcNow.Ticks;
+                // is this an empty queue?
+                if (header.IsEmpty())
+                    return false;
 
-            // is there already a read-lock or has the previous lock timed out meaning that a subscriber crashed?
-            if (now - readLockTimestamp < TicksForTenSeconds)
-                return false;
+                var readLockTimestamp = header.ReadLockTimestamp;
+                var now = DateTime.UtcNow.Ticks;
 
-            // take a read-lock so no other thread can read a message
-            if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, now, readLockTimestamp) != readLockTimestamp)
-                return false;
+                // is there already a read-lock or has the previous lock timed out meaning that a subscriber crashed?
+                if (now - readLockTimestamp < TicksForTenSeconds)
+                    return false;
+
+                // take a read-lock so no other thread can read a message
+                if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, now, readLockTimestamp) == readLockTimestamp)
+                    break;
+
+                Thread.Yield();
+            }
 
             try
             {
