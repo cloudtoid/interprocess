@@ -6,7 +6,7 @@ namespace Cloudtoid.Interprocess
 {
     internal sealed class Subscriber : Queue, ISubscriber
     {
-        private static readonly long TicksForTenSeconds = TimeSpan.FromSeconds(10).Ticks;
+        private static readonly long TenSeconds = TimeSpan.FromSeconds(10).Ticks;
         private readonly CancellationTokenSource cancellationSource = new();
         private readonly CountdownEvent countdownEvent = new(1);
         private readonly IInterprocessSemaphoreWaiter signal;
@@ -74,18 +74,13 @@ namespace Cloudtoid.Interprocess
 
             try
             {
-                int i = -5;
                 while (true)
                 {
                     if (TryDequeueImpl(resultBuffer, cancellation, out var message))
                         return message;
 
-                    if (i > 10)
-                        signal.Wait(millisecondsTimeout: 10);
-                    else if (i++ > 0)
-                        signal.Wait(millisecondsTimeout: i);
-                    else
-                        Thread.Yield();
+                    signal.Wait(millisecondsTimeout: 5);
+                    cancellationSource.ThrowIfCancellationRequested(cancellation);
                 }
             }
             finally
@@ -99,8 +94,6 @@ namespace Cloudtoid.Interprocess
             CancellationToken cancellation,
             out ReadOnlyMemory<byte> message)
         {
-            cancellationSource.ThrowIfCancellationRequested(cancellation);
-
             message = ReadOnlyMemory<byte>.Empty;
 
             while (true)
@@ -115,14 +108,16 @@ namespace Cloudtoid.Interprocess
                 var now = DateTime.UtcNow.Ticks;
 
                 // is there already a read-lock or has the previous lock timed out meaning that a subscriber crashed?
-                if (now - readLockTimestamp < TicksForTenSeconds)
-                    return false;
+                if (now - readLockTimestamp < TenSeconds)
+                {
+                    Thread.Yield();
+                    cancellationSource.ThrowIfCancellationRequested(cancellation);
+                    continue;
+                }
 
                 // take a read-lock so no other thread can read a message
                 if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, now, readLockTimestamp) == readLockTimestamp)
                     break;
-
-                Thread.Yield();
             }
 
             try
@@ -142,6 +137,7 @@ namespace Cloudtoid.Interprocess
                     MessageHeader.ReadyToBeConsumedState) != MessageHeader.ReadyToBeConsumedState)
                 {
                     Thread.Yield();
+                    cancellationSource.ThrowIfCancellationRequested(cancellation);
                 }
 
                 // read the message body from the queue
