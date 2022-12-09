@@ -12,10 +12,10 @@
 
 - [**Fast**](#performance): It is *extremely* fast.
 - **Cross-platform**: It supports Windows, and Unix-based operating systems such as Linux, [MacOS][MacOSWiki], and [FreeBSD][FreeBSDOrg].
-- [**API**](#Usage): Provides a simple and intuitive API to enqueue/send and dequeue/receive messages.
+- [**API**](#usage): Provides a simple and intuitive API to enqueue/send and dequeue/receive messages.
 - **Multiple publishers and subscribers**: It supports multiple publishers and subscribers to a shared queue.
 - [**Efficient**](#performance): Sending and receiving messages is almost heap memory allocation free reducing garbage collections.
-- [**Developer**](#Author): Developed by a guy at Microsoft.
+- [**Developer**](#author): Developed by a guy at Microsoft.
 
 ## NuGet Package
 
@@ -40,7 +40,7 @@ Creating a message queue publisher:
 ```csharp
 var options = new QueueOptions(
     queueName: "my-queue",
-    bytesCapacity: 1024 * 1024);
+    capacity: 1024 * 1024);
 
 using var publisher = factory.CreatePublisher(options);
 publisher.TryEnqueue(message);
@@ -51,7 +51,7 @@ Creating a message queue subscriber:
 ```csharp
 options = new QueueOptions(
     queueName: "my-queue",
-    bytesCapacity: 1024 * 1024);
+    capacity: 1024 * 1024);
 
 using var subscriber = factory.CreateSubscriber(options);
 subscriber.TryDequeue(messageBuffer, cancellationToken, out var message);
@@ -72,7 +72,7 @@ Creating a message queue publisher using an instance of `IQueueFactory` retrieve
 ```csharp
 var options = new QueueOptions(
     queueName: "my-queue",
-    bytesCapacity: 1024 * 1024);
+    capacity: 1024 * 1024);
 
 using var publisher = factory.CreatePublisher(options);
 publisher.TryEnqueue(message);
@@ -83,7 +83,7 @@ Creating a message queue subscriber using an instance of `IQueueFactory` retriev
 ```csharp
 var options = new QueueOptions(
     queueName: "my-queue",
-    bytesCapacity: 1024 * 1024);
+    capacity: 1024 * 1024);
 
 using var subscriber = factory.CreateSubscriber(options);
 subscriber.TryDequeue(messageBuffer, cancellationToken, out var message);
@@ -229,8 +229,8 @@ Here are a couple of items that we are working on.
 [MacOSWiki]:https://en.wikipedia.org/wiki/MacOS
 [FreeBSDOrg]:https://www.freebsd.org/
 [Wow64Wiki]:https://en.wikipedia.org/wiki/WoW64
-[WslDoc]:https://docs.microsoft.com/en-us/windows/wsl/about
+[WslDoc]:https://learn.microsoft.com/windows/wsl/about
 [BenchmarkOrg]:https://benchmarkdotnet.org/
-[NamedSemaphoresDoc]:https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore#remarks
-[SemaphoreDoc]:https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore
+[NamedSemaphoresDoc]:https://docs.microsoft.com/dotnet/api/system.threading.semaphore#remarks
+[SemaphoreDoc]:https://docs.microsoft.com/dotnet/api/system.threading.semaphore
 [PedramLinkedIn]:https://www.linkedin.com/in/pedramrezaei/
