@@ -25,7 +25,7 @@ The NuGet package for this library is published [here][NuGet].
 
 ## Usage
 
-This library supports .NET Core 3.1+ and .NET 6+. It is optimized for .NET dependency injection but can also be used without DI.
+This library supports .NET 8.0+. It is optimized for .NET dependency injection but can also be used without DI.
 
 ### Usage without DI
 
