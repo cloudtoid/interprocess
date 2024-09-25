@@ -6,7 +6,6 @@
 [![Latest NuGet][NuGetBadge]][NuGet]
 [![License: MIT][LicenseBadge]][License]
 ![.NET Platform][DotNetPlatformBadge]
-![.NET Core][DotNet31Badge]
 
 **Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC][IPCWiki]). It uses a shared memory-mapped file for extremely fast and efficient communication between processes and it is used internally by Microsoft.
 
@@ -222,8 +221,7 @@ Here are a couple of items that we are working on.
 [WorkflowBadgePublish]:https://github.com/cloudtoid/interprocess/workflows/publish/badge.svg
 [PublishWorkflow]:https://github.com/cloudtoid/interprocess/actions/workflows/publish.yml
 [NuGetBadge]:https://img.shields.io/nuget/vpre/Cloudtoid.Interprocess
-[DotNet31Badge]:https://img.shields.io/badge/.net%20core-%3E%203.1-blue
-[DotNetPlatformBadge]:https://img.shields.io/badge/.net-%3E%206.0-blue
+[DotNetPlatformBadge]:https://img.shields.io/badge/.net-%3E%208.0-blue
 [NuGet]:https://www.nuget.org/packages/Cloudtoid.Interprocess/
 [IPCWiki]:https://en.wikipedia.org/wiki/Inter-process_communication
 [MacOSWiki]:https://en.wikipedia.org/wiki/MacOS
