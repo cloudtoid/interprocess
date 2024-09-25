@@ -11,8 +11,7 @@ namespace Cloudtoid.Interprocess.Semaphore.MacOS
     {
         private const string Lib = "libSystem.dylib";
         private const int SEMVALUEMAX = 32767;
-        private const int OCREAT = 0x0200;  // create the semaphore if it does not exist
-
+        private const int OCREAT = 0x0200;   // create the semaphore if it does not exist
         private const int ENOENT = 2;        // The named semaphore does not exist.
         private const int EINTR = 4;         // Semaphore operation was interrupted by a signal.
         private const int EDEADLK = 11;      // A deadlock was detected.
@@ -58,13 +57,13 @@ namespace Cloudtoid.Interprocess.Semaphore.MacOS
             {
                 EINVAL => new ArgumentException($"The initial count cannot be greater than {SEMVALUEMAX}.", nameof(initialCount)),
                 ENAMETOOLONG => new ArgumentException($"The specified semaphore name is too long.", nameof(name)),
-                EACCES => new PosixSempahoreUnauthorizedAccessException(),
-                EEXIST => new PosixSempahoreExistsException(),
+                EACCES => new PosixSemaphoreUnauthorizedAccessException(),
+                EEXIST => new PosixSemaphoreExistsException(),
                 EINTR => new OperationCanceledException(),
-                ENFILE => new PosixSempahoreException("Too many semaphores or file descriptors are open on the system."),
-                EMFILE => new PosixSempahoreException("Too many semaphores or file descriptors are open by this process."),
+                ENFILE => new PosixSemaphoreException("Too many semaphores or file descriptors are open on the system."),
+                EMFILE => new PosixSemaphoreException("Too many semaphores or file descriptors are open by this process."),
                 ENOMEM => new InsufficientMemoryException(),
-                _ => new PosixSempahoreException(Error),
+                _ => new PosixSemaphoreException(Error),
             };
         }
 
@@ -75,9 +74,9 @@ namespace Cloudtoid.Interprocess.Semaphore.MacOS
 
             throw Error switch
             {
-                EINVAL => new InvalidPosixSempahoreException(),
+                EINVAL => new InvalidPosixSemaphoreException(),
                 EOVERFLOW => new SemaphoreFullException(),
-                _ => new PosixSempahoreException(Error),
+                _ => new PosixSemaphoreException(Error),
             };
         }
 
@@ -109,10 +108,10 @@ namespace Cloudtoid.Interprocess.Semaphore.MacOS
 
             throw Error switch
             {
-                EINVAL => new InvalidPosixSempahoreException(),
-                EDEADLK => new PosixSempahoreException($"A deadlock was detected attempting to wait on a semaphore."),
+                EINVAL => new InvalidPosixSemaphoreException(),
+                EDEADLK => new PosixSemaphoreException($"A deadlock was detected attempting to wait on a semaphore."),
                 EINTR => new OperationCanceledException(),
-                _ => new PosixSempahoreException(Error),
+                _ => new PosixSemaphoreException(Error),
             };
         }
 
@@ -124,10 +123,10 @@ namespace Cloudtoid.Interprocess.Semaphore.MacOS
             return Error switch
             {
                 EAGAIN => false,
-                EINVAL => throw new InvalidPosixSempahoreException(),
-                EDEADLK => throw new PosixSempahoreException($"A deadlock was detected attempting to wait on a semaphore."),
+                EINVAL => throw new InvalidPosixSemaphoreException(),
+                EDEADLK => throw new PosixSemaphoreException($"A deadlock was detected attempting to wait on a semaphore."),
                 EINTR => throw new OperationCanceledException(),
-                _ => throw new PosixSempahoreException(Error),
+                _ => throw new PosixSemaphoreException(Error),
             };
         }
 
@@ -138,8 +137,8 @@ namespace Cloudtoid.Interprocess.Semaphore.MacOS
 
             throw Error switch
             {
-                EINVAL => new InvalidPosixSempahoreException(),
-                _ => new PosixSempahoreException(Error),
+                EINVAL => new InvalidPosixSemaphoreException(),
+                _ => new PosixSemaphoreException(Error),
             };
         }
 
@@ -151,9 +150,9 @@ namespace Cloudtoid.Interprocess.Semaphore.MacOS
             throw Error switch
             {
                 ENAMETOOLONG => new ArgumentException($"The specified semaphore name is too long.", nameof(name)),
-                EACCES => new PosixSempahoreUnauthorizedAccessException(),
-                ENOENT => new PosixSempahoreNotExistsException(),
-                _ => new PosixSempahoreException(Error),
+                EACCES => new PosixSemaphoreUnauthorizedAccessException(),
+                ENOENT => new PosixSemaphoreNotExistsException(),
+                _ => new PosixSemaphoreException(Error),
             };
         }
     }

@@ -55,13 +55,13 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
             {
                 EINVAL => new ArgumentException($"The initial count cannot be greater than {SEMVALUEMAX}.", nameof(initialCount)),
                 ENAMETOOLONG => new ArgumentException($"The specified semaphore name is too long.", nameof(name)),
-                EACCES => new PosixSempahoreUnauthorizedAccessException(),
-                EEXIST => new PosixSempahoreExistsException(),
+                EACCES => new PosixSemaphoreUnauthorizedAccessException(),
+                EEXIST => new PosixSemaphoreExistsException(),
                 EINTR => new OperationCanceledException(),
-                ENFILE => new PosixSempahoreException("Too many semaphores or file descriptors are open on the system."),
-                EMFILE => new PosixSempahoreException("Too many semaphores or file descriptors are open by this process."),
+                ENFILE => new PosixSemaphoreException("Too many semaphores or file descriptors are open on the system."),
+                EMFILE => new PosixSemaphoreException("Too many semaphores or file descriptors are open by this process."),
                 ENOMEM => new InsufficientMemoryException(),
-                _ => new PosixSempahoreException(Error),
+                _ => new PosixSemaphoreException(Error),
             };
         }
 
@@ -72,9 +72,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
 
             throw Error switch
             {
-                EINVAL => new InvalidPosixSempahoreException(),
+                EINVAL => new InvalidPosixSemaphoreException(),
                 EOVERFLOW => new SemaphoreFullException(),
-                _ => new PosixSempahoreException(Error),
+                _ => new PosixSemaphoreException(Error),
             };
         }
 
@@ -97,9 +97,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
 
             throw Error switch
             {
-                EINVAL => new InvalidPosixSempahoreException(),
+                EINVAL => new InvalidPosixSemaphoreException(),
                 EINTR => new OperationCanceledException(),
-                _ => new PosixSempahoreException(Error),
+                _ => new PosixSemaphoreException(Error),
             };
         }
 
@@ -111,9 +111,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
             return Error switch
             {
                 ETIMEDOUT => false,
-                EINVAL => throw new InvalidPosixSempahoreException(),
+                EINVAL => throw new InvalidPosixSemaphoreException(),
                 EINTR => throw new OperationCanceledException(),
-                _ => throw new PosixSempahoreException(Error),
+                _ => throw new PosixSemaphoreException(Error),
             };
         }
 
@@ -124,8 +124,8 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
 
             throw Error switch
             {
-                EINVAL => new InvalidPosixSempahoreException(),
-                _ => new PosixSempahoreException(Error),
+                EINVAL => new InvalidPosixSemaphoreException(),
+                _ => new PosixSemaphoreException(Error),
             };
         }
 
@@ -137,9 +137,9 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
             throw Error switch
             {
                 ENAMETOOLONG => new ArgumentException($"The specified semaphore name is too long.", nameof(name)),
-                EACCES => new PosixSempahoreUnauthorizedAccessException(),
-                ENOENT => new PosixSempahoreNotExistsException(),
-                _ => new PosixSempahoreException(Error),
+                EACCES => new PosixSemaphoreUnauthorizedAccessException(),
+                ENOENT => new PosixSemaphoreNotExistsException(),
+                _ => new PosixSemaphoreException(Error),
             };
         }
     }
