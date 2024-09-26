@@ -7,14 +7,15 @@ using Cloudtoid.Interprocess.Semaphore.Posix;
 namespace Cloudtoid.Interprocess.Semaphore.Linux
 {
     [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1300:Element should begin with upper-case letter", Justification = "Matching the exact names in Linux/MacOS")]
-    internal static class Interop
+    internal static partial class Interop
     {
         private const string Lib = "librt.so.1";
         private const uint SEMVALUEMAX = 32767;
-        private const int OCREAT = 0x040;    // create the semaphore if it does not exist
+        private const int OCREAT = 0x040;    // Create the semaphore if it does not exist
 
         private const int ENOENT = 2;        // The named semaphore does not exist.
         private const int EINTR = 4;         // Semaphore operation was interrupted by a signal.
+        private const int EAGAIN = 11;       // Couldn't be acquired (sem_trywait)
         private const int ENOMEM = 12;       // Out of memory
         private const int EACCES = 13;       // Semaphore exists, but the caller does not have permission to open it.
         private const int EEXIST = 17;       // O_CREAT and O_EXCL were specified and the semaphore exists.
@@ -27,27 +28,30 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
 
         private static unsafe int Error => Marshal.GetLastWin32Error();
 
-        [DllImport(Lib, SetLastError = true)]
-        private static extern IntPtr sem_open([MarshalAs(UnmanagedType.LPUTF8Str)] string name, int oflag, uint mode, uint value);
+        [LibraryImport(Lib, EntryPoint = "sem_open", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
+        private static partial IntPtr SemaphoreOpen(string name, int oflag, uint mode, uint value);
 
-        [DllImport(Lib, SetLastError = true)]
-        private static extern int sem_post(IntPtr handle);
+        [LibraryImport(Lib, EntryPoint = "sem_post", SetLastError = true)]
+        private static partial int SemaphorePost(IntPtr handle);
 
-        [DllImport(Lib, SetLastError = true)]
-        private static extern int sem_wait(IntPtr handle);
+        [LibraryImport(Lib, EntryPoint = "sem_wait", SetLastError = true)]
+        private static partial int SemaphoreWait(IntPtr handle);
 
-        [DllImport(Lib, SetLastError = true)]
-        private static extern int sem_timedwait(IntPtr handle, ref PosixTimespec abs_timeout);
+        [LibraryImport(Lib, EntryPoint = "sem_trywait", SetLastError = true)]
+        private static partial int SemaphoreTryWait(IntPtr handle);
 
-        [DllImport(Lib, SetLastError = true)]
-        private static extern int sem_unlink([MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+        [LibraryImport(Lib, EntryPoint = "sem_timedwait", SetLastError = true)]
+        private static partial int SemaphoreTimedWait(IntPtr handle, ref PosixTimespec abs_timeout);
 
-        [DllImport(Lib, SetLastError = true)]
-        private static extern int sem_close(IntPtr handle);
+        [LibraryImport(Lib, EntryPoint = "sem_unlink", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
+        private static partial int SemaphoreUnlink(string name);
+
+        [LibraryImport(Lib, EntryPoint = "sem_close", SetLastError = true)]
+        private static partial int SemaphoreClose(IntPtr handle);
 
         internal static IntPtr CreateOrOpenSemaphore(string name, uint initialCount)
         {
-            var handle = sem_open(name, OCREAT, (uint)PosixFilePermissions.ACCESSPERMS, initialCount);
+            var handle = SemaphoreOpen(name, OCREAT, (uint)PosixFilePermissions.ACCESSPERMS, initialCount);
             if (handle != IntPtr.Zero)
                 return handle;
 
@@ -67,7 +71,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
 
         internal static void Release(IntPtr handle)
         {
-            if (sem_post(handle) == 0)
+            if (SemaphorePost(handle) == 0)
                 return;
 
             throw Error switch
@@ -85,6 +89,19 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
                 Wait(handle);
                 return true;
             }
+            else if (millisecondsTimeout == 0)
+            {
+                if (SemaphoreTryWait(handle) == 0)
+                    return true;
+
+                return Error switch
+                {
+                    EAGAIN => false,
+                    EINVAL => throw new InvalidPosixSemaphoreException(),
+                    EINTR => throw new OperationCanceledException(),
+                    _ => throw new PosixSemaphoreException(Error),
+                };
+            }
 
             var timeout = DateTimeOffset.UtcNow.AddMilliseconds(millisecondsTimeout);
             return Wait(handle, timeout);
@@ -92,7 +109,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
 
         private static void Wait(IntPtr handle)
         {
-            if (sem_wait(handle) == 0)
+            if (SemaphoreWait(handle) == 0)
                 return;
 
             throw Error switch
@@ -105,7 +122,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
 
         private static bool Wait(IntPtr handle, PosixTimespec timeout)
         {
-            if (sem_timedwait(handle, ref timeout) == 0)
+            if (SemaphoreTimedWait(handle, ref timeout) == 0)
                 return true;
 
             return Error switch
@@ -119,7 +136,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
 
         internal static void Close(IntPtr handle)
         {
-            if (sem_close(handle) == 0)
+            if (SemaphoreClose(handle) == 0)
                 return;
 
             throw Error switch
@@ -131,7 +148,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux
 
         internal static void Unlink(string name)
         {
-            if (sem_unlink(name) == 0)
+            if (SemaphoreUnlink(name) == 0)
                 return;
 
             throw Error switch
