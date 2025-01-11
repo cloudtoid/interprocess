@@ -31,7 +31,7 @@ namespace Cloudtoid.Interprocess.Semaphore.MacOS
         private static unsafe int Error => Marshal.GetLastWin32Error();
 
         [LibraryImport(Lib, EntryPoint = "sem_open", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
-        private static partial IntPtr SemaphoreOpen(string name, int oflag, uint mode, uint value);
+        private static partial IntPtr SemaphoreOpen(string name, int oflag, ulong __x2, ulong __x3, ulong __x4, ulong __x5, ulong __x6, ulong __x7, ulong mode, uint value);
 
         [LibraryImport(Lib, EntryPoint = "sem_post", SetLastError = true)]
         private static partial int SemaphorePost(IntPtr handle);
@@ -50,7 +50,7 @@ namespace Cloudtoid.Interprocess.Semaphore.MacOS
 
         internal static IntPtr CreateOrOpenSemaphore(string name, uint initialCount)
         {
-            var handle = SemaphoreOpen(name, OCREAT, (uint)PosixFilePermissions.ACCESSPERMS, initialCount);
+            var handle = SemaphoreOpen(name, OCREAT, 0, 0, 0, 0, 0, 0, (uint)PosixFilePermissions.ACCESSPERMS, initialCount);
             if (handle != SemFailed)
                 return handle;
 
