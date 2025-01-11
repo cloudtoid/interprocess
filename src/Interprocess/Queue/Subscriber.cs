@@ -24,7 +24,7 @@ namespace Cloudtoid.Interprocess
             countdownEvent.Signal();
             countdownEvent.Wait();
 
-            // There is a potential for a race condition in *DequeueCore if the cancellationSource.
+            // There is a potential for a race condition in DequeueCore if the cancellationSource
             // was not cancelled before AddEvent is called. The sleep here will prevent that.
             Thread.Sleep(millisecondsTimeout: 10);
 
