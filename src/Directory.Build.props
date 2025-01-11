@@ -2,7 +2,7 @@
 
   <!-- Build Settings -->
   <PropertyGroup>
-    <TargetFrameworks>net8.0</TargetFrameworks>
+    <TargetFrameworks>net9.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
@@ -13,7 +13,7 @@
   <PropertyGroup>
     <CloudtoidCodeAnalysisVersion>1.0.*</CloudtoidCodeAnalysisVersion>
     <CloudtoidFrameworkVersion>1.0.*</CloudtoidFrameworkVersion>
-    <MicrosoftExtensionsVersion>6.0.*</MicrosoftExtensionsVersion>
+    <MicrosoftExtensionsVersion>9.0.*</MicrosoftExtensionsVersion>
   </PropertyGroup>
 
   <!-- Package Dependencies -->

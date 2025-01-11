@@ -18,7 +18,7 @@ namespace Cloudtoid.Interprocess.Tests
             this.fileName = fileName;
         }
 
-        public IDisposable BeginScope<TState>(TState state)
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull
             => NoopDisposable.Instance;
 
         public bool IsEnabled(LogLevel logLevel)
