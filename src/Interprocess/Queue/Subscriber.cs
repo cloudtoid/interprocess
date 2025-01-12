@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Logging;
-
 namespace Cloudtoid.Interprocess;
 
 internal sealed class Subscriber : Queue, ISubscriber

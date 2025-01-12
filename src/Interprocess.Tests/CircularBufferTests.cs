@@ -1,6 +1,3 @@
-using FluentAssertions;
-using Xunit;
-
 namespace Cloudtoid.Interprocess.Tests;
 
 public unsafe class CircularBufferTests
