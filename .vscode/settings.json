@@ -4,9 +4,12 @@
         "Diagnoser",
         "Interprocess",
         "Kaby",
+        "Onnx",
         "Pedram",
         "Posix",
         "Rezaei",
+        "Roslynator",
+        "Timespec",
         "Xeon",
         "Xunit"
     ]

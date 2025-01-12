@@ -1,9 +1,10 @@
-﻿using System;
+﻿namespace Cloudtoid.Interprocess;
 
-namespace Cloudtoid.Interprocess
+/// <summary>
+/// Message publisher that publishes messages to the subscribers.
+/// </summary>
+public interface IPublisher : IDisposable
 {
-    public interface IPublisher : IDisposable
-    {
-        bool TryEnqueue(ReadOnlySpan<byte> message);
-    }
+    /// <summary>Enqueues the message to be published to the subscribers.</summary>
+    bool TryEnqueue(ReadOnlySpan<byte> message);
 }

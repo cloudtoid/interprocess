@@ -2,27 +2,19 @@
 
   <!-- Build Settings -->
   <PropertyGroup>
-    <TargetFrameworks>net9.0</TargetFrameworks>
+   <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisMode>All</AnalysisMode>
+    <EmitCompilerGeneratedFiles>false</EmitCompilerGeneratedFiles>
   </PropertyGroup>
-
-  <!-- Versions -->
-  <PropertyGroup>
-    <CloudtoidCodeAnalysisVersion>1.0.*</CloudtoidCodeAnalysisVersion>
-    <CloudtoidFrameworkVersion>1.0.*</CloudtoidFrameworkVersion>
-    <MicrosoftExtensionsVersion>9.0.*</MicrosoftExtensionsVersion>
-  </PropertyGroup>
-
-  <!-- Package Dependencies -->
-  <ItemGroup>
-    <PackageReference Include="Cloudtoid.CodeAnalysis" Version="$(CloudtoidCodeAnalysisVersion)">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Cloudtoid.Framework" Version="$(CloudtoidFrameworkVersion)" />
-  </ItemGroup>
 
 </Project>
