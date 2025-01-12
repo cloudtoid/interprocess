@@ -1,9 +1,6 @@
-﻿using System;
+namespace Cloudtoid.Interprocess;
 
-namespace Cloudtoid.Interprocess
+internal interface IInterprocessSemaphoreReleaser : IDisposable
 {
-    internal interface IInterprocessSemaphoreReleaser : IDisposable
-    {
-        void Release();
-    }
+    void Release();
 }

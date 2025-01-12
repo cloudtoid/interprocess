@@ -1,38 +1,36 @@
-﻿using System;
-using System.IO;
+namespace Cloudtoid.Interprocess.Tests;
 
-namespace Cloudtoid.Interprocess.Tests
+public class UniquePathFixture : IDisposable
 {
-    public class UniquePathFixture : IDisposable
-    {
-        private static readonly string Root = System.IO.Path.GetTempPath();
+    private static readonly string Root = System.IO.Path.GetTempPath();
 
-        public UniquePathFixture()
+    public UniquePathFixture()
+    {
+        while (true)
         {
-            while (true)
+            var folder = (DateTime.UtcNow.Ticks % 0xFFFFF).ToStringInvariant("X5");
+            Path = System.IO.Path.Combine(Root, folder);
+            if (!Directory.Exists(Path))
             {
-                var folder = (DateTime.UtcNow.Ticks % 0xFFFFF).ToStringInvariant("X5");
-                Path = System.IO.Path.Combine(Root, folder);
-                if (!Directory.Exists(Path))
-                {
-                    Directory.CreateDirectory(Path);
-                    break;
-                }
+                Directory.CreateDirectory(Path);
+                break;
             }
         }
+    }
 
-        internal string Path { get; }
+    internal string Path { get; }
 
-        public void Dispose()
+    public void Dispose()
+    {
+        foreach (var file in Directory.EnumerateFiles(Path))
+            PathUtil.TryDeleteFile(file);
+
+        try
         {
-            foreach (var file in Directory.EnumerateFiles(Path))
-                PathUtil.TryDeleteFile(file);
-
-            try
-            {
-                Directory.Delete(Path);
-            }
-            catch { }
+            Directory.Delete(Path);
+        }
+        catch
+        {
         }
     }
 }

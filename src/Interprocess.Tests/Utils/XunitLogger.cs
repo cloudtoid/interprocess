@@ -1,62 +1,56 @@
-﻿using System;
-using System.IO;
 using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 
-namespace Cloudtoid.Interprocess.Tests
+namespace Cloudtoid.Interprocess.Tests;
+
+public class XunitLogger(ITestOutputHelper testOutputHelper, string categoryName, string? fileName) : ILogger
 {
-    public class XunitLogger : ILogger
+    public IDisposable BeginScope<TState>(TState state)
+        where TState : notnull =>
+        NoopDisposable.Instance;
+
+    public bool IsEnabled(LogLevel logLevel) =>
+        true;
+
+    public void Log<TState>(
+        LogLevel logLevel,
+        EventId eventId,
+        TState state,
+        Exception? exception,
+        Func<TState, Exception?, string> formatter)
     {
-        private readonly ITestOutputHelper testOutputHelper;
-        private readonly string categoryName;
-        private readonly string? fileName;
+        var message = $"{categoryName} [{eventId}] {formatter(state, exception)}";
+        testOutputHelper.WriteLine(message);
+        if (exception is not null)
+            testOutputHelper.WriteLine(exception.ToString());
 
-        public XunitLogger(ITestOutputHelper testOutputHelper, string categoryName, string? fileName)
+        LogToFile(message, exception);
+    }
+
+    private void LogToFile(string message, Exception? exception)
+    {
+        if (fileName is null)
+            return;
+
+        if (exception is not null)
+            message += Environment.NewLine + exception;
+
+        while (true)
         {
-            this.testOutputHelper = testOutputHelper;
-            this.categoryName = categoryName;
-            this.fileName = fileName;
-        }
-
-        public IDisposable BeginScope<TState>(TState state) where TState : notnull
-            => NoopDisposable.Instance;
-
-        public bool IsEnabled(LogLevel logLevel)
-            => true;
-
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-        {
-            var message = $"{categoryName} [{eventId}] {formatter(state, exception)}";
-            testOutputHelper.WriteLine(message);
-            if (exception != null)
-                testOutputHelper.WriteLine(exception.ToString());
-
-            LogToFile(message, exception);
-        }
-
-        private void LogToFile(string message, Exception? exception)
-        {
-            if (fileName is null)
-                return;
-
-            if (exception != null)
-                message += Environment.NewLine + exception.ToString();
-
-            while (true)
+            try
             {
-                try
-                {
-                    File.AppendAllText(fileName, message);
-                    break;
-                }
-                catch { }
+                File.AppendAllText(fileName, message);
+                break;
+            }
+            catch
+            {
             }
         }
+    }
 
-        private sealed class NoopDisposable : IDisposable
-        {
-            public static readonly NoopDisposable Instance = new();
-            public void Dispose() { }
-        }
+    private sealed class NoopDisposable : IDisposable
+    {
+        public static readonly NoopDisposable Instance = new();
+        public void Dispose() { }
     }
 }
