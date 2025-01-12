@@ -159,8 +159,6 @@ Apple M3 Max, 1 CPU, 16 logical and 16 physical cores
   .NET 9.0 : .NET 9.0.0 (9.0.24.52809), Arm64 RyuJIT AdvSIMD
 ```
 
-Job=.NET 9.0  Runtime=.NET 9.0  
-
 |                                            Method | Mean (ns) | Error (ns) | StdDev | Gen0     | Allocated |
 |-------------------------------------------------- |----------:|-----------:|-------:|---------:|----------:|
 |                     'Message enqueue and dequeue' |   `249.2` |     `0.74` | `0.62` |      `-` |       `-` |
