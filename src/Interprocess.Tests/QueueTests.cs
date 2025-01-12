@@ -246,8 +246,8 @@ public class QueueTests : IClassFixture<UniquePathFixture>
         p.TryEnqueue(ByteArray1).Should().BeTrue();
         using var s = CreateSubscriber(1024);
 
-        // This line should take 10 seconds to return (that is how long the timeout is set in teh code)
-        // After the 10 seconds expires, we should have lost all other messages that were in teh queue when we started the dequeue process.
+        // This line should take 10 seconds to return (that is how long the timeout is set in the code)
+        // After the 10 seconds expires, we should have lost all other messages that were in the queue when we started the dequeue process.
         s.TryDequeue(default, out _).Should().BeFalse();
 
         // But then, after this 10 seconds delay, system should fully recover and continue with new messages
