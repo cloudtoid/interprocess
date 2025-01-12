@@ -209,7 +209,7 @@ Here are a couple of items that we are working on.
 [WorkflowBadgePublish]:https://github.com/cloudtoid/interprocess/workflows/publish/badge.svg
 [PublishWorkflow]:https://github.com/cloudtoid/interprocess/actions/workflows/publish.yml
 [NuGetBadge]:https://img.shields.io/nuget/vpre/Cloudtoid.Interprocess
-[DotNetPlatformBadge]:https://img.shields.io/badge/.net-%3E%208.0-blue
+[DotNetPlatformBadge]:https://img.shields.io/badge/.net-%3E%209.0-blue
 [NuGet]:https://www.nuget.org/packages/Cloudtoid.Interprocess/
 [IPCWiki]:https://en.wikipedia.org/wiki/Inter-process_communication
 [macOSWiki]:https://en.wikipedia.org/wiki/macOS
