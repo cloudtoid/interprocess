@@ -107,7 +107,6 @@ A lot has gone into optimizing the implementation of this library. For instance,
 
 |                                          Method |   Description |
 |------------------------------------------------ |-------------- |
-|                                 Message enqueue | Benchmarks the performance of enqueuing a message. |
 |                     Message enqueue and dequeue | Benchmarks the performance of sending a message to a client and receiving that message. It is inclusive of the duration to enqueue and dequeue a message. |
 | Message enqueue and dequeue - no message buffer | Benchmarks the performance of sending a message to a client and receiving that message. It is inclusive of the duration to enqueue and dequeue a message and memory allocation for the received message. |
 
@@ -115,12 +114,6 @@ You can replicate the results by running the following command:
 
 ```sh
 dotnet run Interprocess.Benchmark.csproj -c Release
-```
-
-You can also be explicit about the .NET SDK and Runtime(s) versions:
-
-```sh
-dotnet run Interprocess.Benchmark.csproj -c Release -f net9.0 --runtimes net9.0
 ```
 
 ---
@@ -141,7 +134,6 @@ Results:
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |    `192.7`|      `3.61`|       `3.21`|       `-` |
 |                     Message enqueue and dequeue |    `305.6`|      `5.96`|       `6.62`|       `-` |
 | Message enqueue and dequeue - no message buffer |    `311.5`|      `5.90`|       `9.85`|    `32 B` |
 
@@ -182,7 +174,6 @@ Results:
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |      `5.3`|         `-`|          `-`|        `-`|
 |                     Message enqueue and dequeue |    `169.9`|      `3.08`|       `4.01`|        `-`|
 | Message enqueue and dequeue - no message buffer |    `179.4`|      `1.91`|       `1.60`|     `32 B`|
 
