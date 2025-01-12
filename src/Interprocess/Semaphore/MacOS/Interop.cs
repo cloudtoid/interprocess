@@ -37,8 +37,7 @@ internal static partial class Interop
         throw Error switch
         {
             EINVAL => new ArgumentException(
-                $"The initial count cannot be greater than {SEMVALUEMAX}.",
-                nameof(initialCount)),
+                $"One of the arguments passed to sem_open is invalid. Please also ensure {nameof(initialCount)} is less than {SEMVALUEMAX}."),
             ENAMETOOLONG => new ArgumentException("The specified semaphore name is too long.", nameof(name)),
             EACCES => new PosixSemaphoreUnauthorizedAccessException(),
             EEXIST => new PosixSemaphoreExistsException(),
