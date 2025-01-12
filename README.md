@@ -113,14 +113,14 @@ A lot has gone into optimizing the implementation of this library. For instance,
 
 You can replicate the results by running the following command:
 
-```posh
+```sh
 dotnet run Interprocess.Benchmark.csproj -c Release
 ```
 
 You can also be explicit about the .NET SDK and Runtime(s) versions:
 
-```posh
-dotnet run Interprocess.Benchmark.csproj -c Release -f net7.0 --runtimes net7.0 net6.0 netcoreapp3.1
+```sh
+dotnet run Interprocess.Benchmark.csproj -c Release -f net9.0 --runtimes net9.0
 ```
 
 ---
@@ -152,20 +152,19 @@ Results:
 Host:
 
 ```text
-BenchmarkDotNet=v0.13.1, OS=macOS Big Sur 11.6 (20G165) [Darwin 20.6.0]
-Intel Core i5-8279U CPU 2.40GHz (Coffee Lake), 1 CPU, 8 logical and 4 physical cores
-.NET SDK=5.0.401
-  [Host]        : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
-  .NET 5.0      : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
+BenchmarkDotNet v0.14.0, macOS Sequoia 15.2 (24C101) [Darwin 24.2.0]
+Apple M3 Max, 1 CPU, 16 logical and 16 physical cores
+.NET SDK 9.0.101
+  [Host]   : .NET 9.0.0 (9.0.24.52809), Arm64 RyuJIT AdvSIMD
+  .NET 9.0 : .NET 9.0.0 (9.0.24.52809), Arm64 RyuJIT AdvSIMD
 ```
 
-Results:
+Job=.NET 9.0  Runtime=.NET 9.0  
 
-|                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
-|------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |   `487.50`|      `4.75`|       `3.96`|        `-`|
-|                     Message enqueue and dequeue |   `666.10`|     `10.91`|      `10.20`|        `-`|
-| Message enqueue and dequeue - no message buffer |   `689.33`|     `13.38`|      `15.41`|     `32 B`|
+|                                            Method | Mean (ns) | Error (ns) | StdDev | Gen0     | Allocated |
+|-------------------------------------------------- |----------:|-----------:|-------:|---------:|----------:|
+|                     'Message enqueue and dequeue' |   `249.2` |     `0.74` | `0.62` |      `-` |       `-` |
+| 'Message enqueue and dequeue - no message buffer' |   `252.1` |     `4.10` | `3.83` | `0.0038` |    `32 B` |
 
 ---
 

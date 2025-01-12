@@ -5,9 +5,7 @@ using BenchmarkDotNet.Jobs;
 
 namespace Cloudtoid.Interprocess.Benchmark
 {
-    [SimpleJob(RuntimeMoniker.NetCoreApp31)]
-    [SimpleJob(RuntimeMoniker.Net60)]
-    [SimpleJob(RuntimeMoniker.Net70)]
+    [SimpleJob(RuntimeMoniker.Net90)]
     [MarkdownExporterAttribute.GitHub]
     public class QueueExtendedBenchmark
     {
