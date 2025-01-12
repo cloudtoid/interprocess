@@ -1,10 +1,3 @@
-using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
-using Xunit.Abstractions;
-
 namespace Cloudtoid.Interprocess.Tests;
 
 public class QueueTests : IClassFixture<UniquePathFixture>

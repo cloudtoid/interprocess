@@ -1,5 +1,4 @@
 using Cloudtoid.Interprocess;
-using Microsoft.Extensions.Logging;
 
 namespace Publisher;
 

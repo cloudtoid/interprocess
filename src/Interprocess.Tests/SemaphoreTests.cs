@@ -1,6 +1,5 @@
 using Cloudtoid.Interprocess.Semaphore.Linux;
 using Cloudtoid.Interprocess.Semaphore.MacOS;
-using FluentAssertions;
 
 namespace Cloudtoid.Interprocess.Tests;
 

@@ -1,6 +1,3 @@
-using Microsoft.Extensions.Logging;
-using Xunit.Abstractions;
-
 namespace Cloudtoid.Interprocess.Tests;
 
 public class XunitLoggerProvider(ITestOutputHelper testOutputHelper, string? fileName = null) : ILoggerProvider
