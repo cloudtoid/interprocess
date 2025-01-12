@@ -5,13 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "C#: Publisher Sample",
+            "name": "Publisher Sample",
             "type": "dotnet",
             "request": "launch",
             "projectPath": "${workspaceFolder}/src/Sample/Publisher/Publisher.csproj"
         },
         {
-            "name": "C#: Subscriber Sample",
+            "name": "Subscriber Sample",
             "type": "dotnet",
             "request": "launch",
             "projectPath": "${workspaceFolder}/src/Sample/Subscriber/Subscriber.csproj"
@@ -19,10 +19,10 @@
     ],
     "compounds": [
         {
-            "name": "Both Projects",
+            "name": "Full Sample",
             "configurations": [
-                "C#: Publisher Sample",
-                "C#: Subscriber Sample"
+                "Publisher Sample",
+                "Subscriber Sample"
             ]
         }
     ]

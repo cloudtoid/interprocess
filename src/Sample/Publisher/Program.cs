@@ -5,7 +5,7 @@ namespace Publisher;
 
 internal static partial class Program
 {
-    internal static void Main()
+    internal static async Task Main()
     {
         // Set up an optional logger factory to redirect the traces to he console
 
@@ -27,15 +27,13 @@ internal static partial class Program
 
         // Enqueue messages
 
-        byte i = 0;
+        int i = 0;
         while (true)
         {
-            LogEnqueue(logger, i);
-
-            if (publisher.TryEnqueue([i]))
-                i++;
-
-            Thread.Yield();
+            if (publisher.TryEnqueue([(byte)(i % 256)]))
+                LogEnqueue(logger, i++);
+            else
+                await Task.Delay(100);
         }
     }
 
