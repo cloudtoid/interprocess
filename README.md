@@ -10,11 +10,11 @@
 **Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC][IPCWiki]). It uses a shared memory-mapped file for extremely fast and efficient communication between processes and it is used internally by Microsoft.
 
 - [**Fast**](#performance): It is *extremely* fast.
-- **Cross-platform**: It supports Windows, and Unix-based operating systems such as Linux, [MacOS][MacOSWiki], and [FreeBSD][FreeBSDOrg].
-- [**API**](#Usage): Provides a simple and intuitive API to enqueue/send and dequeue/receive messages.
+- **Cross-platform**: It supports Windows, and Unix-based operating systems such as Linux, [macOS][macOSWiki], and [FreeBSD][FreeBSDOrg].
+- [**API**](#usage): Provides a simple and intuitive API to enqueue/send and dequeue/receive messages.
 - **Multiple publishers and subscribers**: It supports multiple publishers and subscribers to a shared queue.
 - [**Efficient**](#performance): Sending and receiving messages is almost heap memory allocation free reducing garbage collections.
-- [**Developer**](#Author): Developed by a guy at Microsoft.
+- [**Developer**](#author): Developed by a guy at Microsoft.
 
 ## NuGet Package
 
@@ -101,7 +101,7 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 A lot has gone into optimizing the implementation of this library. For instance, it is mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
 
-**Summary**: A full enqueue followed by a dequeue takes `~250 ns` on Linux, `~650 ns` on MacOS, and `~300 ns` on Windows.
+**Summary**: A full enqueue followed by a dequeue takes `~250 ns` on Linux, `~650 ns` on macOS, and `~300 ns` on Windows.
 
 **Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet][BenchmarkOrg] and perform the following runs:
 
@@ -147,7 +147,7 @@ Results:
 
 ---
 
-### On MacOS
+### On macOS
 
 Host:
 
@@ -190,14 +190,14 @@ Results:
 
 This library relies on [Named Semaphores][NamedSemaphoresDoc] To signal the existence of a new message to all message subscribers and to do it across process boundaries. Named semaphores are synchronization constructs accessible across processes.
 
-.NET currently does not support named semaphores on Unix-based OSs (Linux, macOS, etc.). Instead we are using P/Invoke and relying on operating system's POSIX semaphore implementation. ([Linux](src/Interprocess/Semaphore/Linux/Interop.cs) and [MacOS](src/Interprocess/Semaphore/MacOS/Interop.cs) implementations).
+.NET currently does not support named semaphores on Unix-based OSs (Linux, macOS, etc.). Instead we are using P/Invoke and relying on operating system's POSIX semaphore implementation. ([Linux](src/Interprocess/Semaphore/Linux/Interop.cs) and [macOS](src/Interprocess/Semaphore/macOS/Interop.cs) implementations).
 
 This implementation will be replaced with [`System.Threading.Semaphore`][SemaphoreDoc] once .NET adds support for named semaphores on all platforms.
 
 ## How to Contribute
 
 - Create a branch from `main`.
-- Ensure that all tests pass on Windows, Linux, and MacOS.
+- Ensure that all tests pass on Windows, Linux, and macOS.
 - Keep the code coverage number above 80% by adding new tests or modifying the existing tests.
 - Send a pull request.
 
@@ -221,11 +221,11 @@ Here are a couple of items that we are working on.
 [DotNetPlatformBadge]:https://img.shields.io/badge/.net-%3E%208.0-blue
 [NuGet]:https://www.nuget.org/packages/Cloudtoid.Interprocess/
 [IPCWiki]:https://en.wikipedia.org/wiki/Inter-process_communication
-[MacOSWiki]:https://en.wikipedia.org/wiki/MacOS
+[macOSWiki]:https://en.wikipedia.org/wiki/macOS
 [FreeBSDOrg]:https://www.freebsd.org/
 [Wow64Wiki]:https://en.wikipedia.org/wiki/WoW64
-[WslDoc]:https://docs.microsoft.com/en-us/windows/wsl/about
+[WslDoc]:https://learn.microsoft.com/windows/wsl/about
 [BenchmarkOrg]:https://benchmarkdotnet.org/
-[NamedSemaphoresDoc]:https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore#remarks
-[SemaphoreDoc]:https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphore
+[NamedSemaphoresDoc]:https://docs.microsoft.com/dotnet/api/system.threading.semaphore#remarks
+[SemaphoreDoc]:https://docs.microsoft.com/dotnet/api/system.threading.semaphore
 [PedramLinkedIn]:https://www.linkedin.com/in/pedramrezaei/
