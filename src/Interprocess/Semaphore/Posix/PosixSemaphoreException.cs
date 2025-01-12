@@ -1,4 +1,4 @@
-﻿namespace Cloudtoid.Interprocess.Semaphore.Posix;
+namespace Cloudtoid.Interprocess.Semaphore.Posix;
 
 internal class PosixSemaphoreException
     : Exception

@@ -1,4 +1,4 @@
-﻿using Cloudtoid.Interprocess.Memory.Unix;
+using Cloudtoid.Interprocess.Memory.Unix;
 using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess;

@@ -1,4 +1,4 @@
-﻿namespace Cloudtoid.Interprocess;
+namespace Cloudtoid.Interprocess;
 
 /// <summary>Factory to create queue publishers and subscribers. </summary>
 public interface IQueueFactory

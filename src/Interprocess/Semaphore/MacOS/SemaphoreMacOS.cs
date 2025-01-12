@@ -1,4 +1,4 @@
-﻿namespace Cloudtoid.Interprocess.Semaphore.MacOS;
+namespace Cloudtoid.Interprocess.Semaphore.MacOS;
 
 internal sealed class SemaphoreMacOS : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
 {

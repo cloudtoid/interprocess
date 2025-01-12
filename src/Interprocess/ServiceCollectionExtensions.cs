@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using static Cloudtoid.Contract;
 
 namespace Cloudtoid.Interprocess;

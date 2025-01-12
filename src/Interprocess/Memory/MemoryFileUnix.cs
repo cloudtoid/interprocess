@@ -1,4 +1,4 @@
-﻿using System.IO.MemoryMappedFiles;
+using System.IO.MemoryMappedFiles;
 using Microsoft.Extensions.Logging;
 
 namespace Cloudtoid.Interprocess.Memory.Unix;

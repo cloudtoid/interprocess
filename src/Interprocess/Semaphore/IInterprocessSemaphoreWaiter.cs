@@ -1,4 +1,4 @@
-﻿namespace Cloudtoid.Interprocess;
+namespace Cloudtoid.Interprocess;
 
 internal interface IInterprocessSemaphoreWaiter : IDisposable
 {

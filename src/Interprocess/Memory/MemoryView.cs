@@ -1,4 +1,4 @@
-﻿using System.IO.MemoryMappedFiles;
+using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using Cloudtoid.Interprocess.Memory.Unix;
 using Cloudtoid.Interprocess.Memory.Windows;

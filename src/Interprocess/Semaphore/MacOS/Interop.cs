@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Cloudtoid.Interprocess.Semaphore.Posix;
 
 namespace Cloudtoid.Interprocess.Semaphore.MacOS;

@@ -1,4 +1,4 @@
-﻿namespace Cloudtoid.Interprocess.Tests;
+namespace Cloudtoid.Interprocess.Tests;
 
 [Flags]
 public enum Platform

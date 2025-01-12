@@ -1,4 +1,4 @@
-﻿namespace Cloudtoid.Interprocess.Semaphore.Posix;
+namespace Cloudtoid.Interprocess.Semaphore.Posix;
 
 #pragma warning disable CA1707 // Identifiers should not contain underscores
 

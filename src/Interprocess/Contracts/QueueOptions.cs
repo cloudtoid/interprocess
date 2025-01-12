@@ -1,4 +1,4 @@
-﻿using static Cloudtoid.Contract;
+using static Cloudtoid.Contract;
 using SysPath = System.IO.Path;
 
 namespace Cloudtoid.Interprocess;

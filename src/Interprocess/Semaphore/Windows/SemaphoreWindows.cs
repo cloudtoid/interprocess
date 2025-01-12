@@ -1,4 +1,4 @@
-﻿using SysSemaphore = System.Threading.Semaphore;
+using SysSemaphore = System.Threading.Semaphore;
 
 namespace Cloudtoid.Interprocess.Semaphore.Windows;
 

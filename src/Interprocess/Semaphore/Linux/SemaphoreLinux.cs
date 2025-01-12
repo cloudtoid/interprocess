@@ -1,4 +1,4 @@
-﻿namespace Cloudtoid.Interprocess.Semaphore.Linux;
+namespace Cloudtoid.Interprocess.Semaphore.Linux;
 
 internal sealed class SemaphoreLinux : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
 {

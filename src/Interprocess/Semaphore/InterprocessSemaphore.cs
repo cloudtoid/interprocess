@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Cloudtoid.Interprocess.Semaphore.Linux;
 using Cloudtoid.Interprocess.Semaphore.MacOS;
 using Cloudtoid.Interprocess.Semaphore.Windows;

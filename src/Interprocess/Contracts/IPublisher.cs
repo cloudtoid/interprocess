@@ -1,4 +1,4 @@
-﻿namespace Cloudtoid.Interprocess;
+namespace Cloudtoid.Interprocess;
 
 /// <summary>
 /// Message publisher that publishes messages to the subscribers.
