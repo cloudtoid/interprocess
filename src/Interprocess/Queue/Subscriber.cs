@@ -107,14 +107,14 @@ internal sealed class Subscriber : Queue, ISubscriber
             return false;
 
         var readLockTimestamp = header.ReadLockTimestamp;
-        var now = DateTime.UtcNow.Ticks;
+        var start = DateTime.UtcNow.Ticks;
 
         // is there already a read-lock or has the previous lock timed out meaning that a subscriber crashed?
-        if (now - readLockTimestamp < TicksForTenSeconds)
+        if (start - readLockTimestamp < TicksForTenSeconds)
             return false;
 
         // take a read-lock so no other thread can read a message
-        if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, now, readLockTimestamp) != readLockTimestamp)
+        if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, start, readLockTimestamp) != readLockTimestamp)
             return false;
 
         try
@@ -125,14 +125,29 @@ internal sealed class Subscriber : Queue, ISubscriber
 
             // now finally have a read-lock and the queue is not empty
             var readOffset = Header->ReadOffset;
+            var writeOffset = Header->WriteOffset;
             var messageHeader = (MessageHeader*)Buffer.GetPointer(readOffset);
 
-            // was this message fully written by the publisher? if not, wait for the publisher to finish writing it
-            while (Interlocked.CompareExchange(
-                ref messageHeader->State,
-                MessageHeader.LockedToBeConsumedState,
-                MessageHeader.ReadyToBeConsumedState) != MessageHeader.ReadyToBeConsumedState)
+            while (true)
             {
+                // was this message fully written by the publisher? if not, wait for the publisher to finish writing it
+                var state = Interlocked.CompareExchange(
+                    ref messageHeader->State,
+                    MessageHeader.LockedToBeConsumedState,
+                    MessageHeader.ReadyToBeConsumedState);
+
+                if (state == MessageHeader.ReadyToBeConsumedState)
+                    break;
+
+                // but if the publisher crashed, we will never get the message, so we need to handle that case by timing out
+                if (DateTime.UtcNow.Ticks - start > TicksForTenSeconds)
+                {
+                    // the publisher crashed and we will never get the message
+                    // so we need to release the read-lock and advance the queue for everyone.
+                    // some messages might be lost in this case but this is the best we can do.
+                    Interlocked.Exchange(ref Header->ReadOffset, writeOffset);
+                    return false;
+                }
                 Thread.Yield();
             }
 
