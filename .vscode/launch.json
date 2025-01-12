@@ -16,14 +16,5 @@
             "request": "launch",
             "projectPath": "${workspaceFolder}/src/Sample/Subscriber/Subscriber.csproj"
         }
-    ],
-    "compounds": [
-        {
-            "name": "Full Sample",
-            "configurations": [
-                "Publisher Sample",
-                "Subscriber Sample"
-            ]
-        }
     ]
 }
