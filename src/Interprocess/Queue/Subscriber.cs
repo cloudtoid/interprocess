@@ -127,7 +127,7 @@ internal sealed class Subscriber : Queue, ISubscriber
             var readOffset = Header->ReadOffset;
             var messageHeader = (MessageHeader*)Buffer.GetPointer(readOffset);
 
-            // was this message fully written by the publisher? if not, wait for the publisher to finish writting it
+            // was this message fully written by the publisher? if not, wait for the publisher to finish writing it
             while (Interlocked.CompareExchange(
                 ref messageHeader->State,
                 MessageHeader.LockedToBeConsumedState,

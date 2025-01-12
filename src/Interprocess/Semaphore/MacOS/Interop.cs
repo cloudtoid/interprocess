@@ -96,10 +96,10 @@ internal static partial class Interop
         }
         else
         {
-            var start = DateTime.Now;
+            var stopwatch = ValueStopwatch.StartNew();
             while (!TryWait(handle))
             {
-                if ((DateTime.Now - start).Milliseconds > millisecondsTimeout)
+                if (stopwatch.GetElapsedTime().TotalMilliseconds > millisecondsTimeout)
                     return false;
 
                 Thread.Yield();
