@@ -8,6 +8,7 @@
 
   <!-- NuGet Packaging -->
   <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageId>Cloudtoid.Interprocess</PackageId>
     <Title>Cloudtoid.Interprocess</Title>
     <Authors>pedram@rezaei.us</Authors>
@@ -22,5 +23,9 @@
     <VersionSuffix Condition=" '$(VersionSuffix)'=='' ">0</VersionSuffix>
     <PackageVersion>2.0.$(VersionSuffix)</PackageVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
 </Project>
