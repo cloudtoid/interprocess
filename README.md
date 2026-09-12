@@ -39,7 +39,7 @@ Creating a message queue publisher:
 ```csharp
 var options = new QueueOptions(
     queueName: "my-queue",
-    bytesCapacity: 1024 * 1024);
+    capacity: 1024 * 1024);
 
 using var publisher = factory.CreatePublisher(options);
 publisher.TryEnqueue(message);
@@ -50,7 +50,7 @@ Creating a message queue subscriber:
 ```csharp
 options = new QueueOptions(
     queueName: "my-queue",
-    bytesCapacity: 1024 * 1024);
+    capacity: 1024 * 1024);
 
 using var subscriber = factory.CreateSubscriber(options);
 subscriber.TryDequeue(messageBuffer, cancellationToken, out var message);
@@ -71,7 +71,7 @@ Creating a message queue publisher using an instance of `IQueueFactory` retrieve
 ```csharp
 var options = new QueueOptions(
     queueName: "my-queue",
-    bytesCapacity: 1024 * 1024);
+    capacity: 1024 * 1024);
 
 using var publisher = factory.CreatePublisher(options);
 publisher.TryEnqueue(message);
@@ -82,7 +82,7 @@ Creating a message queue subscriber using an instance of `IQueueFactory` retriev
 ```csharp
 var options = new QueueOptions(
     queueName: "my-queue",
-    bytesCapacity: 1024 * 1024);
+    capacity: 1024 * 1024);
 
 using var subscriber = factory.CreateSubscriber(options);
 subscriber.TryDequeue(messageBuffer, cancellationToken, out var message);
@@ -112,7 +112,7 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 A lot has gone into optimizing the implementation of this library. For instance, it is mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
 
-**Summary**: A full enqueue followed by a dequeue takes `~250 ns` on Linux, `~650 ns` on macOS, and `~300 ns` on Windows.
+**Latest native macOS measurement**: a three-byte enqueue/dequeue round trip with a reused buffer averaged **210.0 ns** on an Apple M5 Max. Only the macOS results below were refreshed on September 12, 2026; the Windows and Linux sections retain their historical measurements.
 
 **Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet][BenchmarkOrg] and perform the following runs:
 
@@ -124,7 +124,13 @@ A lot has gone into optimizing the implementation of this library. For instance,
 You can replicate the results by running the following command:
 
 ```sh
-dotnet run Interprocess.Benchmark.csproj -c Release
+dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*QueueBenchmark*'
+```
+
+To compare throughput with one subscriber versus four concurrent subscribers:
+
+```sh
+dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*SubscriberBenchmark*' --iterationCount 8
 ```
 
 ---
@@ -152,20 +158,37 @@ Results:
 
 ### On macOS
 
-Host:
+Measured **September 12, 2026**, running directly on the Mac:
 
 ```text
-BenchmarkDotNet v0.14.0, macOS Sequoia 15.2 (24C101) [Darwin 24.2.0]
-Apple M3 Max, 1 CPU, 16 logical and 16 physical cores
-.NET SDK 9.0.101
-  [Host]   : .NET 9.0.0 (9.0.24.52809), Arm64 RyuJIT AdvSIMD
-  .NET 9.0 : .NET 9.0.0 (9.0.24.52809), Arm64 RyuJIT AdvSIMD
+BenchmarkDotNet v0.15.8, macOS Tahoe 26.6.2 (25G83) [Darwin 25.6.0]
+Apple M5 Max, 1 CPU, 18 logical and 18 physical cores
+.NET SDK 10.0.401
+.NET runtime 10.0.12, Arm64 RyuJIT
+Release build; 3 warm-up iterations; 8 measured iterations; 1 launch
 ```
 
-|                                            Method | Mean (ns) | Error (ns) | StdDev | Gen0     | Allocated |
-|-------------------------------------------------- |----------:|-----------:|-------:|---------:|----------:|
-|                     'Message enqueue and dequeue' |   `249.2` |     `0.74` | `0.62` |      `-` |       `-` |
-| 'Message enqueue and dequeue - no message buffer' |   `252.1` |     `4.10` | `3.83` | `0.0038` |    `32 B` |
+All seven cases completed. Times are means in nanoseconds, normalized per operation. For enqueue/dequeue rows, an operation is one complete round trip. Concurrent-delivery rows report amortized time per delivered message.
+
+| Workload | Mean (ns) | StdDev (ns) | Allocated per operation |
+| --- | ---: | ---: | ---: |
+| Enqueue, 3 bytes | 182.3 | 5.01 | 0 B |
+| Enqueue + dequeue, 3 bytes, reused buffer | 210.0 | 0.46 | 0 B |
+| Enqueue + dequeue, 3 bytes, new result array | 214.9 | 0.81 | 32 B |
+| Enqueue + dequeue, 50 bytes, reused buffer | 214.6 | 1.33 | 0 B |
+| Enqueue + dequeue, 50 bytes, ring-wrap workload | 223.8 | 1.08 | 0 B |
+| Concurrent delivery, 8 bytes, 1 subscriber | 246.5 | 2.20 | Not measured |
+| Concurrent delivery, 8 bytes, 4 subscribers | 344.7 | 1.81 | Not measured |
+
+The enqueue case batches 320,000 messages and drains the queue outside the timed body. The ring-wrap case uses a 120-byte queue so padded 64-byte records repeatedly cross the end of the buffer; two round trips per invocation are normalized to one. Concurrent delivery uses one publisher and dedicated subscriber threads to transfer batches of 65,536 messages, including worker startup and completion in the timing.
+
+These are in-process microbenchmarks, not end-to-end latency between separate applications. The concurrent cases measure throughput under contention, not individual message latency; their allocations were not measured. See the [complete native Mac reports and methodology](docs/benchmarks/2026-09-12/README.md) for source revision, errors, and reproduction details.
+
+Run all cases from the repository root:
+
+```sh
+dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*' --warmupCount 3 --iterationCount 8 --artifacts BenchmarkDotNet.Artifacts
+```
 
 ---
 
