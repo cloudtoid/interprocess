@@ -1,42 +1,46 @@
-﻿using System;
+namespace Cloudtoid.Interprocess.Semaphore.MacOS;
 
-namespace Cloudtoid.Interprocess.Semaphore.MacOS
+internal sealed class SemaphoreMacOS : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
 {
-    internal class SemaphoreMacOS : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
+    private const string HandleNamePrefix = "/ct.ip.";
+    private readonly string name;
+    private readonly bool deleteOnDispose;
+    private IntPtr handle;
+
+    internal SemaphoreMacOS(string name, bool deleteOnDispose = false)
     {
-        private const string HandleNamePrefix = "/ct.ip.";
-        private readonly string name;
-        private readonly bool deleteOnDispose;
-        private readonly IntPtr handle;
+        this.name = name = HandleNamePrefix + name;
+        this.deleteOnDispose = deleteOnDispose;
+        handle = Interop.CreateOrOpenSemaphore(name, 0);
+    }
 
-        internal SemaphoreMacOS(string name, bool deleteOnDispose = false)
-        {
-            this.name = name = HandleNamePrefix + name;
-            this.deleteOnDispose = deleteOnDispose;
-            handle = Interop.CreateOrOpenSemaphore(name, 0);
-        }
+    ~SemaphoreMacOS() =>
+        DisposeCore();
 
-        ~SemaphoreMacOS()
-            => Dispose(false);
+    public void Release() =>
+        Interop.Release(handle);
 
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+    public bool Wait(int millisecondsTimeout) =>
+        Interop.Wait(handle, millisecondsTimeout);
 
-        protected virtual void Dispose(bool disposing)
-        {
-            Interop.Close(handle);
+    public void Dispose()
+    {
+        DisposeCore();
+        GC.SuppressFinalize(this);
+    }
 
-            if (deleteOnDispose)
-                Interop.Unlink(name);
-        }
+    internal static void Unlink(string name) =>
+        Interop.Unlink(HandleNamePrefix + name);
 
-        public void Release()
-            => Interop.Release(handle);
+    private void DisposeCore()
+    {
+        var current = Interlocked.Exchange(ref handle, IntPtr.Zero);
+        if (current == IntPtr.Zero)
+            return;
 
-        public bool Wait(int millisecondsTimeout)
-            => Interop.Wait(handle, millisecondsTimeout);
+        Interop.Close(current);
+
+        if (deleteOnDispose)
+            Interop.Unlink(name);
     }
 }

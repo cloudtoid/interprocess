@@ -1,0 +1,10 @@
+root = false
+
+[*.{cs,vb}]
+dotnet_diagnostic.CA1305.severity = none    # Tests don't require formatters
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CS1591.severity = none    # Tests don't require XML comments
+dotnet_diagnostic.CA1707.severity = none    # Tests don't require underscores in method names
+dotnet_diagnostic.CA1861.severity = none    # Tests can use constant array arguments
+dotnet_diagnostic.MSTEST0030.severity = error   # Type containing '[TestMethod]' should be marked with '[TestClass]'
+dotnet_diagnostic.VSTHRD003.severity = none # Avoid awaiting foreign Tasks

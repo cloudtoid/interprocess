@@ -8,6 +8,7 @@
 
   <!-- NuGet Packaging -->
   <PropertyGroup>
+    <PackageReadmeFile>PACKAGE_README.md</PackageReadmeFile>
     <PackageId>Cloudtoid.Interprocess</PackageId>
     <Title>Cloudtoid.Interprocess</Title>
     <Authors>pedram@rezaei.us</Authors>
@@ -20,7 +21,11 @@
     <PackageTags>interprocess;interprocess-communication;ipc;shared-memory-communication;shared-memory-queue;shared-memory;memory-mapped-file;queue;cross-process-communication;cross-process</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <VersionSuffix Condition=" '$(VersionSuffix)'=='' ">0</VersionSuffix>
-    <PackageVersion>2.0.0-alpha$(VersionSuffix)</PackageVersion>
+    <PackageVersion>2.0.$(VersionSuffix)</PackageVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../PACKAGE_README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
 </Project>

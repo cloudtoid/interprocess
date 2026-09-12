@@ -2,28 +2,25 @@
 
   <!-- Build Settings -->
   <PropertyGroup>
-    <TargetFrameworks>net7.0;net6.0;netcoreapp3.1</TargetFrameworks>
+   <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <LangVersion>11.0</LangVersion>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisMode>All</AnalysisMode>
+    <EmitCompilerGeneratedFiles>false</EmitCompilerGeneratedFiles>
   </PropertyGroup>
 
-  <!-- Versions -->
-  <PropertyGroup>
-    <CloudtoidCodeAnalysisVersion>1.0.*</CloudtoidCodeAnalysisVersion>
-    <CloudtoidFrameworkVersion>1.0.*</CloudtoidFrameworkVersion>
-    <MicrosoftExtensionsVersion>6.0.*</MicrosoftExtensionsVersion>
-  </PropertyGroup>
-
-  <!-- Package Dependencies -->
   <ItemGroup>
-    <PackageReference Include="Cloudtoid.CodeAnalysis" Version="$(CloudtoidCodeAnalysisVersion)">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Cloudtoid.Framework" Version="$(CloudtoidFrameworkVersion)" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+    <Using Include="Microsoft.Extensions.Logging" />
+    <Using Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
 </Project>

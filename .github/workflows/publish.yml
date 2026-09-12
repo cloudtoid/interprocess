@@ -6,26 +6,24 @@ on:
   
 jobs:
   build:
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
     name: Build Test Pack and Publish
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
    
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
-            3.1.x
-            6.0.x
-            7.0.x
-
-      - name: Build - Debug
-        run: dotnet build src/Interprocess.sln
+            10.0.x
 
       - name: Test - Debug
-        run: dotnet test --no-build --verbosity=detailed src/Interprocess.sln
+        run: dotnet test src/Interprocess.sln
 
       - name: Build - Release
         run: dotnet build -c Release src/Interprocess.sln
@@ -33,5 +31,11 @@ jobs:
       - name: Pack
         run: dotnet pack -c Release --no-build --output . --version-suffix ${{github.run_number}} src/Interprocess/Interprocess.csproj 
 
+      - name: NuGet login
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: pedramr
+
       - name: Push
-        run: dotnet nuget push Cloudtoid.Interprocess.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.nuget_org_api_key }}
+        run: dotnet nuget push Cloudtoid.Interprocess.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }}

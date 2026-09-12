@@ -1,36 +1,51 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Cloudtoid.Interprocess.Semaphore.Linux;
 using Cloudtoid.Interprocess.Semaphore.MacOS;
+using Cloudtoid.Interprocess.Semaphore.Posix;
 using Cloudtoid.Interprocess.Semaphore.Windows;
 
-namespace Cloudtoid.Interprocess
+namespace Cloudtoid.Interprocess;
+
+/// <summary>
+/// This class opens or creates platform agnostic named semaphore. Named
+/// semaphores are synchronization constructs accessible across processes.
+/// </summary>
+internal static class InterprocessSemaphore
 {
-    /// <summary>
-    /// This class opens or creates platform agnostic named semaphore. Named
-    /// semaphores are synchronization constructs accessible across processes.
-    /// </summary>
-    internal static class InterprocessSemaphore
+    internal static void Unlink(string name)
     {
-        internal static IInterprocessSemaphoreWaiter CreateWaiter(string name)
+        try
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return new SemaphoreWindows(name);
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                return new SemaphoreMacOS(name);
-
-            return new SemaphoreLinux(name);
+            if (OperatingSystem.IsMacOS())
+                SemaphoreMacOS.Unlink(name);
+            else
+                SemaphoreLinux.Unlink(name);
         }
-
-        internal static IInterprocessSemaphoreReleaser CreateReleaser(string name)
+        catch (PosixSemaphoreNotExistsException)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return new SemaphoreWindows(name);
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                return new SemaphoreMacOS(name);
-
-            return new SemaphoreLinux(name);
+            // First use and recovery after an interrupted cleanup are both valid.
         }
+    }
+
+    internal static IInterprocessSemaphoreWaiter CreateWaiter(string name)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return new SemaphoreWindows(name);
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            return new SemaphoreMacOS(name);
+
+        return new SemaphoreLinux(name);
+    }
+
+    internal static IInterprocessSemaphoreReleaser CreateReleaser(string name)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return new SemaphoreWindows(name);
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            return new SemaphoreMacOS(name);
+
+        return new SemaphoreLinux(name);
     }
 }

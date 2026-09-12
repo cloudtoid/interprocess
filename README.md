@@ -6,7 +6,6 @@
 [![Latest NuGet][NuGetBadge]][NuGet]
 [![License: MIT][LicenseBadge]][License]
 ![.NET Platform][DotNetPlatformBadge]
-![.NET Core][DotNet31Badge]
 
 **Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC][IPCWiki]). It uses a shared memory-mapped file for extremely fast and efficient communication between processes and it is used internally by Microsoft.
 
@@ -25,7 +24,7 @@ The NuGet package for this library is published [here][NuGet].
 
 ## Usage
 
-This library supports .NET Core 3.1+ and .NET 6+. It is optimized for .NET dependency injection but can also be used without DI.
+This library is optimized for .NET dependency injection but can also be used without DI.
 
 ### Usage without DI
 
@@ -89,6 +88,17 @@ using var subscriber = factory.CreateSubscriber(options);
 subscriber.TryDequeue(messageBuffer, cancellationToken, out var message);
 ```
 
+### Queue lifetime
+
+Dispose each publisher and subscriber when finished. The queue, including unread messages, stays alive
+while any participant remains. After the last participant is disposed, the backing memory and named
+semaphore are removed. If the last process is forcibly terminated, the next connection resets the
+abandoned resources and starts with an empty queue.
+
+All participants must use the same queue name, storage path, and capacity. On Unix, keep the storage
+directory in place while queues are active; creation and cleanup use advisory file locks on that directory
+and the backing files. Stop all participants before upgrading to this lifecycle implementation.
+
 ## Sample
 
 To see a sample implementation of a publisher and a subscriber process, try out the following two projects. You can run them side by side and see them in action:
@@ -108,20 +118,13 @@ A lot has gone into optimizing the implementation of this library. For instance,
 
 |                                          Method |   Description |
 |------------------------------------------------ |-------------- |
-|                                 Message enqueue | Benchmarks the performance of enqueuing a message. |
 |                     Message enqueue and dequeue | Benchmarks the performance of sending a message to a client and receiving that message. It is inclusive of the duration to enqueue and dequeue a message. |
 | Message enqueue and dequeue - no message buffer | Benchmarks the performance of sending a message to a client and receiving that message. It is inclusive of the duration to enqueue and dequeue a message and memory allocation for the received message. |
 
 You can replicate the results by running the following command:
 
-```posh
+```sh
 dotnet run Interprocess.Benchmark.csproj -c Release
-```
-
-You can also be explicit about the .NET SDK and Runtime(s) versions:
-
-```posh
-dotnet run Interprocess.Benchmark.csproj -c Release -f net7.0 --runtimes net7.0 net6.0 netcoreapp3.1
 ```
 
 ---
@@ -142,7 +145,6 @@ Results:
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |    `192.7`|      `3.61`|       `3.21`|       `-` |
 |                     Message enqueue and dequeue |    `305.6`|      `5.96`|       `6.62`|       `-` |
 | Message enqueue and dequeue - no message buffer |    `311.5`|      `5.90`|       `9.85`|    `32 B` |
 
@@ -153,20 +155,17 @@ Results:
 Host:
 
 ```text
-BenchmarkDotNet=v0.13.1, OS=macOS Big Sur 11.6 (20G165) [Darwin 20.6.0]
-Intel Core i5-8279U CPU 2.40GHz (Coffee Lake), 1 CPU, 8 logical and 4 physical cores
-.NET SDK=5.0.401
-  [Host]        : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
-  .NET 5.0      : .NET 5.0.10 (5.0.1021.41214), X64 RyuJIT
+BenchmarkDotNet v0.14.0, macOS Sequoia 15.2 (24C101) [Darwin 24.2.0]
+Apple M3 Max, 1 CPU, 16 logical and 16 physical cores
+.NET SDK 9.0.101
+  [Host]   : .NET 9.0.0 (9.0.24.52809), Arm64 RyuJIT AdvSIMD
+  .NET 9.0 : .NET 9.0.0 (9.0.24.52809), Arm64 RyuJIT AdvSIMD
 ```
 
-Results:
-
-|                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
-|------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |   `487.50`|      `4.75`|       `3.96`|        `-`|
-|                     Message enqueue and dequeue |   `666.10`|     `10.91`|      `10.20`|        `-`|
-| Message enqueue and dequeue - no message buffer |   `689.33`|     `13.38`|      `15.41`|     `32 B`|
+|                                            Method | Mean (ns) | Error (ns) | StdDev | Gen0     | Allocated |
+|-------------------------------------------------- |----------:|-----------:|-------:|---------:|----------:|
+|                     'Message enqueue and dequeue' |   `249.2` |     `0.74` | `0.62` |      `-` |       `-` |
+| 'Message enqueue and dequeue - no message buffer' |   `252.1` |     `4.10` | `3.83` | `0.0038` |    `32 B` |
 
 ---
 
@@ -186,7 +185,6 @@ Results:
 
 |                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
 |------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                                 Message enqueue |      `5.3`|         `-`|          `-`|        `-`|
 |                     Message enqueue and dequeue |    `169.9`|      `3.08`|       `4.01`|        `-`|
 | Message enqueue and dequeue - no message buffer |    `179.4`|      `1.91`|       `1.60`|     `32 B`|
 
@@ -194,7 +192,7 @@ Results:
 
 This library relies on [Named Semaphores][NamedSemaphoresDoc] To signal the existence of a new message to all message subscribers and to do it across process boundaries. Named semaphores are synchronization constructs accessible across processes.
 
-.NET Core 3.1 and .NET 6/7 do not support named semaphores on Unix-based OSs (Linux, macOS, etc.). Instead we are using P/Invoke and relying on operating system's POSIX semaphore implementation. ([Linux](src/Interprocess/Semaphore/Linux/Interop.cs) and [macOS](src/Interprocess/Semaphore/MacOS/Interop.cs) implementations).
+.NET currently does not support named semaphores on Unix-based OSs (Linux, macOS, etc.). Instead we are using P/Invoke and relying on operating system's POSIX semaphore implementation. ([Linux](src/Interprocess/Semaphore/Linux/Interop.cs) and [macOS](src/Interprocess/Semaphore/macOS/Interop.cs) implementations).
 
 This implementation will be replaced with [`System.Threading.Semaphore`][SemaphoreDoc] once .NET adds support for named semaphores on all platforms.
 
@@ -222,8 +220,7 @@ Here are a couple of items that we are working on.
 [WorkflowBadgePublish]:https://github.com/cloudtoid/interprocess/workflows/publish/badge.svg
 [PublishWorkflow]:https://github.com/cloudtoid/interprocess/actions/workflows/publish.yml
 [NuGetBadge]:https://img.shields.io/nuget/vpre/Cloudtoid.Interprocess
-[DotNet31Badge]:https://img.shields.io/badge/.net%20core-%3E%203.1-blue
-[DotNetPlatformBadge]:https://img.shields.io/badge/.net-%3E%206.0-blue
+[DotNetPlatformBadge]:https://img.shields.io/badge/.net-%3E%3D%2010.0-blue
 [NuGet]:https://www.nuget.org/packages/Cloudtoid.Interprocess/
 [IPCWiki]:https://en.wikipedia.org/wiki/Inter-process_communication
 [macOSWiki]:https://en.wikipedia.org/wiki/macOS

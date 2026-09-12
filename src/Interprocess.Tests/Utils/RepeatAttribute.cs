@@ -1,24 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using Xunit.Sdk;
 
-namespace Cloudtoid.Interprocess.Tests
+namespace Cloudtoid.Interprocess.Tests;
+
+public sealed class RepeatAttribute(int count) : DataAttribute
 {
-    public sealed class RepeatAttribute : DataAttribute
-    {
-        private readonly int count;
+    public int Count { get; } = count;
 
-        public RepeatAttribute(int count)
-        {
-            this.count = count;
-        }
-
-        public override IEnumerable<object[]> GetData(MethodInfo testMethod)
-        {
-            return Enumerable
-                .Range(1, count)
-                .Select(i => new object[] { i });
-        }
-    }
+    public override IEnumerable<object[]> GetData(MethodInfo testMethod) => Enumerable
+        .Range(1, Count)
+        .Select(i => new object[] { i });
 }
