@@ -4,6 +4,7 @@ using BenchmarkDotNet.Jobs;
 namespace Cloudtoid.Interprocess.Benchmark;
 
 [SimpleJob(RuntimeMoniker.Net10_0)]
+[MemoryDiagnoser]
 [MarkdownExporterAttribute.GitHub]
 public class QueueExtendedBenchmark
 {
@@ -14,13 +15,11 @@ public class QueueExtendedBenchmark
     private ISubscriber subscriber;
 #pragma warning restore CS8618
 
-    [GlobalSetup]
-    public void Setup()
-    {
-        var queueFactory = new QueueFactory();
-        publisher = queueFactory.CreatePublisher(new QueueOptions("qn", Path.GetTempPath(), 128));
-        subscriber = queueFactory.CreateSubscriber(new QueueOptions("qn", Path.GetTempPath(), 128));
-    }
+    [GlobalSetup(Target = nameof(EnqueueDequeue_LongMessage))]
+    public void Setup() => SetupQueue(128);
+
+    [GlobalSetup(Target = nameof(EnqueueDequeue_WrappedMessages))]
+    public void SetupWrapped() => SetupQueue(120);
 
     [GlobalCleanup]
     public void Cleanup()
@@ -38,7 +37,9 @@ public class QueueExtendedBenchmark
         return subscriber.Dequeue(MessageBuffer, default);
     }
 
-    [Benchmark(Description = "Message enqueue and dequeue - wrapped message in circular buffer")]
+    // A padded message occupies 64 bytes. A 120-byte ring makes message bodies cross
+    // the end of the buffer; a 128-byte ring only cycles between aligned slots.
+    [Benchmark(Description = "Message enqueue and dequeue - ring-wrap workload", OperationsPerInvoke = 2)]
     public ReadOnlyMemory<byte> EnqueueDequeue_WrappedMessages()
     {
         if (!publisher.TryEnqueue(Message))
@@ -50,5 +51,12 @@ public class QueueExtendedBenchmark
             throw new Exception("Failed to enqueue");
 
         return subscriber.Dequeue(MessageBuffer, default);
+    }
+
+    private void SetupQueue(long capacity)
+    {
+        var queueFactory = new QueueFactory();
+        publisher = queueFactory.CreatePublisher(new QueueOptions("qn", Path.GetTempPath(), capacity));
+        subscriber = queueFactory.CreateSubscriber(new QueueOptions("qn", Path.GetTempPath(), capacity));
     }
 }

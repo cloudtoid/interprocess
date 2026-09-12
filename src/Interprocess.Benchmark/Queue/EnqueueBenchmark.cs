@@ -8,6 +8,7 @@ namespace Cloudtoid.Interprocess.Benchmark;
 [MarkdownExporterAttribute.GitHub]
 public class EnqueueBenchmark
 {
+    private const int MessageCount = 320000;
     private static readonly byte[] Message = [100, 110, 120];
     private static readonly Memory<byte> MessageBuffer = new byte[Message.Length];
 #pragma warning disable CS8618
@@ -19,8 +20,8 @@ public class EnqueueBenchmark
     public void Setup()
     {
         var queueFactory = new QueueFactory();
-        publisher = queueFactory.CreatePublisher(new QueueOptions("qn", Path.GetTempPath(), 5120000));
-        subscriber = queueFactory.CreateSubscriber(new QueueOptions("qn", Path.GetTempPath(), 5120000));
+        publisher = queueFactory.CreatePublisher(new QueueOptions("qn", Path.GetTempPath(), MessageCount * 16));
+        subscriber = queueFactory.CreateSubscriber(new QueueOptions("qn", Path.GetTempPath(), MessageCount * 16));
     }
 
     [GlobalCleanup]
@@ -33,15 +34,21 @@ public class EnqueueBenchmark
     [IterationCleanup]
     public void DrainQueue()
     {
-        for (int i = 8; i < 320000; i++)
-            subscriber.Dequeue(MessageBuffer, default);
+        for (var i = 0; i < MessageCount; i++)
+        {
+            if (!subscriber.TryDequeue(MessageBuffer, default, out _))
+                throw new InvalidOperationException("The benchmark did not enqueue the expected number of messages.");
+        }
     }
 
     // Expecting that there are NO managed heap allocations.
-    [Benchmark(Description = "Message enqueue (320,000 times)")]
+    [Benchmark(Description = "Message enqueue", OperationsPerInvoke = MessageCount)]
     public void Enqueue()
     {
-        for (int i = 8; i < 320000; i++)
-            publisher.TryEnqueue(Message);
+        for (var i = 0; i < MessageCount; i++)
+        {
+            if (!publisher.TryEnqueue(Message))
+                throw new InvalidOperationException("The benchmark queue is full.");
+        }
     }
 }
