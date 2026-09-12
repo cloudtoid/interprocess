@@ -3,7 +3,7 @@ using BenchmarkDotNet.Jobs;
 
 namespace Cloudtoid.Interprocess.Benchmark;
 
-[SimpleJob(RuntimeMoniker.Net90)]
+[SimpleJob(RuntimeMoniker.Net10_0)]
 [MemoryDiagnoser]
 [MarkdownExporterAttribute.GitHub]
 public class QueueBenchmark

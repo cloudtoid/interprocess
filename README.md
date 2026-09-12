@@ -124,7 +124,13 @@ A lot has gone into optimizing the implementation of this library. For instance,
 You can replicate the results by running the following command:
 
 ```sh
-dotnet run Interprocess.Benchmark.csproj -c Release
+dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*QueueBenchmark*'
+```
+
+To compare throughput with one subscriber versus four concurrent subscribers:
+
+```sh
+dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*SubscriberBenchmark*' --iterationCount 8
 ```
 
 ---

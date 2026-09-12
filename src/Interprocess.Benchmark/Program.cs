@@ -4,5 +4,5 @@ namespace Cloudtoid.Interprocess.Benchmark;
 
 public sealed class Program
 {
-    public static void Main() => _ = BenchmarkRunner.Run(typeof(Program).Assembly);
+    public static void Main(string[] args) => BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 }

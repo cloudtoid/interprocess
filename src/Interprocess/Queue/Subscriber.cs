@@ -83,18 +83,23 @@ internal sealed class Subscriber : Queue, ISubscriber
 
         try
         {
-            int i = -5;
+            SpinWait spin = default;
             while (true)
             {
                 if (TryDequeueImpl(resultBuffer, cancellation, out var message))
                     return message;
 
-                if (i > 10)
-                    signal.Wait(millisecondsTimeout: 10);
-                else if (i++ > 0)
-                    signal.Wait(millisecondsTimeout: i);
+                // Retry briefly in user space while another reader finishes. Once spinning
+                // would yield, wait for a signal instead of burning CPU on an idle queue.
+                if (spin.NextSpinWillYield)
+                {
+                    signal.Wait(millisecondsTimeout: 5);
+                    spin.Reset();
+                }
                 else
-                    Thread.Yield();
+                {
+                    spin.SpinOnce();
+                }
             }
         }
         finally
@@ -159,6 +164,7 @@ internal sealed class Subscriber : Queue, ISubscriber
                     Interlocked.Exchange(ref Header->ReadOffset, writeOffset);
                     return false;
                 }
+                cancellationSource.ThrowIfCancellationRequested(cancellation);
                 Thread.Yield();
             }
 
