@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <OutputType>Exe</OutputType>
+    <StartupObject>Cloudtoid.Interprocess.Tests.Program</StartupObject>
     <RootNamespace>Cloudtoid.Interprocess.Tests</RootNamespace>
     <AssemblyName>Cloudtoid.Interprocess.Tests</AssemblyName>
     <IsPackable>false</IsPackable>

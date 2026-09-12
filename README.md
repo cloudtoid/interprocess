@@ -88,6 +88,17 @@ using var subscriber = factory.CreateSubscriber(options);
 subscriber.TryDequeue(messageBuffer, cancellationToken, out var message);
 ```
 
+### Queue lifetime
+
+Dispose each publisher and subscriber when finished. The queue, including unread messages, stays alive
+while any participant remains. After the last participant is disposed, the backing memory and named
+semaphore are removed. If the last process is forcibly terminated, the next connection resets the
+abandoned resources and starts with an empty queue.
+
+All participants must use the same queue name, storage path, and capacity. On Unix, keep the storage
+directory in place while queues are active; creation and cleanup use advisory file locks on that directory
+and the backing files. Stop all participants before upgrading to this lifecycle implementation.
+
 ## Sample
 
 To see a sample implementation of a publisher and a subscriber process, try out the following two projects. You can run them side by side and see them in action:

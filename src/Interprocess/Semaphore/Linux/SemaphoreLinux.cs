@@ -5,7 +5,7 @@ internal sealed class SemaphoreLinux : IInterprocessSemaphoreWaiter, IInterproce
     private const string HandleNamePrefix = "/ct.ip.";
     private readonly string name;
     private readonly bool deleteOnDispose;
-    private readonly IntPtr handle;
+    private IntPtr handle;
 
     internal SemaphoreLinux(string name, bool deleteOnDispose = false)
     {
@@ -29,9 +29,16 @@ internal sealed class SemaphoreLinux : IInterprocessSemaphoreWaiter, IInterproce
         GC.SuppressFinalize(this);
     }
 
+    internal static void Unlink(string name) =>
+        Interop.Unlink(HandleNamePrefix + name);
+
     private void DisposeCore()
     {
-        Interop.Close(handle);
+        var current = Interlocked.Exchange(ref handle, IntPtr.Zero);
+        if (current == IntPtr.Zero)
+            return;
+
+        Interop.Close(current);
 
         if (deleteOnDispose)
             Interop.Unlink(name);

@@ -5,6 +5,7 @@ namespace Cloudtoid.Interprocess;
 internal abstract class Queue : IDisposable
 {
     private readonly MemoryView view;
+    private int disposed;
 
     protected unsafe Queue(QueueOptions options, ILoggerFactory loggerFactory)
     {
@@ -26,9 +27,6 @@ internal abstract class Queue : IDisposable
         Console.CancelKeyPress += OnAppExit;
     }
 
-    ~Queue() =>
-        Dispose(false);
-
     public unsafe QueueHeader* Header
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -40,12 +38,17 @@ internal abstract class Queue : IDisposable
 
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref disposed, 1) != 0)
+            return;
+
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
     protected virtual void Dispose(bool disposing)
     {
+        AppDomain.CurrentDomain.ProcessExit -= OnAppExit;
+        Console.CancelKeyPress -= OnAppExit;
         if (disposing)
             view.Dispose();
     }
@@ -79,7 +82,7 @@ internal abstract class Queue : IDisposable
     {
         try
         {
-            Dispose(false);
+            Dispose();
         }
         catch
         {
