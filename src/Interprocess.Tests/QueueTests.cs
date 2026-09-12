@@ -2,7 +2,7 @@ namespace Cloudtoid.Interprocess.Tests;
 
 public class QueueTests : IClassFixture<UniquePathFixture>
 {
-    private static readonly byte[] ByteArray1 = [100,];
+    private static readonly byte[] ByteArray1 = [100];
     private static readonly byte[] ByteArray2 = [100, 110];
     private static readonly byte[] ByteArray3 = [100, 110, 120];
     private static readonly byte[] ByteArray50 = Enumerable.Range(1, 50).Select(i => (byte)i).ToArray();

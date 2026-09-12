@@ -41,7 +41,7 @@ internal static partial class Interop
             ENFILE => new PosixSemaphoreException("Too many semaphores or file descriptors are open on the system."),
             EMFILE => new PosixSemaphoreException("Too many semaphores or file descriptors are open by this process."),
             ENOMEM => new InsufficientMemoryException(),
-            _ => new PosixSemaphoreException(Error),
+            _ => new PosixSemaphoreException(Error)
         };
     }
 
@@ -54,7 +54,7 @@ internal static partial class Interop
         {
             EINVAL => new InvalidPosixSemaphoreException(),
             EOVERFLOW => new SemaphoreFullException(),
-            _ => new PosixSemaphoreException(Error),
+            _ => new PosixSemaphoreException(Error)
         };
     }
 
@@ -66,7 +66,7 @@ internal static partial class Interop
         throw Error switch
         {
             EINVAL => new InvalidPosixSemaphoreException(),
-            _ => new PosixSemaphoreException(Error),
+            _ => new PosixSemaphoreException(Error)
         };
     }
 
@@ -80,7 +80,7 @@ internal static partial class Interop
             ENAMETOOLONG => new ArgumentException("The specified semaphore name is too long.", nameof(name)),
             EACCES => new PosixSemaphoreUnauthorizedAccessException(),
             ENOENT => new PosixSemaphoreNotExistsException(),
-            _ => new PosixSemaphoreException(Error),
+            _ => new PosixSemaphoreException(Error)
         };
     }
 
@@ -101,7 +101,7 @@ internal static partial class Interop
                 EAGAIN => false,
                 EINVAL => throw new InvalidPosixSemaphoreException(),
                 EINTR => throw new OperationCanceledException(),
-                _ => throw new PosixSemaphoreException(Error),
+                _ => throw new PosixSemaphoreException(Error)
             };
         }
 
@@ -118,7 +118,7 @@ internal static partial class Interop
         {
             EINVAL => new InvalidPosixSemaphoreException(),
             EINTR => new OperationCanceledException(),
-            _ => new PosixSemaphoreException(Error),
+            _ => new PosixSemaphoreException(Error)
         };
     }
 
@@ -132,7 +132,7 @@ internal static partial class Interop
             ETIMEDOUT => false,
             EINVAL => throw new InvalidPosixSemaphoreException(),
             EINTR => throw new OperationCanceledException(),
-            _ => throw new PosixSemaphoreException(Error),
+            _ => throw new PosixSemaphoreException(Error)
         };
     }
 
