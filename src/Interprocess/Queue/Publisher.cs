@@ -88,7 +88,15 @@ internal sealed class Publisher : Queue, IPublisher
                 }
 
                 // signal the next receiver that there is a new message in the queue
-                signal.Release();
+                try
+                {
+                    signal.Release();
+                }
+                catch (SemaphoreFullException)
+                {
+                    // The message is committed, and a full semaphore already has pending notifications.
+                }
+
                 return true;
             }
         }
