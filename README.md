@@ -26,7 +26,7 @@
 | Latest v2 (`2.1.204`) | 208.3 ns | 1.02 million messages/s |
 | v3 alpha | **32.8 ns** | **2.14 million messages/s** |
 
-Measured on the same Mac with .NET 10. See [benchmark details](#on-macos). Windows ARM64 VM benchmarks also measured **22× faster round trips and 4.6× the throughput of v2**; see the [Windows and Linux results](#on-windows-and-linux-arm64-vms).
+Measured on the same Mac with .NET 10. See [benchmark details](#on-macos). Windows ARM64 VM benchmarks also measured **22× faster round trips and 4.6× the throughput of v2**; see the [Windows results](#on-windows).
 
 **Upgrade to v3 alpha and try it with your workload:**
 
@@ -143,34 +143,37 @@ dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*' --war
 dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*EnqueueBenchmark*' --warmupCount 50 --iterationCount 8 --launchCount 2
 ```
 
-### On Windows and Linux (ARM64 VMs)
+### On Windows
 
-Measured September 13, 2026, on the same **Apple M5 Max**, with .NET 10.0.12 and v3 source [`52de9c4`](https://github.com/cloudtoid/interprocess/commit/52de9c4). Windows 11 Pro 25H2 used UTM with 4 vCPUs and 12 GiB RAM; Ubuntu 24.04 used Lima/Apple Virtualization with 4 vCPUs and 8 GiB RAM. The VMs ran benchmarks separately.
+Measured September 13, 2026, on an **Apple M5 Max**, Windows 11 Pro 25H2 ARM64 VM (UTM, 4 vCPUs, 12 GiB RAM), .NET 10.0.12, Release build. V3 source: [`52de9c4`](https://github.com/cloudtoid/interprocess/commit/52de9c4).
 
-| Workload | Windows mean ± StdDev (ns) | Linux mean ± StdDev (ns) | Allocated |
+| Workload | Mean (ns) | StdDev (ns) | Allocated |
 | --- | ---: | ---: | ---: |
-| Enqueue, 3 bytes | 4.98 ± 0.17 | 29.58 ± 0.40 | 0 B |
-| Enqueue + dequeue, 3 bytes, reused buffer | 40.43 ± 0.39 | 147.93 ± 2.05 | 0 B |
-| Enqueue + dequeue, 3 bytes, new result array | 42.49 ± 0.62 | 142.45 ± 1.82 | 32 B |
-| Enqueue + dequeue, 50 bytes, reused buffer | 41.64 ± 0.67 | 156.07 ± 3.78 | 0 B |
-| Enqueue + dequeue, 50 bytes, ring-wrap workload | 44.80 ± 0.99 | 177.64 ± 3.16 | 0 B |
-| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 110.99 ± 0.82 | 142.63 ± 1.86 | — |
-| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 202.68 ± 29.66 | 221.13 ± 19.94 | — |
+| Enqueue, 3 bytes | 4.98 | 0.17 | 0 B |
+| Enqueue + dequeue, 3 bytes, reused buffer | 40.43 | 0.39 | 0 B |
+| Enqueue + dequeue, 3 bytes, new result array | 42.49 | 0.62 | 32 B |
+| Enqueue + dequeue, 50 bytes, reused buffer | 41.64 | 0.67 | 0 B |
+| Enqueue + dequeue, 50 bytes, ring-wrap workload | 44.80 | 0.99 | 0 B |
+| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 110.99 | 0.82 | — |
+| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 202.68 | 29.66 | — |
 
-Same in-process workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations per benchmark; single-thread runs used one pinned vCPU and 20 warmups (50 for enqueue-only), while concurrent runs used all four vCPUs and three warmups.
+Same in-process workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (50 for enqueue-only), while concurrent runs used all four vCPUs and three warmups. [Benchmark source and reports](docs/benchmarks/2026-09-13/).
 
-#### Version comparison in the VMs
+### On Linux
 
-| Platform | Version | 8-byte round trip, mean ± StdDev (ns) | 4 publishers / 4 subscribers (million messages/s) |
-| --- | --- | ---: | ---: |
-| Windows | v1 (`1.0.175`) | 905.4 ± 3.8 | 2.00 |
-| Windows | v2 (`2.1.204`) | 934.0 ± 27.7 | 0.64 |
-| Windows | v3 alpha | 41.8 ± 1.3 | 2.93 |
-| Linux | v1 (`1.0.175`) | 35.2 ± 0.5 | 8.00 |
-| Linux | v2 (`2.1.204`) | 93.6 ± 52.7 | 4.06 |
-| Linux | v3 alpha | 147.2 ± 4.0 | 3.40 |
+Measured September 13, 2026, on an **Apple M5 Max**, Ubuntu 24.04 ARM64 VM (Lima/Apple Virtualization, 4 vCPUs, 8 GiB RAM), .NET 10.0.12, Release build. V3 source: [`52de9c4`](https://github.com/cloudtoid/interprocess/commit/52de9c4).
 
-Throughput uses 8-byte messages and includes worker startup and completion. [Windows and Linux benchmark reports](docs/benchmarks/2026-09-13/).
+| Workload | Mean (ns) | StdDev (ns) | Allocated |
+| --- | ---: | ---: | ---: |
+| Enqueue, 3 bytes | 29.58 | 0.40 | 0 B |
+| Enqueue + dequeue, 3 bytes, reused buffer | 147.93 | 2.05 | 0 B |
+| Enqueue + dequeue, 3 bytes, new result array | 142.45 | 1.82 | 32 B |
+| Enqueue + dequeue, 50 bytes, reused buffer | 156.07 | 3.78 | 0 B |
+| Enqueue + dequeue, 50 bytes, ring-wrap workload | 177.64 | 3.16 | 0 B |
+| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 142.63 | 1.86 | — |
+| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 221.13 | 19.94 | — |
+
+Same in-process workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (50 for enqueue-only), while concurrent runs used all four vCPUs and three warmups. [Benchmark source and reports](docs/benchmarks/2026-09-13/).
 
 ## Implementation Notes
 
