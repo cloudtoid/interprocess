@@ -280,11 +280,52 @@ public class QueueTests : IClassFixture<UniquePathFixture>
         dp.ReadOffset.Should().Be(nextReadOffset);
     }
 
+    [Fact]
+    public void FullNotificationSemaphoreDoesNotFailCommittedMessages()
+    {
+        var options = new QueueOptions(Guid.NewGuid().ToStringInvariant("N")[..16], fixture.Path, 64);
+        using var signal = new FullSignal();
+        using var publisher = new Publisher(options, NullLoggerFactory.Instance, signal);
+        using var subscriber = queueFactory.CreateSubscriber(options);
+
+        for (var i = 0; i < 4; i++)
+            publisher.TryEnqueue([(byte)i]).Should().BeTrue();
+
+        publisher.TryEnqueue("full"u8).Should().BeFalse();
+        signal.Releases.Should().Be(4, "a full queue must not post a notification");
+        for (var i = 0; i < 4; i++)
+        {
+            subscriber.TryDequeue(out var message).Should().BeTrue();
+            message.ToArray().Should().Equal((byte)i);
+        }
+
+        subscriber.TryDequeue(out _).Should().BeFalse();
+        publisher.TryEnqueue("next"u8).Should().BeTrue();
+        subscriber.TryDequeue(out var next).Should().BeTrue();
+        next.ToArray().Should().Equal("next"u8.ToArray());
+        signal.Releases.Should().Be(5, "each committed message must still attempt notification");
+    }
+
     private IPublisher CreatePublisher(long capacity) =>
         queueFactory.CreatePublisher(new("qn", fixture.Path, capacity));
 
     private ISubscriber CreateSubscriber(long capacity) =>
         queueFactory.CreateSubscriber(new("qn", fixture.Path, capacity));
+
+    private sealed class FullSignal : IInterprocessSemaphoreReleaser
+    {
+        internal int Releases { get; private set; }
+
+        public void Release()
+        {
+            Releases++;
+            throw new SemaphoreFullException();
+        }
+
+        public void Dispose()
+        {
+        }
+    }
 
     private sealed class DeadlockCausingPublisher(QueueOptions options, ILoggerFactory loggerFactory) :
         Queue(options, loggerFactory),
