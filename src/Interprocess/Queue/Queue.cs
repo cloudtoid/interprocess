@@ -71,7 +71,7 @@ internal abstract class Queue : IDisposable
         var length = sizeof(MessageHeader) + bodyLength;
 
         // Round up to the closest integer divisible by 8. This will add the [padding] if one is needed.
-        return 8 * (long)Math.Ceiling(length / 8.0);
+        return (length + 7) & ~7L;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

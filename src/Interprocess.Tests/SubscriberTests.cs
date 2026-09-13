@@ -1,9 +1,126 @@
+using System.Buffers;
+
 namespace Cloudtoid.Interprocess.Tests;
 
 public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<UniquePathFixture>
 {
     private readonly QueueOptions options = new(Guid.NewGuid().ToStringInvariant("N")[..16], fixture.Path, 256);
     private readonly QueueFactory factory = new();
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(0, 8)]
+    [InlineData(50, 0)]
+    [InlineData(50, 7)]
+    [InlineData(50, 50)]
+    [InlineData(50, 80)]
+    public void ReusedBuffersPreserveEmptyTruncatedAndWrappedMessages(int messageLength, int bufferLength)
+    {
+        var wrappedOptions = new QueueOptions(options.QueueName, options.Path, 120);
+        using var publisher = factory.CreatePublisher(wrappedOptions);
+        using var subscriber = factory.CreateSubscriber(wrappedOptions);
+        var payload = new byte[messageLength];
+        var destination = new byte[bufferLength];
+        for (var i = 0; i < 8; i++)
+        {
+            payload.AsSpan().Fill((byte)i);
+            publisher.TryEnqueue(payload).Should().BeTrue();
+            subscriber.TryDequeue(destination, default, out var message).Should().BeTrue();
+            message.ToArray().Should().Equal(payload.Take(bufferLength));
+        }
+    }
+
+    [Fact]
+    public void DestinationFailureLeavesMessagesAvailableForRetry()
+    {
+        using var probe = new QueueProbe(options);
+        using var publisher = factory.CreatePublisher(options);
+        using var subscriber = factory.CreateSubscriber(options);
+        using var destination = new TestMemory();
+        var memory = destination.Memory;
+        destination.FailReads = true;
+        publisher.TryEnqueue("original"u8).Should().BeTrue();
+        publisher.TryEnqueue("next-msg"u8).Should().BeTrue();
+
+        for (var i = 0; i < 2; i++)
+        {
+            using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+            Assert.Throws<InvalidOperationException>(() => subscriber.TryDequeue(memory, cancellation.Token, out _));
+            probe.ReadsAreLocked.Should().BeFalse();
+        }
+
+        using var retryCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        subscriber.TryDequeue(retryCancellation.Token, out var first).Should().BeTrue();
+        first.ToArray().Should().Equal("original"u8.ToArray());
+        subscriber.TryDequeue(retryCancellation.Token, out var second).Should().BeTrue();
+        second.ToArray().Should().Equal("next-msg"u8.ToArray());
+    }
+
+    [Fact]
+    public void DestinationDoesNotNeedToSupportPinning()
+    {
+        using var publisher = factory.CreatePublisher(options);
+        using var subscriber = factory.CreateSubscriber(options);
+        using var destination = new TestMemory { SupportsPinning = false };
+        publisher.TryEnqueue("message!"u8).Should().BeTrue();
+
+        subscriber.TryDequeue(destination.Memory, default, out var message).Should().BeTrue();
+        message.ToArray().Should().Equal("message!"u8.ToArray());
+    }
+
+    [Fact]
+    public void FailedReadDoesNotReleaseASuccessorLockOrRestoreItsMessage()
+    {
+        using var probe = new QueueProbe(options);
+        using var publisher = factory.CreatePublisher(options);
+        using var subscriber = factory.CreateSubscriber(options);
+        using var destination = new TestMemory();
+        var memory = destination.Memory;
+        var successorTimestamp = DateTime.UtcNow.Ticks + TimeSpan.FromSeconds(1).Ticks;
+        destination.OnAccess = () => probe.SetReadLock(successorTimestamp);
+        destination.FailReads = true;
+        publisher.TryEnqueue("message!"u8).Should().BeTrue();
+
+        Assert.Throws<InvalidOperationException>(() => subscriber.TryDequeue(memory, default, out _));
+
+        probe.ReadLockTimestamp.Should().Be(successorTimestamp);
+        probe.HeadState.Should().Be(MessageHeader.LockedToBeConsumedState);
+    }
+
+    [Fact]
+    public async Task ConcurrentVariableLengthMessagesKeepTheirLengthAndPayloadAsync()
+    {
+        const int count = 1000;
+        using var publisher = factory.CreatePublisher(options);
+        using var subscriber = factory.CreateSubscriber(options);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var reader = Task.Run(() =>
+        {
+            var buffer = new byte[200];
+            for (var id = 0; id < count; id++)
+            {
+                var message = subscriber.Dequeue(buffer, cancellation.Token);
+                message.Length.Should().Be(8 + (id % 193));
+                BitConverter.ToInt32(message.Span).Should().Be(id);
+                message.Span[4..].ToArray().Should().OnlyContain(value => value == (byte)id);
+            }
+        });
+
+        var payload = new byte[200];
+        for (var id = 0; id < count; id++)
+        {
+            var message = payload.AsSpan(0, 8 + (id % 193));
+            message.Fill((byte)id);
+            BitConverter.TryWriteBytes(message, id).Should().BeTrue();
+            while (!publisher.TryEnqueue(message))
+            {
+                cancellation.Token.ThrowIfCancellationRequested();
+                Thread.Yield();
+            }
+        }
+
+        await reader.WaitAsync(TimeSpan.FromSeconds(15));
+    }
 
     [Fact]
     public async Task TryDequeueDoesNotWaitForAnotherSubscriberAsync()
@@ -159,7 +276,14 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
 
     private sealed class QueueProbe(QueueOptions options) : Queue(options, NullLoggerFactory.Instance)
     {
+        internal unsafe long ReadLockTimestamp => Interlocked.Read(ref Header->ReadLockTimestamp);
+
         internal unsafe bool ReadsAreLocked => Interlocked.Read(ref Header->ReadLockTimestamp) != 0;
+
+        internal unsafe int HeadState => ((MessageHeader*)Buffer.GetPointer(Header->ReadOffset))->State;
+
+        internal unsafe void SetReadLock(long timestamp) =>
+            Interlocked.Exchange(ref Header->ReadLockTimestamp, timestamp);
 
         internal unsafe void LockReads() => Interlocked.Exchange(ref Header->ReadLockTimestamp, DateTime.UtcNow.Ticks);
 
@@ -169,5 +293,44 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
         internal unsafe void UnlockReads() => Interlocked.Exchange(ref Header->ReadLockTimestamp, 0);
 
         internal unsafe void ReserveUnfinishedMessage() => Interlocked.Exchange(ref Header->WriteOffset, 16);
+    }
+
+    private sealed class TestMemory : MemoryManager<byte>
+    {
+        private readonly byte[] bytes = new byte[8];
+
+        internal bool FailReads { get; set; }
+        internal bool SupportsPinning { get; set; } = true;
+        internal Action? OnAccess { get; set; }
+
+        public override Span<byte> GetSpan()
+        {
+            CheckAccess();
+            return bytes;
+        }
+
+        public override MemoryHandle Pin(int elementIndex = 0)
+        {
+            CheckAccess();
+            if (!SupportsPinning)
+                throw new NotSupportedException("This memory supports spans but cannot be pinned.");
+
+            return bytes.AsMemory(elementIndex).Pin();
+        }
+
+        public override void Unpin()
+        {
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+        }
+
+        private void CheckAccess()
+        {
+            OnAccess?.Invoke();
+            if (FailReads)
+                throw new InvalidOperationException("Destination memory is unavailable.");
+        }
     }
 }

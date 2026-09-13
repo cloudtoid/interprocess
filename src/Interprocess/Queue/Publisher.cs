@@ -41,10 +41,10 @@ internal sealed class Publisher : Queue, IPublisher
                     // write the message body
                     Buffer.Write(message, GetMessageBodyOffset(writeOffset));
 
-                    // write the message header
-                    Buffer.Write(
-                        new MessageHeader(MessageHeader.ReadyToBeConsumedState, bodyLength),
-                        writeOffset);
+                    // Publish readiness only after the body and length are visible to readers.
+                    var messageHeader = (MessageHeader*)Buffer.GetPointer(writeOffset);
+                    messageHeader->BodyLength = bodyLength;
+                    Volatile.Write(ref messageHeader->State, MessageHeader.ReadyToBeConsumedState);
                 }
                 catch
                 {
