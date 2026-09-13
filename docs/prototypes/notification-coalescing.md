@@ -2,7 +2,7 @@
 
 This prototype is based on v3 alpha commit `3ed007c` (PR #53). It changes the notification protocol;
 all publishers and subscribers must use the same version and start with a fresh queue. The queue header
-remains 32 bytes. A 32-bit `NotificationPending` flag at offset 24 stores 0 or 1; bytes 28-31 remain unused.
+remains 32 bytes. A 32-bit `NotificationPending` flag at offset 24 stores 0 or 1; the 32-bit `Reserved` field at offset 28 remains unused.
 
 ## Algorithm
 

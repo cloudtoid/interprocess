@@ -29,7 +29,11 @@ internal struct QueueHeader
     [FieldOffset(24)]
     internal int NotificationPending;
 
-    // Bytes 28-31 remain unused; the shared header stays 32 bytes.
+    /// <summary>
+    /// Reserved for future use.
+    /// </summary>
+    [FieldOffset(28)]
+    internal int Reserved;
 
     internal readonly bool IsEmpty() =>
         ReadOffset == WriteOffset;
