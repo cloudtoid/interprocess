@@ -27,22 +27,3 @@ jobs:
 
       - name: Build and Test
         run: dotnet test src/Interprocess.sln
-
-      - name: Diagnose Windows mapping lifetime
-        if: always() && runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $failures = 0
-          foreach ($revision in @('candidate', 'baseline')) {
-            if ($revision -eq 'baseline') {
-              git fetch origin main --depth=1
-              git restore --source=FETCH_HEAD --staged --worktree -- src
-            }
-            for ($iteration = 0; $iteration -lt 5; $iteration++) {
-              Write-Output "$revision iteration $iteration"
-              dotnet test src/Interprocess.Tests/Interprocess.Tests.csproj --filter FullyQualifiedName~QueueLifetimeTests
-              if ($LASTEXITCODE -ne 0) { $failures++ }
-            }
-          }
-          Write-Output "Total failures: $failures"
-          exit 0
