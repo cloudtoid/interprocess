@@ -12,6 +12,93 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
     private readonly QueueOptions options = new(Guid.NewGuid().ToStringInvariant("N")[..16], fixture.Path, 1024);
     private readonly QueueFactory factory = new();
 
+    [Fact(Platforms = Platform.Linux | Platform.OSX)]
+    public async Task MismatchedCapacityDoesNotChangeALiveQueueAsync()
+    {
+        using var child = await StartParticipantAsync("publisher");
+        try
+        {
+            (await CommandAsync(child, "send")).Should().Be("sent");
+            var original = await File.ReadAllBytesAsync(BackingFile());
+            foreach (var capacity in new long[] { 512, 2048 })
+            {
+                var mismatched = new QueueOptions(options.QueueName, options.Path, capacity);
+                foreach (var publishing in new[] { false, true })
+                {
+                    Action join = () =>
+                    {
+                        using var participant = publishing
+                            ? (IDisposable)factory.CreatePublisher(mismatched)
+                            : factory.CreateSubscriber(mismatched);
+                    };
+                    join.Should().Throw<ArgumentException>();
+                    (await File.ReadAllBytesAsync(BackingFile())).Should().Equal(original);
+                }
+            }
+
+            using (var subscriber = factory.CreateSubscriber(options))
+            using (var signal = InterprocessSemaphore.CreateWaiter(options.QueueName))
+            {
+                signal.Wait(0).Should().BeTrue("failed joins must preserve existing notifications");
+                subscriber.TryDequeue(default, out var first).Should().BeTrue();
+                first.ToArray().Should().Equal("*"u8.ToArray());
+
+                (await CommandAsync(child, "send")).Should().Be("sent");
+                signal.Wait(1000).Should().BeTrue();
+                subscriber.TryDequeue(default, out var second).Should().BeTrue();
+                second.ToArray().Should().Equal("*"u8.ToArray());
+                await StopAsync(child);
+            }
+
+            AssertResourcesRemoved();
+        }
+        finally
+        {
+            KillIfRunning(child);
+        }
+    }
+
+    [Fact(Platforms = Platform.Linux | Platform.OSX)]
+    public async Task CapacityCanChangeAfterTheLastParticipantLeavesAsync()
+    {
+        foreach (var killed in new[] { false, true })
+        {
+            using var child = await StartParticipantAsync("publisher");
+            try
+            {
+                (await CommandAsync(child, "send")).Should().Be("sent");
+                if (killed)
+                {
+                    child.Kill();
+                    await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
+                    File.Exists(BackingFile()).Should().BeTrue();
+                }
+                else
+                {
+                    await StopAsync(child);
+                    AssertResourcesRemoved();
+                }
+
+                var larger = new QueueOptions(options.QueueName, options.Path, 2048);
+                using (var subscriber = factory.CreateSubscriber(larger))
+                using (var publisher = factory.CreatePublisher(larger))
+                {
+                    subscriber.TryDequeue(default, out _).Should().BeFalse();
+                    var payload = Enumerable.Range(0, 1800).Select(value => (byte)value).ToArray();
+                    publisher.TryEnqueue(payload).Should().BeTrue();
+                    subscriber.TryDequeue(default, out var message).Should().BeTrue();
+                    message.ToArray().Should().Equal(payload);
+                }
+
+                AssertResourcesRemoved();
+            }
+            finally
+            {
+                KillIfRunning(child);
+            }
+        }
+    }
+
     [Fact]
     public void LastParticipantRemovesMemoryAndSemaphore()
     {
