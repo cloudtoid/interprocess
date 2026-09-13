@@ -89,7 +89,8 @@ public sealed class PublisherDisposalTests(UniquePathFixture fixture) : IClassFi
 
     private static async Task CheckDrainingAsync(QueueOptions options, int writers, bool failRelease)
     {
-        using var entered = new CountdownEvent(writers);
+        // Only one writer posts; the others complete while its notification is pending.
+        using var entered = new CountdownEvent(1);
         using var resume = new ManualResetEventSlim();
         using var signal = new GatedSignal(entered, resume, failRelease);
         using var publisher = new Publisher(options, NullLoggerFactory.Instance, signal);
@@ -101,6 +102,10 @@ public sealed class PublisherDisposalTests(UniquePathFixture fixture) : IClassFi
         try
         {
             entered.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+            var coalesced = SpinWait.SpinUntil(
+                () => sends.Count(send => send.IsCompleted) == writers - 1,
+                TimeSpan.FromSeconds(5));
+            coalesced.Should().BeTrue();
             disposal = Task.Run(publisher.Dispose);
             var oversized = new byte[2048];
             var closed = SpinWait.SpinUntil(
@@ -127,19 +132,20 @@ public sealed class PublisherDisposalTests(UniquePathFixture fixture) : IClassFi
             resume.Set();
         }
 
+        var failures = 0;
         foreach (var send in sends)
         {
-            if (failRelease)
-            {
-                await Assert.ThrowsAsync<InvalidOperationException>(
-                    async () => await send.WaitAsync(TimeSpan.FromSeconds(5)));
-            }
-            else
+            try
             {
                 (await send.WaitAsync(TimeSpan.FromSeconds(5))).Should().BeTrue();
             }
+            catch (InvalidOperationException) when (failRelease)
+            {
+                failures++;
+            }
         }
 
+        failures.Should().Be(failRelease ? 1 : 0, "only the writer posting a notification can fail its release");
         await disposal.WaitAsync(TimeSpan.FromSeconds(5));
         signal.IsDisposed.Should().BeTrue();
         // Even a failed notification happens after the message is committed.

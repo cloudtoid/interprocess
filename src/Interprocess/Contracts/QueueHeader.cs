@@ -24,10 +24,10 @@ internal struct QueueHeader
     internal long ReadLockTimestamp;
 
     /// <summary>
-    /// Not used and might be used in the future
+    /// One when a notification permit is pending or a participant is about to post it.
     /// </summary>
     [FieldOffset(24)]
-    internal long Reserved;
+    internal long NotificationPending;
 
     internal readonly bool IsEmpty() =>
         ReadOffset == WriteOffset;

@@ -292,7 +292,7 @@ public class QueueTests : IClassFixture<UniquePathFixture>
             publisher.TryEnqueue([(byte)i]).Should().BeTrue();
 
         publisher.TryEnqueue("full"u8).Should().BeFalse();
-        signal.Releases.Should().Be(4, "a full queue must not post a notification");
+        signal.Releases.Should().Be(1, "publishes coalesce while a notification is pending");
         for (var i = 0; i < 4; i++)
         {
             subscriber.TryDequeue(out var message).Should().BeTrue();
@@ -303,7 +303,7 @@ public class QueueTests : IClassFixture<UniquePathFixture>
         publisher.TryEnqueue("next"u8).Should().BeTrue();
         subscriber.TryDequeue(out var next).Should().BeTrue();
         next.ToArray().Should().Equal("next"u8.ToArray());
-        signal.Releases.Should().Be(5, "each committed message must still attempt notification");
+        signal.Releases.Should().Be(1, "immediate reads do not consume the pending notification");
     }
 
     private IPublisher CreatePublisher(long capacity) =>

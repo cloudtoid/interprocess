@@ -1,6 +1,6 @@
 namespace Cloudtoid.Interprocess.Semaphore.MacOS;
 
-internal sealed class SemaphoreMacOS : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
+internal sealed class SemaphoreMacOS : IInterprocessSemaphoreWaiter
 {
     private const string HandleNamePrefix = "/ct3ip.";
     private readonly string name;

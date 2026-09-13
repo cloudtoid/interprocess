@@ -54,6 +54,23 @@ internal abstract class Queue : IDisposable
             view.Dispose();
     }
 
+    protected unsafe void Notify(IInterprocessSemaphoreReleaser signal)
+    {
+        // The exchange orders publication before observing the notification state, even
+        // when another post is already pending. A volatile check alone is insufficient.
+        if (Interlocked.Exchange(ref Header->NotificationPending, 1) != 0)
+            return;
+
+        try
+        {
+            signal.Release();
+        }
+        catch (SemaphoreFullException)
+        {
+            // A full semaphore already has a notification available for a reader.
+        }
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static unsafe long GetMessageBodyOffset(long startOffset) =>
         startOffset + sizeof(MessageHeader);
