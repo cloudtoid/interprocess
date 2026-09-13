@@ -3,13 +3,17 @@ namespace Cloudtoid.Interprocess;
 internal sealed class Publisher : Queue, IPublisher
 {
     private readonly IInterprocessSemaphoreReleaser signal;
+    private int activeEnqueues;
 
-    internal Publisher(QueueOptions options, ILoggerFactory loggerFactory)
+    internal Publisher(
+        QueueOptions options,
+        ILoggerFactory loggerFactory,
+        IInterprocessSemaphoreReleaser? signal = null)
         : base(options, loggerFactory)
     {
         try
         {
-            signal = InterprocessSemaphore.CreateReleaser(options.QueueName);
+            this.signal = signal ?? InterprocessSemaphore.CreateReleaser(options.QueueName);
         }
         catch
         {
@@ -18,7 +22,36 @@ internal sealed class Publisher : Queue, IPublisher
         }
     }
 
-    public unsafe bool TryEnqueue(ReadOnlySpan<byte> message)
+    public bool TryEnqueue(ReadOnlySpan<byte> message)
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        Interlocked.Increment(ref activeEnqueues);
+        try
+        {
+            // Disposal may have started between the first check and incrementing the counter.
+            ObjectDisposedException.ThrowIf(IsDisposed, this);
+            return TryEnqueueCore(message);
+        }
+        finally
+        {
+            Interlocked.Decrement(ref activeEnqueues);
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        // Queue.Dispose has already closed admission. Drain calls that passed the second check.
+        SpinWait spin = default;
+        while (Volatile.Read(ref activeEnqueues) != 0)
+            spin.SpinOnce();
+
+        if (disposing)
+            signal.Dispose();
+
+        base.Dispose(disposing);
+    }
+
+    private unsafe bool TryEnqueueCore(ReadOnlySpan<byte> message)
     {
         var bodyLength = message.Length;
         var messageLength = GetPaddedMessageLength(bodyLength);
@@ -59,14 +92,6 @@ internal sealed class Publisher : Queue, IPublisher
                 return true;
             }
         }
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-            signal.Dispose();
-
-        base.Dispose(disposing);
     }
 
     private bool CheckCapacity(QueueHeader header, long messageLength)
