@@ -10,8 +10,14 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: ["ubuntu-latest", "windows-latest", "macos-latest"]
+        os: ["ubuntu-latest", "windows-latest", "macos-latest", "macos-15-intel"]
+        include:
+          - os: macos-latest
+            expectedArchitecture: Arm64
+          - os: macos-15-intel
+            expectedArchitecture: X64
     name: Build and Test on ${{ matrix.os }}
     
     steps:
@@ -26,4 +32,6 @@ jobs:
             10.0.x
 
       - name: Build and Test
+        env:
+          INTERPROCESS_TEST_ARCHITECTURE: ${{ matrix.expectedArchitecture }}
         run: dotnet test src/Interprocess.sln
