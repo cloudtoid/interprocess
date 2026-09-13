@@ -289,6 +289,15 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
         {
             probe.ReserveUnfinishedMessage();
             subscriber.TryDequeue(out _).Should().BeFalse();
+            var unfinishedAttempts = Enumerable.Range(0, 8).Select(_ => Task.Run(() =>
+            {
+                for (var i = 0; i < 32; i++)
+                {
+                    subscriber.TryDequeue(out var message).Should().BeFalse();
+                    message.IsEmpty.Should().BeTrue();
+                }
+            }));
+            await Task.WhenAll(unfinishedAttempts).WaitAsync(TimeSpan.FromSeconds(1));
             probe.CompleteMessage();
             var attempts = Enumerable.Range(0, 8).Select(_ => Task.Run(() =>
             {

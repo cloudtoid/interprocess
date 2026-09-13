@@ -122,19 +122,19 @@ internal sealed class Subscriber : Queue, ISubscriber
         cancellationSource.ThrowIfCancellationRequested(cancellation);
 
         message = ReadOnlyMemory<byte>.Empty;
-        var pending = Volatile.Read(ref pendingRead);
-        if (pending is not null && Interlocked.CompareExchange(ref pendingRead, null, pending) != pending)
-            pending = null;
-
         var header = *Header;
 
         // is this an empty queue?
         if (header.IsEmpty())
-        {
-            if (pending is not null)
-                Interlocked.CompareExchange(ref Header->ReadLockTimestamp, 0L, pending.Timestamp);
-
             return false;
+
+        var pending = Volatile.Read(ref pendingRead);
+        if (pending is not null)
+        {
+            if (Interlocked.CompareExchange(ref pendingRead, null, pending) != pending)
+                pending = null;
+            else
+                header = *Header; // Another call may have renewed ownership before we claimed it.
         }
 
         var readLockTimestamp = header.ReadLockTimestamp;
