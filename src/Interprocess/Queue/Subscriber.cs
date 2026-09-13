@@ -1,12 +1,18 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Cloudtoid.Interprocess;
 
 internal sealed class Subscriber : Queue, ISubscriber
 {
-    private static readonly long TicksForTenSeconds = TimeSpan.FromSeconds(10).Ticks;
+    private static readonly long RecoveryInterval = Stopwatch.Frequency * 10;
     private readonly IInterprocessSemaphoreWaiter signal;
+    private readonly QueueOptions options;
+    private readonly ReaderLease lease;
+    private readonly long readerId;
+    private long nextRecoveryCheck = Stopwatch.GetTimestamp() + RecoveryInterval;
     private int activeReads;
+    // Accessed only while holding the shared read lock.
     private PendingRead? pendingRead;
 
     internal Subscriber(
@@ -15,12 +21,16 @@ internal sealed class Subscriber : Queue, ISubscriber
         IInterprocessSemaphoreWaiter? signal = null)
         : base(options, loggerFactory)
     {
+        this.options = options;
         try
         {
+            readerId = RegisterReader();
+            lease = new ReaderLease(options, readerId);
             this.signal = signal ?? InterprocessSemaphore.CreateWaiter(options.QueueName);
         }
         catch
         {
+            lease?.Dispose();
             base.Dispose(true);
             throw;
         }
@@ -68,10 +78,11 @@ internal sealed class Subscriber : Queue, ISubscriber
         while (Volatile.Read(ref activeReads) != 0)
             spin.SpinOnce();
 
-        ReleasePendingRead();
-
         if (disposing)
+        {
+            lease.Dispose();
             signal.Dispose();
+        }
 
         base.Dispose(disposing);
     }
@@ -94,7 +105,6 @@ internal sealed class Subscriber : Queue, ISubscriber
 
     private unsafe ReadOnlyMemory<byte> DequeueCore(Memory<byte>? resultBuffer, CancellationToken cancellation)
     {
-        // Rejected admission must not enter the catch below, which touches the shared read lock.
         EnterRead(cancellation);
         var relayNotification = false;
 
@@ -120,11 +130,6 @@ internal sealed class Subscriber : Queue, ISubscriber
                 }
             }
         }
-        catch
-        {
-            ReleasePendingRead();
-            throw;
-        }
         finally
         {
             try
@@ -146,53 +151,20 @@ internal sealed class Subscriber : Queue, ISubscriber
         out ReadOnlyMemory<byte> message)
     {
         message = ReadOnlyMemory<byte>.Empty;
-        var pending = Volatile.Read(ref pendingRead);
-        if (pending is not null && Interlocked.CompareExchange(ref pendingRead, null, pending) != pending)
-            pending = null;
+        var header = Header;
+        if (header->IsEmpty())
+            return false;
 
-        var header = *Header;
-
-        // is this an empty queue?
-        if (header.IsEmpty())
+        var owner = header->ReadLockOwner;
+        if (owner != 0)
         {
-            if (pending is not null)
-                Interlocked.CompareExchange(ref Header->ReadLockTimestamp, 0L, pending.Timestamp);
-
+            TryRecoverReader(owner);
             return false;
         }
 
-        var readLockTimestamp = header.ReadLockTimestamp;
-        var start = DateTime.UtcNow.Ticks;
+        if (Interlocked.CompareExchange(ref header->ReadLockOwner, readerId, 0L) != 0)
+            return false;
 
-        if (pending is not null
-            && readLockTimestamp == pending.Timestamp
-            && header.ReadOffset == pending.ReadOffset)
-        {
-            // Reacquire ownership without restarting this reservation's recovery deadline.
-            if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, start, pending.Timestamp)
-                != pending.Timestamp)
-            {
-                return false;
-            }
-
-            pending.Timestamp = start;
-        }
-        else
-        {
-            pending = null;
-            // is there already a read-lock or has the previous lock timed out meaning that a subscriber crashed?
-            if (start - readLockTimestamp < TicksForTenSeconds)
-                return false;
-
-            // take a read-lock so no other thread can read a message
-            if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, start, readLockTimestamp)
-                != readLockTimestamp)
-            {
-                return false;
-            }
-        }
-
-        var retainReadLock = false;
         try
         {
             // is the queue empty now that we were able to get a read-lock?
@@ -201,7 +173,6 @@ internal sealed class Subscriber : Queue, ISubscriber
 
             // now finally have a read-lock and the queue is not empty
             var readOffset = Header->ReadOffset;
-            var writeOffset = pending?.WriteOffset ?? Header->WriteOffset;
             var messageHeader = (MessageHeader*)Buffer.GetPointer(readOffset);
 
             var state = Interlocked.CompareExchange(
@@ -211,34 +182,29 @@ internal sealed class Subscriber : Queue, ISubscriber
 
             if (state != MessageHeader.ReadyToBeConsumedState)
             {
-                // but if the publisher crashed, we will never get the message, so we need to handle that case by timing out
-                if (DateTime.UtcNow.Ticks - (pending?.StartedTimestamp ?? start) > TicksForTenSeconds)
+                // Monotonic positions identify this reservation even after the buffer wraps.
+                // Releasing the lock between attempts lets other subscribers make progress.
+                var pending = pendingRead;
+                if (pending is null || pending.ReadOffset != readOffset)
                 {
-                    var discardedLength = writeOffset - readOffset;
-
-                    // Reject a stale snapshot before clearing. These checks cannot fence an owner paused mid-clear.
-                    if (discardedLength < 0
-                        || discardedLength > Buffer.Capacity
-                        || Volatile.Read(ref Header->ReadLockTimestamp) != start
-                        || Volatile.Read(ref Header->ReadOffset) != readOffset)
-                    {
-                        return false;
-                    }
-
-                    // Clear through the captured tail before publishers can reuse the space.
-                    // Otherwise discarded ready headers could be consumed on a later lap.
-                    Buffer.Clear(readOffset, discardedLength);
-                    Interlocked.Exchange(ref Header->ReadOffset, writeOffset);
+                    pendingRead = new PendingRead(Stopwatch.GetTimestamp(), readOffset, Header->WriteOffset);
                     return false;
                 }
 
-                // Keep ownership between immediate attempts. Releasing the shared lock and
-                // remembering only an offset could mistake a later ring lap for this reservation.
-                pending ??= new PendingRead(start, readOffset, writeOffset);
-                retainReadLock = Interlocked.CompareExchange(ref pendingRead, pending, null) is null;
+                // but if the publisher crashed, we will never get the message, so we need to handle that case by timing out
+                if (Stopwatch.GetTimestamp() - pending.StartedTimestamp > RecoveryInterval)
+                {
+                    // Clear through the captured tail before publishers can reuse the space.
+                    // Otherwise discarded ready headers could be consumed on a later lap.
+                    Buffer.Clear(readOffset, pending.WriteOffset - readOffset);
+                    Interlocked.Exchange(ref Header->ReadOffset, pending.WriteOffset);
+                    pendingRead = null;
+                }
+
                 return false;
             }
 
+            pendingRead = null;
             // read the message body from the queue
             var bodyLength = messageHeader->BodyLength;
             try
@@ -250,16 +216,11 @@ internal sealed class Subscriber : Queue, ISubscriber
             }
             catch
             {
-                // Destination allocation or custom memory can fail. Leave the message
-                // available for retry, but do not change a successor reader's state.
-                if (Volatile.Read(ref Header->ReadLockTimestamp) == start
-                    && Volatile.Read(ref Header->ReadOffset) == readOffset)
-                {
-                    Interlocked.CompareExchange(
-                        ref messageHeader->State,
-                        MessageHeader.ReadyToBeConsumedState,
-                        MessageHeader.LockedToBeConsumedState);
-                }
+                // We still own the read lock. Leave the message available for retry.
+                Interlocked.CompareExchange(
+                    ref messageHeader->State,
+                    MessageHeader.ReadyToBeConsumedState,
+                    MessageHeader.LockedToBeConsumedState);
 
                 throw;
             }
@@ -274,19 +235,38 @@ internal sealed class Subscriber : Queue, ISubscriber
         }
         finally
         {
-            // Release only our own read-lock if another reader has recovered it.
-            if (!retainReadLock)
-                Interlocked.CompareExchange(ref Header->ReadLockTimestamp, 0L, start);
+            // A live reader keeps ownership until it explicitly releases the lock.
+            Interlocked.CompareExchange(ref Header->ReadLockOwner, 0L, readerId);
         }
 
         return true;
     }
 
-    private unsafe void ReleasePendingRead()
+    private unsafe long RegisterReader()
     {
-        var pending = Interlocked.Exchange(ref pendingRead, null);
-        if (pending is not null)
-            Interlocked.CompareExchange(ref Header->ReadLockTimestamp, 0L, pending.Timestamp);
+        while (true)
+        {
+            var previous = Volatile.Read(ref Header->LastReaderId);
+            var next = checked(previous + 1);
+            if (Interlocked.CompareExchange(ref Header->LastReaderId, next, previous) == previous)
+                return next;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private unsafe void TryRecoverReader(long owner)
+    {
+        // Another call on this subscriber is still alive. Only its owner can release it.
+        if (owner == readerId)
+            return;
+
+        var next = Volatile.Read(ref nextRecoveryCheck);
+        var now = Stopwatch.GetTimestamp();
+        if (now < next || Interlocked.CompareExchange(ref nextRecoveryCheck, now + RecoveryInterval, next) != next)
+            return;
+
+        if (!ReaderLease.IsAlive(options, owner))
+            Interlocked.CompareExchange(ref Header->ReadLockOwner, 0L, owner);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -300,7 +280,6 @@ internal sealed class Subscriber : Queue, ISubscriber
 
     private sealed class PendingRead(long timestamp, long readOffset, long writeOffset)
     {
-        internal long Timestamp { get; set; } = timestamp;
         internal long StartedTimestamp { get; } = timestamp;
         internal long ReadOffset { get; } = readOffset;
         internal long WriteOffset { get; } = writeOffset;
