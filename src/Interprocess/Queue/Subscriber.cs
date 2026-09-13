@@ -1,11 +1,12 @@
+using System.Runtime.CompilerServices;
+
 namespace Cloudtoid.Interprocess;
 
 internal sealed class Subscriber : Queue, ISubscriber
 {
     private static readonly long TicksForTenSeconds = TimeSpan.FromSeconds(10).Ticks;
-    private readonly CancellationTokenSource cancellationSource = new();
-    private readonly CountdownEvent countdownEvent = new(1);
     private readonly IInterprocessSemaphoreWaiter signal;
+    private int activeReads;
     private PendingRead? pendingRead;
 
     internal Subscriber(QueueOptions options, ILoggerFactory loggerFactory)
@@ -17,8 +18,6 @@ internal sealed class Subscriber : Queue, ISubscriber
         }
         catch
         {
-            countdownEvent.Dispose();
-            cancellationSource.Dispose();
             base.Dispose(true);
             throw;
         }
@@ -36,24 +35,28 @@ internal sealed class Subscriber : Queue, ISubscriber
     public ReadOnlyMemory<byte> Dequeue(Memory<byte> buffer, CancellationToken cancellation) =>
         DequeueCore(buffer, cancellation);
 
+    // Internal so tests can exercise admission after disposal has drained the counter.
+    internal void EnterRead(CancellationToken cancellation)
+    {
+        Interlocked.Increment(ref activeReads);
+        if (!IsDisposed && !cancellation.IsCancellationRequested)
+            return;
+
+        Interlocked.Decrement(ref activeReads);
+        ThrowIfCancellationRequested(cancellation);
+    }
+
     protected override void Dispose(bool disposing)
     {
-        // drain the Dequeue/TryDequeue requests
-        cancellationSource.Cancel();
-        countdownEvent.Signal();
-        countdownEvent.Wait();
+        // Queue.Dispose has closed admission. Blocking readers observe that flag on their next retry.
+        SpinWait spin = default;
+        while (Volatile.Read(ref activeReads) != 0)
+            spin.SpinOnce();
+
         ReleasePendingRead();
 
-        // There is a potential for a race condition in DequeueCore if the cancellationSource
-        // was not cancelled before AddEvent is called. The sleep here will prevent that.
-        Thread.Sleep(millisecondsTimeout: 10);
-
         if (disposing)
-        {
-            countdownEvent.Dispose();
             signal.Dispose();
-            cancellationSource.Dispose();
-        }
 
         base.Dispose(disposing);
     }
@@ -62,32 +65,30 @@ internal sealed class Subscriber : Queue, ISubscriber
         Memory<byte>? resultBuffer,
         out ReadOnlyMemory<byte> message)
     {
-        // do NOT reorder the cancellation and the AddCount operation below. See Dispose for more information.
-        cancellationSource.ThrowIfCancellationRequested();
-        countdownEvent.AddCount();
+        EnterRead(default);
 
         try
         {
-            return TryDequeueImpl(resultBuffer, default, out message);
+            return TryDequeueImpl(resultBuffer, out message);
         }
         finally
         {
-            countdownEvent.Signal();
+            Interlocked.Decrement(ref activeReads);
         }
     }
 
     private ReadOnlyMemory<byte> DequeueCore(Memory<byte>? resultBuffer, CancellationToken cancellation)
     {
-        // do NOT reorder the cancellation and the AddCount operation below. See Dispose for more information.
-        cancellationSource.ThrowIfCancellationRequested(cancellation);
-        countdownEvent.AddCount();
+        // Rejected admission must not enter the catch below, which touches the shared read lock.
+        EnterRead(cancellation);
 
         try
         {
             SpinWait spin = default;
             while (true)
             {
-                if (TryDequeueImpl(resultBuffer, cancellation, out var message))
+                ThrowIfCancellationRequested(cancellation);
+                if (TryDequeueImpl(resultBuffer, out var message))
                     return message;
 
                 // Retry briefly in user space while another reader finishes. Once spinning
@@ -110,17 +111,14 @@ internal sealed class Subscriber : Queue, ISubscriber
         }
         finally
         {
-            countdownEvent.Signal();
+            Interlocked.Decrement(ref activeReads);
         }
     }
 
     private unsafe bool TryDequeueImpl(
         Memory<byte>? resultBuffer,
-        CancellationToken cancellation,
         out ReadOnlyMemory<byte> message)
     {
-        cancellationSource.ThrowIfCancellationRequested(cancellation);
-
         message = ReadOnlyMemory<byte>.Empty;
         var pending = Volatile.Read(ref pendingRead);
         if (pending is not null && Interlocked.CompareExchange(ref pendingRead, null, pending) != pending)
@@ -252,6 +250,15 @@ internal sealed class Subscriber : Queue, ISubscriber
         var pending = Interlocked.Exchange(ref pendingRead, null);
         if (pending is not null)
             Interlocked.CompareExchange(ref Header->ReadLockTimestamp, 0L, pending.Timestamp);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ThrowIfCancellationRequested(CancellationToken cancellation)
+    {
+        if (IsDisposed)
+            throw new OperationCanceledException();
+
+        cancellation.ThrowIfCancellationRequested();
     }
 
     private sealed class PendingRead(long timestamp, long readOffset, long writeOffset)

@@ -192,7 +192,7 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
             child.Kill();
             await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
             if (OperatingSystem.IsWindows())
-                AssertResourcesRemoved(); // Windows also reclaims handles on forced process exit.
+                AssertResourcesRemoved(afterForcedExit: true); // Windows also reclaims handles on forced process exit.
             else
                 File.Exists(BackingFile()).Should().BeTrue();
 
@@ -236,7 +236,7 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
                 subscriber.TryDequeue(out _).Should().BeTrue();
             }
 
-            AssertResourcesRemoved();
+            AssertResourcesRemoved(afterForcedExit: true);
         }
         finally
         {
@@ -372,7 +372,7 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
         }
     }
 
-    private void AssertResourcesRemoved()
+    private void AssertResourcesRemoved(bool afterForcedExit = false)
     {
         if (OperatingSystem.IsWindows())
         {
@@ -390,6 +390,15 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
                     using var semaphore = SysSemaphore.OpenExisting(@"Global\CT.IP." + options.QueueName);
                 }
             };
+            // Forced-exit cleanup can outlive the last participant's explicit disposal.
+            // Keep ordinary disposal assertions immediate, but allow Windows to finish reclaiming a killed process's mapping.
+            if (afterForcedExit)
+            {
+                SpinWait.SpinUntil(
+                    () => Record.Exception(openMapping) is FileNotFoundException,
+                    TimeSpan.FromSeconds(5));
+            }
+
             openMapping.Should().Throw<FileNotFoundException>();
             openSemaphore.Should().Throw<WaitHandleCannotBeOpenedException>();
             return;

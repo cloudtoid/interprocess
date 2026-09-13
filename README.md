@@ -110,6 +110,9 @@ abandoned resources and starts with an empty queue.
 Publisher disposal stops new enqueue calls and waits for in-flight calls to finish before releasing
 shared memory and the semaphore. `TryEnqueue` throws `ObjectDisposedException` once admission closes.
 
+Subscriber disposal stops new reads, cancels blocking reads, and waits for admitted reads before releasing
+resources. Calls rejected because the subscriber is disposed continue to throw `OperationCanceledException`.
+
 All participants must use the same queue name, storage path, and capacity. On Unix, keep the storage
 directory in place while queues are active; creation and cleanup use advisory file locks on that directory
 and the backing files. Stop all participants before upgrading to this lifecycle implementation.
