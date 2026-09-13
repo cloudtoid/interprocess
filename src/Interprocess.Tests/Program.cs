@@ -1,5 +1,7 @@
 #pragma warning disable IDE0210 // Explicit entry point distinguishes the child worker from the test SDK entry point.
 
+using System.Globalization;
+
 namespace Cloudtoid.Interprocess.Tests;
 
 // Run a real queue participant in a child process for lifecycle tests.
@@ -12,6 +14,8 @@ internal static class Program
             await PublisherDisposalTests.RunChildAsync(options, args[3]);
         else if (args[2] == "subscriber-disposal")
             await SubscriberDisposalTests.RunChildAsync(options, args[3]);
+        else if (args[2] == "mac-semaphore")
+            MacSemaphoreTests.RunPeer(options.QueueName, int.Parse(args[3], CultureInfo.InvariantCulture));
         else
             RunParticipant(options, args[2]);
     }
