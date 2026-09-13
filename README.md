@@ -18,7 +18,8 @@
 
 ## NuGet Package
 
-The NuGet package for this library is published [here][NuGet].
+The NuGet package for this library is published [here][NuGet]. Version 3 packages use `3.0.0-alpha.<build number>`
+and require opting into prerelease versions.
 
 > Note: To improve performance, this library only supports 64-bit CLR with 64-bit processor architectures. Attempting to use this library on 32-bit processors, 32-bit operating systems, or on [WOW64][Wow64Wiki] may throw a `NotSupportedException`.
 
@@ -88,7 +89,10 @@ using var subscriber = factory.CreateSubscriber(options);
 subscriber.TryDequeue(messageBuffer, out var message);
 ```
 
-### Upgrading to 3.0
+### Upgrading to 3.0 alpha
+
+Version 3 is an **alpha prerelease**. APIs and the shared-memory protocol may change between alpha releases.
+Drain the queue, stop all participants, and recreate it when upgrading between alpha versions.
 
 Version 3 changes the shared-memory protocol to fix a publisher reservation race that could overwrite
 unread messages after the write position wrapped. All publishers and subscribers for a queue must
