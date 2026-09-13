@@ -387,45 +387,54 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         // Keep a participant alive while the workers start and finish.
         using var anchor = factory.CreatePublisher(options);
+        // Blocking peers need dedicated threads so readers cannot starve queued publishers.
         var readers = new Task[subscriberCount];
         for (var reader = 0; reader < subscriberCount; reader++)
         {
-            readers[reader] = Task.Run(() =>
-            {
-                using var subscriber = factory.CreateSubscriber(options);
-                var buffer = new byte[64];
-                for (var i = 0; i < count / subscriberCount; i++)
+            readers[reader] = Task.Factory.StartNew(
+                () =>
                 {
-                    var message = subscriber.Dequeue(buffer, cancellation.Token);
-                    var id = BitConverter.ToInt32(message.Span);
-                    id.Should().BeInRange(0, count - 1);
-                    message.Length.Should().Be(8 + (id % 57));
-                    message.Span[4..].ToArray().Should().OnlyContain(value => value == (byte)id);
-                    Interlocked.Increment(ref received[id]);
-                }
-            });
+                    using var subscriber = factory.CreateSubscriber(options);
+                    var buffer = new byte[64];
+                    for (var i = 0; i < count / subscriberCount; i++)
+                    {
+                        var message = subscriber.Dequeue(buffer, cancellation.Token);
+                        var id = BitConverter.ToInt32(message.Span);
+                        id.Should().BeInRange(0, count - 1);
+                        message.Length.Should().Be(8 + (id % 57));
+                        message.Span[4..].ToArray().Should().OnlyContain(value => value == (byte)id);
+                        Interlocked.Increment(ref received[id]);
+                    }
+                },
+                cancellation.Token,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
         }
 
         var writers = new Task[4];
         for (var writer = 0; writer < writers.Length; writer++)
         {
             var firstId = writer;
-            writers[writer] = Task.Run(() =>
-            {
-                using var publisher = factory.CreatePublisher(options);
-                var buffer = new byte[64];
-                for (var id = firstId; id < count; id += writers.Length)
+            writers[writer] = Task.Factory.StartNew(
+                () =>
                 {
-                    var message = buffer.AsSpan(0, 8 + (id % 57));
-                    message.Fill((byte)id);
-                    BitConverter.TryWriteBytes(message, id).Should().BeTrue();
-                    while (!publisher.TryEnqueue(message))
+                    using var publisher = factory.CreatePublisher(options);
+                    var buffer = new byte[64];
+                    for (var id = firstId; id < count; id += writers.Length)
                     {
-                        cancellation.Token.ThrowIfCancellationRequested();
-                        Thread.Yield();
+                        var message = buffer.AsSpan(0, 8 + (id % 57));
+                        message.Fill((byte)id);
+                        BitConverter.TryWriteBytes(message, id).Should().BeTrue();
+                        while (!publisher.TryEnqueue(message))
+                        {
+                            cancellation.Token.ThrowIfCancellationRequested();
+                            Thread.Yield();
+                        }
                     }
-                }
-            });
+                },
+                cancellation.Token,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
         }
 
         await Task.WhenAll(readers.Concat(writers)).WaitAsync(TimeSpan.FromSeconds(15));
