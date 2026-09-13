@@ -188,9 +188,21 @@ internal sealed class Subscriber : Queue, ISubscriber
                 // but if the publisher crashed, we will never get the message, so we need to handle that case by timing out
                 if (DateTime.UtcNow.Ticks - (pending?.StartedTimestamp ?? start) > TicksForTenSeconds)
                 {
-                    // the publisher crashed and we will never get the message
-                    // so we need to release the read-lock and advance the queue for everyone.
-                    // some messages might be lost in this case but this is the best we can do.
+                    var discardedLength = writeOffset - readOffset;
+                    if (discardedLength < 0)
+                        discardedLength += Buffer.Capacity * 2;
+
+                    // Reject a stale snapshot before clearing. These checks cannot fence an owner paused mid-clear.
+                    if (discardedLength > Buffer.Capacity
+                        || Volatile.Read(ref Header->ReadLockTimestamp) != start
+                        || Volatile.Read(ref Header->ReadOffset) != readOffset)
+                    {
+                        return false;
+                    }
+
+                    // Clear through the captured tail before publishers can reuse the space.
+                    // Otherwise discarded ready headers could be consumed on a later lap.
+                    Buffer.Clear(readOffset, discardedLength);
                     Interlocked.Exchange(ref Header->ReadOffset, writeOffset);
                     return false;
                 }
