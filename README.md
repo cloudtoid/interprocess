@@ -95,6 +95,9 @@ while any participant remains. After the last participant is disposed, the backi
 semaphore are removed. If the last process is forcibly terminated, the next connection resets the
 abandoned resources and starts with an empty queue.
 
+Publisher disposal stops new enqueue calls and waits for in-flight calls to finish before releasing
+shared memory and the semaphore. `TryEnqueue` throws `ObjectDisposedException` once admission closes.
+
 All participants must use the same queue name, storage path, and capacity. On Unix, keep the storage
 directory in place while queues are active; creation and cleanup use advisory file locks on that directory
 and the backing files. Stop all participants before upgrading to this lifecycle implementation.

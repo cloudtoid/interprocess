@@ -5,11 +5,19 @@ namespace Cloudtoid.Interprocess.Tests;
 // Run a real queue participant in a child process for lifecycle tests.
 internal static class Program
 {
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         var options = new QueueOptions(args[1], args[0], 1024);
+        if (args[2] == "publisher-disposal")
+            await PublisherDisposalTests.RunChildAsync(options, args[3]);
+        else
+            RunParticipant(options, args[2]);
+    }
+
+    private static void RunParticipant(QueueOptions options, string role)
+    {
         var factory = new QueueFactory();
-        using var participant = args[2] == "publisher"
+        using var participant = role == "publisher"
             ? (IDisposable)factory.CreatePublisher(options)
             : factory.CreateSubscriber(options);
         Console.WriteLine("ready");
