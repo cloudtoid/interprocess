@@ -53,7 +53,7 @@ options = new QueueOptions(
     capacity: 1024 * 1024);
 
 using var subscriber = factory.CreateSubscriber(options);
-subscriber.TryDequeue(messageBuffer, cancellationToken, out var message);
+subscriber.TryDequeue(messageBuffer, out var message);
 ```
 
 ### Usage with DI
@@ -85,8 +85,20 @@ var options = new QueueOptions(
     capacity: 1024 * 1024);
 
 using var subscriber = factory.CreateSubscriber(options);
-subscriber.TryDequeue(messageBuffer, cancellationToken, out var message);
+subscriber.TryDequeue(messageBuffer, out var message);
 ```
+
+### Receiving messages
+
+Starting with 2.1, `TryDequeue` no longer takes a cancellation token. Use
+`TryDequeue(out message)` or `TryDequeue(buffer, out message)`. It returns `false` immediately
+when the queue is empty, another reader owns the lock, or the next publisher has not finished writing.
+`Dequeue(cancellationToken)` and `Dequeue(buffer, cancellationToken)` still wait and honor cancellation.
+
+When a publisher has an unfinished reservation, the subscriber retains its read lock and the existing
+ten-second recovery deadline between attempts. Keep polling or dispose the subscriber when finished;
+otherwise other subscribers may wait for the lock to expire. Recovery can discard messages behind a
+crashed publisher, as before. The shared-memory protocol is unchanged.
 
 ### Queue lifetime
 

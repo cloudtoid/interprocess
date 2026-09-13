@@ -25,7 +25,7 @@ byte[] payload = [1, 2, 3];
 byte[] buffer = new byte[256];
 
 if (publisher.TryEnqueue(payload) &&
-    subscriber.TryDequeue(buffer, CancellationToken.None, out var message))
+    subscriber.TryDequeue(buffer, out var message))
 {
     Console.WriteLine($"Received {message.Length} bytes");
 }

@@ -29,7 +29,7 @@ internal static partial class Program
 
         while (true)
         {
-            if (subscriber.TryDequeue(messageBuffer, default, out var message))
+            if (subscriber.TryDequeue(messageBuffer, out var message))
                 LogDequeue(logger, messageBuffer[0]);
         }
     }
