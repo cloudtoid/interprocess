@@ -7,8 +7,21 @@ Exchange byte messages between processes on the same machine using a shared-memo
 Requires .NET 10 or later and a 64-bit process.
 
 ```sh
-dotnet add package Cloudtoid.Interprocess
+dotnet add package Cloudtoid.Interprocess --prerelease
 ```
+
+## Upgrading to 3.0 alpha
+
+Version 3 is an **alpha prerelease**. APIs and the shared-memory protocol may change between alpha releases.
+Drain the queue, stop all participants, and recreate it when upgrading between alpha versions.
+
+Version 3 changes the shared-memory protocol to prevent publisher reservations from overwriting unread
+messages after offset wrap. Drain the old queue and upgrade all publishers and subscribers together.
+V2 and v3 use separate resources even with the same queue name; queued messages are not migrated.
+
+The MMF stays circular and fixed in size. Logical positions never wrap: after approximately 9.22 exabytes
+of reserved bytes (including headers and padding), `TryEnqueue` throws `OverflowException` before changing
+the queue. Drain accepted messages and move all participants to a fresh queue.
 
 ## Example
 

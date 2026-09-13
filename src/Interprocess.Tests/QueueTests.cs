@@ -338,7 +338,7 @@ public class QueueTests : IClassFixture<UniquePathFixture>
             var bodyLength = message.Length;
             var messageLength = GetPaddedMessageLength(bodyLength);
             var header = *Header;
-            Header->WriteOffset = SafeIncrementMessageOffset(header.WriteOffset, messageLength);
+            Header->WriteOffset = checked(header.WriteOffset + messageLength);
             return true;
         }
     }

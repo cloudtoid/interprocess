@@ -2,7 +2,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Linux;
 
 internal sealed class SemaphoreLinux : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
 {
-    private const string HandleNamePrefix = "/ct.ip.";
+    private const string HandleNamePrefix = "/ct3ip.";
     private readonly string name;
     private readonly bool deleteOnDispose;
     private IntPtr handle;

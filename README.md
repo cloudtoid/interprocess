@@ -18,7 +18,8 @@
 
 ## NuGet Package
 
-The NuGet package for this library is published [here][NuGet].
+The NuGet package for this library is published [here][NuGet]. Version 3 packages use `3.0.0-alpha.<build number>`
+and require opting into prerelease versions.
 
 > Note: To improve performance, this library only supports 64-bit CLR with 64-bit processor architectures. Attempting to use this library on 32-bit processors, 32-bit operating systems, or on [WOW64][Wow64Wiki] may throw a `NotSupportedException`.
 
@@ -88,6 +89,26 @@ using var subscriber = factory.CreateSubscriber(options);
 subscriber.TryDequeue(messageBuffer, out var message);
 ```
 
+### Upgrading to 3.0 alpha
+
+Version 3 is an **alpha prerelease**. APIs and the shared-memory protocol may change between alpha releases.
+Drain the queue, stop all participants, and recreate it when upgrading between alpha versions.
+
+Version 3 changes the shared-memory protocol to fix a publisher reservation race that could overwrite
+unread messages after the write position wrapped. All publishers and subscribers for a queue must
+upgrade together. Drain the old queue and stop its participants before switching. Version 3 uses
+separate memory and semaphore names: v2 and v3 participants using the same queue name cannot exchange
+messages, and existing queued messages are not migrated automatically.
+
+The buffer and MMF remain circular and fixed in size. Logical byte positions increase monotonically;
+physical addresses still wrap at the buffer capacity. Reservations use the existing 64-bit compare-and-swap,
+with no new publisher lock or CPU requirement.
+
+Positions never reset while participants remain connected. If a reservation would overflow a signed
+64-bit position, `TryEnqueue` throws `OverflowException` before modifying the queue. Accepted messages
+can still drain; move all participants to a fresh queue to continue. The lifetime limit is approximately
+9.22 exabytes of reserved bytes, including message headers and padding (about 29 years at 10 GB/s).
+
 ### Receiving messages
 
 Starting with 2.1, `TryDequeue` no longer takes a cancellation token. Use
@@ -99,7 +120,7 @@ When a publisher has an unfinished reservation, the subscriber retains its read 
 ten-second recovery deadline between attempts. Keep polling or dispose the subscriber when finished;
 otherwise other subscribers may wait for the lock to expire. Recovery can discard messages behind a
 crashed publisher, as before. Discarded bytes are cleared before their space is released, so old ready
-headers cannot be mistaken for new messages after the ring wraps. The shared-memory protocol is unchanged.
+headers cannot be mistaken for new messages after the ring wraps.
 
 Recovery assumes abandoned participants will not resume accessing the discarded memory. A timeout
 cannot distinguish a crash from a long pause: a publisher or a reader that resumes after its space or
@@ -182,7 +203,7 @@ Results:
 
 ### On macOS
 
-Measured **September 12, 2026**, running directly on the Mac:
+Measured **September 12, 2026**, running directly on the Mac, before the v3 protocol change:
 
 ```text
 BenchmarkDotNet v0.15.8, macOS Tahoe 26.6.2 (25G83) [Darwin 25.6.0]

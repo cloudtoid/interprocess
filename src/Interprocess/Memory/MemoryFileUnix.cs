@@ -4,7 +4,7 @@ namespace Cloudtoid.Interprocess.Memory.Unix;
 
 internal sealed class MemoryFileUnix : IMemoryFile
 {
-    private const string Folder = ".cloudtoid/interprocess/mmf";
+    private const string Folder = ".cloudtoid/interprocess/v3/mmf";
     private readonly string directory;
     private readonly string file;
     private readonly string queueName;

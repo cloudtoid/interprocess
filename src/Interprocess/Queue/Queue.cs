@@ -75,10 +75,6 @@ internal abstract class Queue : IDisposable
         return (length + 7) & ~7L;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected long SafeIncrementMessageOffset(long offset, long increment) =>
-        (offset + increment) % (Buffer.Capacity * 2);
-
     private void OnAppExit(object? sender, EventArgs e)
     {
         try

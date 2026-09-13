@@ -4,7 +4,7 @@ namespace Cloudtoid.Interprocess.Memory.Windows;
 
 internal sealed class MemoryFileWindows : IMemoryFile
 {
-    private const string MapNamePrefix = "CT_IP_";
+    private const string MapNamePrefix = "CT3_IP_";
 
     internal MemoryFileWindows(QueueOptions options)
     {
