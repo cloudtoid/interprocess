@@ -22,11 +22,11 @@
 
 | Version | 8-byte enqueue + dequeue | 4 publishers / 4 subscribers |
 | --- | ---: | ---: |
-| Latest v1 (`1.0.175`) | Could not initialize¹ | Could not initialize¹ |
+| Latest v1 (`1.0.175`) | — | — |
 | Latest v2 (`2.1.204`) | 208.3 ns | 1.02 million messages/s |
 | v3 alpha | **32.8 ns** | **2.14 million messages/s** |
 
-Same Mac, .NET 10 runtime, and benchmark source for all versions. These are in-process measurements; see [macOS results](#on-macos). ¹The published v1 package failed during semaphore creation on this Mac.
+Measured on the same Mac with .NET 10. See [benchmark details](#on-macos).
 
 **Upgrade to v3 alpha and try it with your workload:**
 
