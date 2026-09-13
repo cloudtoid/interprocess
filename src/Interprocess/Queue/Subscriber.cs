@@ -170,10 +170,28 @@ internal sealed class Subscriber : Queue, ISubscriber
 
             // read the message body from the queue
             var bodyLength = messageHeader->BodyLength;
-            message = Buffer.Read(
-                GetMessageBodyOffset(readOffset),
-                bodyLength,
-                resultBuffer);
+            try
+            {
+                message = Buffer.Read(
+                    GetMessageBodyOffset(readOffset),
+                    bodyLength,
+                    resultBuffer);
+            }
+            catch
+            {
+                // Destination allocation or custom memory can fail. Leave the message
+                // available for retry, but do not change a successor reader's state.
+                if (Volatile.Read(ref Header->ReadLockTimestamp) == start
+                    && Volatile.Read(ref Header->ReadOffset) == readOffset)
+                {
+                    Interlocked.CompareExchange(
+                        ref messageHeader->State,
+                        MessageHeader.ReadyToBeConsumedState,
+                        MessageHeader.LockedToBeConsumedState);
+                }
+
+                throw;
+            }
 
             // zero out the message, including the message header
             var messageLength = GetPaddedMessageLength(bodyLength);
@@ -185,8 +203,8 @@ internal sealed class Subscriber : Queue, ISubscriber
         }
         finally
         {
-            // release the read-lock
-            Interlocked.Exchange(ref Header->ReadLockTimestamp, 0L);
+            // Release only our own read-lock if another reader has recovered it.
+            Interlocked.CompareExchange(ref Header->ReadLockTimestamp, 0L, start);
         }
 
         return true;

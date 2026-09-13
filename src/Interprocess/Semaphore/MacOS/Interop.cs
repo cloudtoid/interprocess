@@ -97,12 +97,18 @@ internal static partial class Interop
         else
         {
             var stopwatch = ValueStopwatch.StartNew();
+            SpinWait spin = default;
             while (!TryWait(handle))
             {
-                if (stopwatch.GetElapsedTime().TotalMilliseconds > millisecondsTimeout)
+                if (stopwatch.GetElapsedTime().TotalMilliseconds >= millisecondsTimeout)
                     return false;
 
-                Thread.Yield();
+                // macOS has no sem_timedwait. Poll briefly, then sleep between attempts
+                // so an empty queue does not occupy a CPU for the entire timeout.
+                if (spin.NextSpinWillYield)
+                    Thread.Sleep(1);
+                else
+                    spin.SpinOnce();
             }
         }
 

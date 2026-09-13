@@ -5,6 +5,25 @@ namespace Cloudtoid.Interprocess.Tests;
 
 public class SemaphoreTests
 {
+    [Fact(Platforms = Platform.OSX)]
+    public async Task MacTimedWaitObservesADelayedReleaseAsync()
+    {
+        var name = Guid.NewGuid().ToStringInvariant("N")[..16];
+        using var releaser = new SemaphoreMacOS(name, deleteOnDispose: true);
+        using var waiter = new SemaphoreMacOS(name);
+        var waiting = Task.Factory.StartNew(
+            () => waiter.Wait(1000),
+            CancellationToken.None,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
+
+        await Task.Delay(20);
+        releaser.Release();
+        (await waiting.WaitAsync(TimeSpan.FromSeconds(2))).Should().BeTrue();
+        waiter.Wait(0).Should().BeFalse();
+        waiter.Wait(20).Should().BeFalse();
+    }
+
     [Fact(Platforms = Platform.Linux | Platform.FreeBSD)]
     [TestBeforeAfter]
     public void CanReleaseAndWaitLinux()
