@@ -98,7 +98,13 @@ when the queue is empty, another reader owns the lock, or the next publisher has
 When a publisher has an unfinished reservation, the subscriber retains its read lock and the existing
 ten-second recovery deadline between attempts. Keep polling or dispose the subscriber when finished;
 otherwise other subscribers may wait for the lock to expire. Recovery can discard messages behind a
-crashed publisher, as before. The shared-memory protocol is unchanged.
+crashed publisher, as before. Discarded bytes are cleared before their space is released, so old ready
+headers cannot be mistaken for new messages after the ring wraps. The shared-memory protocol is unchanged.
+
+Recovery assumes abandoned participants will not resume accessing the discarded memory. A timeout
+cannot distinguish a crash from a long pause: a publisher or a reader that resumes after its space or
+read lock has been reclaimed can still corrupt the queue. Clearing and checking ownership do not fence
+those late accesses; this remains a limitation of the current recovery protocol.
 
 ### Queue lifetime
 
