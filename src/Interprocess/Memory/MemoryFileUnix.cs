@@ -31,6 +31,12 @@ internal sealed class MemoryFileUnix : IMemoryFile
                 InterprocessSemaphore.Unlink(queueName);
                 stream.SetLength(0);
             }
+            else if (stream.Length != options.GetQueueStorageSize())
+            {
+                throw new ArgumentException(
+                    "The capacity must match the existing queue while other participants are connected.",
+                    nameof(options));
+            }
 
             // Retain this lock until both the semaphore and memory view have closed.
             UnixFileLock.AcquireShared(stream.SafeFileHandle);
