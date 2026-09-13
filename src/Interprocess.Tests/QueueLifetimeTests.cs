@@ -40,12 +40,12 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
             using (var signal = InterprocessSemaphore.CreateWaiter(options.QueueName))
             {
                 signal.Wait(0).Should().BeTrue("failed joins must preserve existing notifications");
-                subscriber.TryDequeue(default, out var first).Should().BeTrue();
+                subscriber.TryDequeue(out var first).Should().BeTrue();
                 first.ToArray().Should().Equal("*"u8.ToArray());
 
                 (await CommandAsync(child, "send")).Should().Be("sent");
                 signal.Wait(1000).Should().BeTrue();
-                subscriber.TryDequeue(default, out var second).Should().BeTrue();
+                subscriber.TryDequeue(out var second).Should().BeTrue();
                 second.ToArray().Should().Equal("*"u8.ToArray());
                 await StopAsync(child);
             }
@@ -83,10 +83,10 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
                 using (var subscriber = factory.CreateSubscriber(larger))
                 using (var publisher = factory.CreatePublisher(larger))
                 {
-                    subscriber.TryDequeue(default, out _).Should().BeFalse();
+                    subscriber.TryDequeue(out _).Should().BeFalse();
                     var payload = Enumerable.Range(0, 1800).Select(value => (byte)value).ToArray();
                     publisher.TryEnqueue(payload).Should().BeTrue();
-                    subscriber.TryDequeue(default, out var message).Should().BeTrue();
+                    subscriber.TryDequeue(out var message).Should().BeTrue();
                     message.ToArray().Should().Equal(payload);
                 }
 
@@ -110,7 +110,7 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
             publisher.Dispose();
             publisher.Dispose();
             AssertResourcesAlive();
-            subscriber.TryDequeue(default, out _).Should().BeTrue();
+            subscriber.TryDequeue(out _).Should().BeTrue();
         }
         finally
         {
@@ -141,7 +141,7 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
             {
                 publisher2.Dispose();
                 AssertResourcesAlive();
-                subscriber2.TryDequeue(default, out _).Should().BeTrue();
+                subscriber2.TryDequeue(out _).Should().BeTrue();
             }
             else
             {
@@ -153,7 +153,7 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
 
         AssertResourcesRemoved();
         using var freshSubscriber = factory.CreateSubscriber(options);
-        freshSubscriber.TryDequeue(default, out _).Should().BeFalse();
+        freshSubscriber.TryDequeue(out _).Should().BeFalse();
     }
 
     [Fact]
@@ -199,12 +199,12 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
             using (var subscriber = factory.CreateSubscriber(options))
             using (var signal = InterprocessSemaphore.CreateWaiter(options.QueueName))
             {
-                subscriber.TryDequeue(default, out _).Should().BeFalse();
+                subscriber.TryDequeue(out _).Should().BeFalse();
                 signal.Wait(0).Should().BeFalse("the abandoned semaphore count must be reset too");
                 using var publisher = factory.CreatePublisher(options);
                 publisher.TryEnqueue("*"u8).Should().BeTrue();
                 signal.Wait(1000).Should().BeTrue();
-                subscriber.TryDequeue(default, out _).Should().BeTrue();
+                subscriber.TryDequeue(out _).Should().BeTrue();
             }
 
             AssertResourcesRemoved();
@@ -230,10 +230,10 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
 
                 using var replacement = factory.CreatePublisher(options);
                 signal.Wait(1000).Should().BeTrue();
-                subscriber.TryDequeue(default, out _).Should().BeTrue("a live subscriber preserves unread messages");
+                subscriber.TryDequeue(out _).Should().BeTrue("a live subscriber preserves unread messages");
                 replacement.TryEnqueue("*"u8).Should().BeTrue();
                 signal.Wait(1000).Should().BeTrue();
-                subscriber.TryDequeue(default, out _).Should().BeTrue();
+                subscriber.TryDequeue(out _).Should().BeTrue();
             }
 
             AssertResourcesRemoved();
@@ -261,7 +261,7 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
                     using var publisher = factory.CreatePublisher(options);
                     publisher.TryEnqueue("*"u8).Should().BeTrue();
                     signal.Wait(1000).Should().BeTrue();
-                    subscriber.TryDequeue(default, out _).Should().BeTrue();
+                    subscriber.TryDequeue(out _).Should().BeTrue();
                 }
 
                 AssertResourcesRemoved();
@@ -291,7 +291,7 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
                     (await CommandAsync(replacement, "send")).Should().Be("sent");
                     signal.Wait(1000).Should().BeTrue("new participants must use the surviving semaphore");
                     using var subscriber = factory.CreateSubscriber(options);
-                    subscriber.TryDequeue(default, out _).Should().BeTrue();
+                    subscriber.TryDequeue(out _).Should().BeTrue();
                     await StopAsync(replacement);
                 }
                 finally

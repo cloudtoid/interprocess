@@ -36,7 +36,7 @@ public class EnqueueBenchmark
     {
         for (var i = 0; i < MessageCount; i++)
         {
-            if (!subscriber.TryDequeue(MessageBuffer, default, out _))
+            if (!subscriber.TryDequeue(MessageBuffer, out _))
                 throw new InvalidOperationException("The benchmark did not enqueue the expected number of messages.");
         }
     }

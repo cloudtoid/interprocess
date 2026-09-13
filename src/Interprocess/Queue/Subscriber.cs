@@ -6,6 +6,7 @@ internal sealed class Subscriber : Queue, ISubscriber
     private readonly CancellationTokenSource cancellationSource = new();
     private readonly CountdownEvent countdownEvent = new(1);
     private readonly IInterprocessSemaphoreWaiter signal;
+    private PendingRead? pendingRead;
 
     internal Subscriber(QueueOptions options, ILoggerFactory loggerFactory)
         : base(options, loggerFactory)
@@ -23,11 +24,11 @@ internal sealed class Subscriber : Queue, ISubscriber
         }
     }
 
-    public bool TryDequeue(CancellationToken cancellation, out ReadOnlyMemory<byte> message) =>
-        TryDequeueCore(default, cancellation, out message);
+    public bool TryDequeue(out ReadOnlyMemory<byte> message) =>
+        TryDequeueCore(default, out message);
 
-    public bool TryDequeue(Memory<byte> buffer, CancellationToken cancellation, out ReadOnlyMemory<byte> message) =>
-        TryDequeueCore(buffer, cancellation, out message);
+    public bool TryDequeue(Memory<byte> buffer, out ReadOnlyMemory<byte> message) =>
+        TryDequeueCore(buffer, out message);
 
     public ReadOnlyMemory<byte> Dequeue(CancellationToken cancellation) =>
         DequeueCore(default, cancellation);
@@ -41,6 +42,7 @@ internal sealed class Subscriber : Queue, ISubscriber
         cancellationSource.Cancel();
         countdownEvent.Signal();
         countdownEvent.Wait();
+        ReleasePendingRead();
 
         // There is a potential for a race condition in DequeueCore if the cancellationSource
         // was not cancelled before AddEvent is called. The sleep here will prevent that.
@@ -58,16 +60,15 @@ internal sealed class Subscriber : Queue, ISubscriber
 
     private bool TryDequeueCore(
         Memory<byte>? resultBuffer,
-        CancellationToken cancellation,
         out ReadOnlyMemory<byte> message)
     {
         // do NOT reorder the cancellation and the AddCount operation below. See Dispose for more information.
-        cancellationSource.ThrowIfCancellationRequested(cancellation);
+        cancellationSource.ThrowIfCancellationRequested();
         countdownEvent.AddCount();
 
         try
         {
-            return TryDequeueImpl(resultBuffer, cancellation, out message);
+            return TryDequeueImpl(resultBuffer, default, out message);
         }
         finally
         {
@@ -102,6 +103,11 @@ internal sealed class Subscriber : Queue, ISubscriber
                 }
             }
         }
+        catch
+        {
+            ReleasePendingRead();
+            throw;
+        }
         finally
         {
             countdownEvent.Signal();
@@ -116,23 +122,53 @@ internal sealed class Subscriber : Queue, ISubscriber
         cancellationSource.ThrowIfCancellationRequested(cancellation);
 
         message = ReadOnlyMemory<byte>.Empty;
+        var pending = Volatile.Read(ref pendingRead);
+        if (pending is not null && Interlocked.CompareExchange(ref pendingRead, null, pending) != pending)
+            pending = null;
+
         var header = *Header;
 
         // is this an empty queue?
         if (header.IsEmpty())
+        {
+            if (pending is not null)
+                Interlocked.CompareExchange(ref Header->ReadLockTimestamp, 0L, pending.Timestamp);
+
             return false;
+        }
 
         var readLockTimestamp = header.ReadLockTimestamp;
         var start = DateTime.UtcNow.Ticks;
 
-        // is there already a read-lock or has the previous lock timed out meaning that a subscriber crashed?
-        if (start - readLockTimestamp < TicksForTenSeconds)
-            return false;
+        if (pending is not null
+            && readLockTimestamp == pending.Timestamp
+            && header.ReadOffset == pending.ReadOffset)
+        {
+            // Reacquire ownership without restarting this reservation's recovery deadline.
+            if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, start, pending.Timestamp)
+                != pending.Timestamp)
+            {
+                return false;
+            }
 
-        // take a read-lock so no other thread can read a message
-        if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, start, readLockTimestamp) != readLockTimestamp)
-            return false;
+            pending.Timestamp = start;
+        }
+        else
+        {
+            pending = null;
+            // is there already a read-lock or has the previous lock timed out meaning that a subscriber crashed?
+            if (start - readLockTimestamp < TicksForTenSeconds)
+                return false;
 
+            // take a read-lock so no other thread can read a message
+            if (Interlocked.CompareExchange(ref Header->ReadLockTimestamp, start, readLockTimestamp)
+                != readLockTimestamp)
+            {
+                return false;
+            }
+        }
+
+        var retainReadLock = false;
         try
         {
             // is the queue empty now that we were able to get a read-lock?
@@ -141,22 +177,18 @@ internal sealed class Subscriber : Queue, ISubscriber
 
             // now finally have a read-lock and the queue is not empty
             var readOffset = Header->ReadOffset;
-            var writeOffset = Header->WriteOffset;
+            var writeOffset = pending?.WriteOffset ?? Header->WriteOffset;
             var messageHeader = (MessageHeader*)Buffer.GetPointer(readOffset);
 
-            while (true)
+            var state = Interlocked.CompareExchange(
+                ref messageHeader->State,
+                MessageHeader.LockedToBeConsumedState,
+                MessageHeader.ReadyToBeConsumedState);
+
+            if (state != MessageHeader.ReadyToBeConsumedState)
             {
-                // was this message fully written by the publisher? if not, wait for the publisher to finish writing it
-                var state = Interlocked.CompareExchange(
-                    ref messageHeader->State,
-                    MessageHeader.LockedToBeConsumedState,
-                    MessageHeader.ReadyToBeConsumedState);
-
-                if (state == MessageHeader.ReadyToBeConsumedState)
-                    break;
-
                 // but if the publisher crashed, we will never get the message, so we need to handle that case by timing out
-                if (DateTime.UtcNow.Ticks - start > TicksForTenSeconds)
+                if (DateTime.UtcNow.Ticks - (pending?.StartedTimestamp ?? start) > TicksForTenSeconds)
                 {
                     // the publisher crashed and we will never get the message
                     // so we need to release the read-lock and advance the queue for everyone.
@@ -164,8 +196,12 @@ internal sealed class Subscriber : Queue, ISubscriber
                     Interlocked.Exchange(ref Header->ReadOffset, writeOffset);
                     return false;
                 }
-                cancellationSource.ThrowIfCancellationRequested(cancellation);
-                Thread.Yield();
+
+                // Keep ownership between immediate attempts. Releasing the shared lock and
+                // remembering only an offset could mistake a later ring lap for this reservation.
+                pending ??= new PendingRead(start, readOffset, writeOffset);
+                retainReadLock = Interlocked.CompareExchange(ref pendingRead, pending, null) is null;
+                return false;
             }
 
             // read the message body from the queue
@@ -204,9 +240,25 @@ internal sealed class Subscriber : Queue, ISubscriber
         finally
         {
             // Release only our own read-lock if another reader has recovered it.
-            Interlocked.CompareExchange(ref Header->ReadLockTimestamp, 0L, start);
+            if (!retainReadLock)
+                Interlocked.CompareExchange(ref Header->ReadLockTimestamp, 0L, start);
         }
 
         return true;
+    }
+
+    private unsafe void ReleasePendingRead()
+    {
+        var pending = Interlocked.Exchange(ref pendingRead, null);
+        if (pending is not null)
+            Interlocked.CompareExchange(ref Header->ReadLockTimestamp, 0L, pending.Timestamp);
+    }
+
+    private sealed class PendingRead(long timestamp, long readOffset, long writeOffset)
+    {
+        internal long Timestamp { get; set; } = timestamp;
+        internal long StartedTimestamp { get; } = timestamp;
+        internal long ReadOffset { get; } = readOffset;
+        internal long WriteOffset { get; } = writeOffset;
     }
 }

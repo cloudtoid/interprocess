@@ -27,7 +27,6 @@ public class QueueTests : IClassFixture<UniquePathFixture>
     {
         var message = new byte[] { 1, 2, 3 };
         var messageBuffer = new byte[3];
-        CancellationToken cancellationToken = default;
 
         var factory = new QueueFactory();
         var options = new QueueOptions(
@@ -42,7 +41,7 @@ public class QueueTests : IClassFixture<UniquePathFixture>
             capacity: 1024 * 1024);
 
         using var subscriber = factory.CreateSubscriber(options);
-        subscriber.TryDequeue(messageBuffer, cancellationToken, out var msg);
+        subscriber.TryDequeue(messageBuffer, out var msg);
 
         msg.ToArray().Should().BeEquivalentTo(message);
     }
@@ -53,7 +52,6 @@ public class QueueTests : IClassFixture<UniquePathFixture>
     {
         var message = new byte[] { 1, 2, 3 };
         var messageBuffer = new byte[3];
-        CancellationToken cancellationToken = default;
         var services = new ServiceCollection();
 
         services
@@ -75,7 +73,7 @@ public class QueueTests : IClassFixture<UniquePathFixture>
             capacity: 1024 * 1024);
 
         using var subscriber = factory.CreateSubscriber(options);
-        subscriber.TryDequeue(messageBuffer, cancellationToken, out var msg);
+        subscriber.TryDequeue(messageBuffer, out var msg);
 
         msg.ToArray().Should().BeEquivalentTo(message);
     }
@@ -162,7 +160,7 @@ public class QueueTests : IClassFixture<UniquePathFixture>
 
         using (CreatePublisher(24))
         using (var s = CreateSubscriber(24))
-            s.TryDequeue(default, out var message).Should().BeFalse();
+            s.TryDequeue(out var message).Should().BeFalse();
     }
 
     [Theory]
@@ -232,9 +230,11 @@ public class QueueTests : IClassFixture<UniquePathFixture>
             p.TryEnqueue(ByteArray50).Should().BeFalse(); // failed here
     }
 
-    [Fact]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     [TestBeforeAfter]
-    public void CanRecoverIfPublisherCrashes()
+    public async Task CanRecoverIfPublisherCrashesAsync(bool blocking)
     {
         // This is very complicated test that is trying to replicate a crash scenario when the publisher
         // crashes after indicating that it is writing the message but before completing the operation.
@@ -246,14 +246,38 @@ public class QueueTests : IClassFixture<UniquePathFixture>
         p.TryEnqueue(ByteArray1).Should().BeTrue();
         using var s = CreateSubscriber(1024);
 
-        // This line should take 10 seconds to return (that is how long the timeout is set in the code)
-        // After the 10 seconds expires, we should have lost all other messages that were in the queue when we started the dequeue process.
-        s.TryDequeue(default, out _).Should().BeFalse();
+        // Each attempt returns immediately, but polling must retain the ten-second recovery deadline.
+        s.TryDequeue(out _).Should().BeFalse();
+        p.TryEnqueue(ByteArray3).Should().BeTrue();
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        if (blocking)
+        {
+            var laterMessage = await Task.Run(() => s.Dequeue(cancellation.Token));
+            laterMessage.ToArray().Should().BeEquivalentTo(ByteArray3);
+        }
+        else
+        {
+            while (dp.ReadOffset == 0)
+            {
+                s.TryDequeue(out _).Should().BeFalse();
+                await Task.Delay(25, cancellation.Token);
+            }
 
-        // But then, after this 10 seconds delay, system should fully recover and continue with new messages
+            // Discard only through the tail captured on the first attempt. Later publications survive.
+            s.TryDequeue(out var laterMessage).Should().BeTrue();
+            laterMessage.ToArray().Should().BeEquivalentTo(ByteArray3);
+        }
+
+        // The system fully recovers and continues with new messages.
         p.TryEnqueue(ByteArray1).Should().BeTrue();
-        s.TryDequeue(default, out var message).Should().BeTrue();
+        s.TryDequeue(out var message).Should().BeTrue();
         message.ToArray().Should().BeEquivalentTo(ByteArray1);
+
+        // A new unfinished reservation must get a fresh recovery deadline.
+        var nextReadOffset = dp.ReadOffset;
+        dp.TryEnqueue(ByteArray3).Should().BeTrue();
+        s.TryDequeue(out _).Should().BeFalse();
+        dp.ReadOffset.Should().Be(nextReadOffset);
     }
 
     private IPublisher CreatePublisher(long capacity) =>
@@ -266,6 +290,8 @@ public class QueueTests : IClassFixture<UniquePathFixture>
         Queue(options, loggerFactory),
         IPublisher
     {
+        internal unsafe long ReadOffset => Interlocked.Read(ref Header->ReadOffset);
+
         public unsafe bool TryEnqueue(ReadOnlySpan<byte> message)
         {
             var bodyLength = message.Length;

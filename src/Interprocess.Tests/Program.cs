@@ -24,7 +24,7 @@ internal static class Program
             if (participant is IPublisher publisher)
                 Console.WriteLine(publisher.TryEnqueue("*"u8) ? "sent" : "full");
             else if (participant is ISubscriber subscriber)
-                Console.WriteLine(subscriber.TryDequeue(default, out _) ? "received" : "empty");
+                Console.WriteLine(subscriber.TryDequeue(out _) ? "received" : "empty");
         }
     }
 }

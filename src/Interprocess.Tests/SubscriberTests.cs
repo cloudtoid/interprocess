@@ -25,7 +25,7 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
         {
             payload.AsSpan().Fill((byte)i);
             publisher.TryEnqueue(payload).Should().BeTrue();
-            subscriber.TryDequeue(destination, default, out var message).Should().BeTrue();
+            subscriber.TryDequeue(destination, out var message).Should().BeTrue();
             message.ToArray().Should().Equal(payload.Take(bufferLength));
         }
     }
@@ -44,15 +44,13 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
 
         for (var i = 0; i < 2; i++)
         {
-            using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-            Assert.Throws<InvalidOperationException>(() => subscriber.TryDequeue(memory, cancellation.Token, out _));
+            Assert.Throws<InvalidOperationException>(() => subscriber.TryDequeue(memory, out _));
             probe.ReadsAreLocked.Should().BeFalse();
         }
 
-        using var retryCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-        subscriber.TryDequeue(retryCancellation.Token, out var first).Should().BeTrue();
+        subscriber.TryDequeue(out var first).Should().BeTrue();
         first.ToArray().Should().Equal("original"u8.ToArray());
-        subscriber.TryDequeue(retryCancellation.Token, out var second).Should().BeTrue();
+        subscriber.TryDequeue(out var second).Should().BeTrue();
         second.ToArray().Should().Equal("next-msg"u8.ToArray());
     }
 
@@ -64,7 +62,7 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
         using var destination = new TestMemory { SupportsPinning = false };
         publisher.TryEnqueue("message!"u8).Should().BeTrue();
 
-        subscriber.TryDequeue(destination.Memory, default, out var message).Should().BeTrue();
+        subscriber.TryDequeue(destination.Memory, out var message).Should().BeTrue();
         message.ToArray().Should().Equal("message!"u8.ToArray());
     }
 
@@ -81,7 +79,7 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
         destination.FailReads = true;
         publisher.TryEnqueue("message!"u8).Should().BeTrue();
 
-        Assert.Throws<InvalidOperationException>(() => subscriber.TryDequeue(memory, default, out _));
+        Assert.Throws<InvalidOperationException>(() => subscriber.TryDequeue(memory, out _));
 
         probe.ReadLockTimestamp.Should().Be(successorTimestamp);
         probe.HeadState.Should().Be(MessageHeader.LockedToBeConsumedState);
@@ -132,7 +130,7 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
         probe.LockReads();
         try
         {
-            var attempt = Task.Run(() => subscriber.TryDequeue(default, out _));
+            var attempt = Task.Run(() => subscriber.TryDequeue(out _));
             (await attempt.WaitAsync(TimeSpan.FromSeconds(1))).Should().BeFalse();
         }
         finally
@@ -140,7 +138,7 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
             probe.UnlockReads();
         }
 
-        subscriber.TryDequeue(default, out _).Should().BeTrue();
+        subscriber.TryDequeue(out _).Should().BeTrue();
     }
 
     [Fact]
@@ -151,9 +149,160 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
         using var subscriber = factory.CreateSubscriber(options);
         publisher.TryEnqueue("message!"u8).Should().BeTrue();
         probe.AbandonReadLock();
-        subscriber.TryDequeue(default, out var message).Should().BeTrue();
+        subscriber.TryDequeue(out var message).Should().BeTrue();
         message.ToArray().Should().Equal("message!"u8.ToArray());
         probe.ReadsAreLocked.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TryDequeueReturnsPromptlyForUnfinishedMessageAsync(bool reuseBuffer)
+    {
+        using var probe = new QueueProbe(options);
+        using var subscriber = factory.CreateSubscriber(options);
+        probe.ReserveUnfinishedMessage();
+        var buffer = new byte[8];
+        var attempts = Task.Run(() =>
+        {
+            for (var i = 0; i < 100; i++)
+            {
+                var received = reuseBuffer
+                    ? subscriber.TryDequeue(buffer, out var message)
+                    : subscriber.TryDequeue(out message);
+                received.Should().BeFalse();
+                message.IsEmpty.Should().BeTrue();
+            }
+        });
+
+        await attempts.WaitAsync(TimeSpan.FromSeconds(1));
+        probe.CompleteMessage();
+        var success = reuseBuffer
+            ? subscriber.TryDequeue(buffer, out var result)
+            : subscriber.TryDequeue(out result);
+        success.Should().BeTrue();
+        result.ToArray().Should().Equal("message!"u8.ToArray());
+        probe.ReadsAreLocked.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BlockingDequeueWaitsForPublisherToCompleteAsync(bool reuseBuffer)
+    {
+        using var probe = new QueueProbe(options);
+        using var subscriber = factory.CreateSubscriber(options);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        probe.ReserveUnfinishedMessage();
+        subscriber.TryDequeue(out _).Should().BeFalse();
+        var read = Task.Run(() => reuseBuffer
+            ? subscriber.Dequeue(new byte[8], cancellation.Token)
+            : subscriber.Dequeue(cancellation.Token));
+        await Task.Delay(20);
+        read.IsCompleted.Should().BeFalse();
+        probe.CompleteMessage();
+
+        (await read.WaitAsync(TimeSpan.FromSeconds(1))).ToArray().Should().Equal("message!"u8.ToArray());
+        probe.ReadsAreLocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public void DisposingSubscriberReleasesPendingReservation()
+    {
+        using var probe = new QueueProbe(options);
+        using var subscriber = factory.CreateSubscriber(options);
+        using var successor = factory.CreateSubscriber(options);
+        probe.ReserveUnfinishedMessage();
+        subscriber.TryDequeue(out _).Should().BeFalse();
+        probe.ReadsAreLocked.Should().BeTrue();
+
+        subscriber.Dispose();
+
+        probe.ReadsAreLocked.Should().BeFalse();
+        probe.CompleteMessage();
+        successor.TryDequeue(out var message).Should().BeTrue();
+        message.ToArray().Should().Equal("message!"u8.ToArray());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TryDequeueAfterDisposalIsRejected(bool reuseBuffer)
+    {
+        using var subscriber = factory.CreateSubscriber(options);
+        subscriber.Dispose();
+
+        Assert.Throws<OperationCanceledException>(() =>
+        {
+            if (reuseBuffer)
+                subscriber.TryDequeue(new byte[8], out _);
+            else
+                subscriber.TryDequeue(out _);
+        });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PendingReservationDoesNotReleaseASuccessorLock(bool dispose)
+    {
+        using var probe = new QueueProbe(options);
+        using var subscriber = factory.CreateSubscriber(options);
+        probe.ReserveUnfinishedMessage();
+        subscriber.TryDequeue(out _).Should().BeFalse();
+        var successorTimestamp = DateTime.UtcNow.Ticks + TimeSpan.FromSeconds(1).Ticks;
+        probe.SetReadLock(successorTimestamp);
+
+        if (dispose)
+            subscriber.Dispose();
+        else
+            subscriber.TryDequeue(out _).Should().BeFalse();
+
+        probe.ReadLockTimestamp.Should().Be(successorTimestamp);
+    }
+
+    [Fact]
+    public void PendingReservationCanBeTakenOverAfterItsLockExpires()
+    {
+        using var probe = new QueueProbe(options);
+        using var subscriber = factory.CreateSubscriber(options);
+        using var successor = factory.CreateSubscriber(options);
+        probe.ReserveUnfinishedMessage();
+        subscriber.TryDequeue(out _).Should().BeFalse();
+        probe.AbandonReadLock();
+        successor.TryDequeue(out _).Should().BeFalse();
+        subscriber.TryDequeue(out _).Should().BeFalse();
+        probe.CompleteMessage();
+
+        successor.TryDequeue(out var message).Should().BeTrue();
+        message.ToArray().Should().Equal("message!"u8.ToArray());
+        subscriber.TryDequeue(out _).Should().BeFalse();
+        probe.ReadsAreLocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ConcurrentCallsOnOneSubscriberConsumePendingMessageOnceAsync()
+    {
+        using var probe = new QueueProbe(options);
+        using var subscriber = factory.CreateSubscriber(options);
+        for (var lap = 0; lap < 40; lap++)
+        {
+            probe.ReserveUnfinishedMessage();
+            subscriber.TryDequeue(out _).Should().BeFalse();
+            probe.CompleteMessage();
+            var attempts = Enumerable.Range(0, 8).Select(_ => Task.Run(() =>
+            {
+                var received = subscriber.TryDequeue(out var message);
+                if (received)
+                    message.ToArray().Should().Equal("message!"u8.ToArray());
+
+                return received;
+            }));
+
+            var results = await Task.WhenAll(attempts).WaitAsync(TimeSpan.FromSeconds(1));
+            results.Count(received => received).Should().Be(1);
+            probe.ReadsAreLocked.Should().BeFalse();
+        }
     }
 
     [Fact]
@@ -180,21 +329,17 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
     }
 
     [Theory]
-    [InlineData(true)]
     [InlineData(false)]
-    public async Task CancellationInterruptsUnfinishedMessageAsync(bool blocking)
+    [InlineData(true)]
+    public async Task CancellationInterruptsUnfinishedMessageAsync(bool reuseBuffer)
     {
         using var probe = new QueueProbe(options);
         using var subscriber = factory.CreateSubscriber(options);
         using var cancellation = new CancellationTokenSource();
         probe.ReserveUnfinishedMessage();
-        var read = Task.Run(() =>
-        {
-            if (blocking)
-                subscriber.Dequeue(cancellation.Token);
-            else
-                subscriber.TryDequeue(cancellation.Token, out _);
-        });
+        var read = Task.Run(() => reuseBuffer
+            ? subscriber.Dequeue(new byte[8], cancellation.Token)
+            : subscriber.Dequeue(cancellation.Token));
 
         try
         {
@@ -292,7 +437,17 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
 
         internal unsafe void UnlockReads() => Interlocked.Exchange(ref Header->ReadLockTimestamp, 0);
 
-        internal unsafe void ReserveUnfinishedMessage() => Interlocked.Exchange(ref Header->WriteOffset, 16);
+        internal unsafe void ReserveUnfinishedMessage() =>
+            Interlocked.Exchange(ref Header->WriteOffset, SafeIncrementMessageOffset(Header->WriteOffset, 16));
+
+        internal unsafe void CompleteMessage()
+        {
+            var readOffset = Header->ReadOffset;
+            var messageHeader = (MessageHeader*)Buffer.GetPointer(readOffset);
+            Buffer.Write("message!"u8, GetMessageBodyOffset(readOffset));
+            messageHeader->BodyLength = 8;
+            Volatile.Write(ref messageHeader->State, MessageHeader.ReadyToBeConsumedState);
+        }
     }
 
     private sealed class TestMemory : MemoryManager<byte>
