@@ -35,19 +35,15 @@ internal sealed class Subscriber : Queue, ISubscriber
     public ReadOnlyMemory<byte> Dequeue(Memory<byte> buffer, CancellationToken cancellation) =>
         DequeueCore(buffer, cancellation);
 
-    // Internal so tests can exercise admission after a caller's initial cancellation check.
+    // Internal so tests can exercise admission after disposal has drained the counter.
     internal void EnterRead(CancellationToken cancellation)
     {
         Interlocked.Increment(ref activeReads);
-        try
-        {
-            ThrowIfCancellationRequested(cancellation);
-        }
-        catch
-        {
-            Interlocked.Decrement(ref activeReads);
-            throw;
-        }
+        if (!IsDisposed && !cancellation.IsCancellationRequested)
+            return;
+
+        Interlocked.Decrement(ref activeReads);
+        ThrowIfCancellationRequested(cancellation);
     }
 
     protected override void Dispose(bool disposing)
@@ -69,7 +65,6 @@ internal sealed class Subscriber : Queue, ISubscriber
         Memory<byte>? resultBuffer,
         out ReadOnlyMemory<byte> message)
     {
-        ThrowIfCancellationRequested(default);
         EnterRead(default);
 
         try
@@ -84,7 +79,6 @@ internal sealed class Subscriber : Queue, ISubscriber
 
     private ReadOnlyMemory<byte> DequeueCore(Memory<byte>? resultBuffer, CancellationToken cancellation)
     {
-        ThrowIfCancellationRequested(cancellation);
         // Rejected admission must not enter the catch below, which touches the shared read lock.
         EnterRead(cancellation);
 

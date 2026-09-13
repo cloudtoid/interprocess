@@ -86,8 +86,7 @@ public sealed class SubscriberDisposalTests(UniquePathFixture fixture) : IClassF
         var resume = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var admission = Task.Run(async () =>
         {
-            // Model a caller paused after its initial check, immediately before admission.
-            cancellation.Token.ThrowIfCancellationRequested();
+            // Model a caller paused immediately before admission.
             paused.SetResult();
             await resume.Task;
             return Assert.Throws<OperationCanceledException>(() => subscriber.EnterRead(cancellation.Token));
