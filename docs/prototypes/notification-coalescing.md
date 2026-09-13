@@ -2,7 +2,7 @@
 
 This prototype is based on v3 alpha commit `3ed007c` (PR #53). It changes the notification protocol;
 all publishers and subscribers must use the same version and start with a fresh queue. The queue header
-remains 32 bytes. Its previously unused final eight bytes now store `NotificationPending`.
+remains 32 bytes. A 32-bit `NotificationPending` flag at offset 24 stores 0 or 1; bytes 28-31 remain unused.
 
 ## Algorithm
 
@@ -43,6 +43,7 @@ it safe for a reclaimed reader or publisher to resume touching old memory.
 Native Apple M5 Max, macOS 26.6.2, .NET 10.0.12 / SDK 10.0.401:
 
 - Debug and Release suites: 161 passed, 4 platform-specific skips each; final notification tests also rerun in Release.
+- After narrowing the notification flag to 32 bits: 67 notification/circular-buffer tests and 8,000,000 additional integrity-checked messages passed.
 - 80,000,000 variable-length messages in a 120-byte ring across 1/4 publishers and 1/4 subscribers:
   every length, payload byte, unique identity, and final empty state checked.
 - Four publisher and four reader processes: 4,000 further variable-length messages, verified per burst.
@@ -66,6 +67,7 @@ CI matrix, but those results belong to the base, not this change. No CI configur
 
 ## Preliminary native performance
 
+These measurements precede narrowing the flag from 64 to 32 bits; the notification algorithm is unchanged.
 Two fresh-process launches, each with 20 alternating-order paired samples after warmup. Both versions
 are Release builds; the prototype assembly was renamed only to load it beside the baseline. No VM
 measurements. No other test workloads ran during measurement. Values below are medians, in nanoseconds.

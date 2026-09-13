@@ -27,7 +27,9 @@ internal struct QueueHeader
     /// One when a notification permit is pending or a participant is about to post it.
     /// </summary>
     [FieldOffset(24)]
-    internal long NotificationPending;
+    internal int NotificationPending;
+
+    // Bytes 28-31 remain unused; the shared header stays 32 bytes.
 
     internal readonly bool IsEmpty() =>
         ReadOffset == WriteOffset;
