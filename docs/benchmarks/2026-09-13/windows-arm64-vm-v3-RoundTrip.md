@@ -12,5 +12,5 @@ IterationTime=250ms  LaunchCount=2  WarmupCount=20
 ```
 | Method         | PayloadBytes | Mean     | Error    | StdDev   | Allocated |
 |--------------- |------------- |---------:|---------:|---------:|----------:|
-| **SendAndReceive** | **8**            | **41.84 ns** | **1.346 ns** | **1.322 ns** |         **-** |
-| **SendAndReceive** | **50**           | **43.44 ns** | **1.313 ns** | **1.228 ns** |         **-** |
+| **SendAndReceive** | **8**            | **19.15 ns** | **0.190 ns** | **0.187 ns** |         **-** |
+| **SendAndReceive** | **50**           | **24.37 ns** | **3.925 ns** | **3.854 ns** |         **-** |

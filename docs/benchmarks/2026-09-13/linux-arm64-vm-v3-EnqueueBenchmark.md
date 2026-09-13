@@ -8,9 +8,9 @@ BenchmarkDotNet v0.15.8, Linux Ubuntu 24.04.4 LTS (Noble Numbat)
 
 Job=.NET 10.0  Affinity=0001  Runtime=.NET 10.0
 InvocationCount=1  IterationCount=8  LaunchCount=2
-UnrollFactor=1  WarmupCount=50
+UnrollFactor=1  WarmupCount=200
 
 ```
-| Method            | Mean     | Error    | StdDev   | Allocated |
-|------------------ |---------:|---------:|---------:|----------:|
-| &#39;Message enqueue&#39; | 29.58 ns | 0.408 ns | 0.401 ns |         - |
+| Method            | Mean     | Error     | StdDev    | Allocated |
+|------------------ |---------:|----------:|----------:|----------:|
+| &#39;Message enqueue&#39; | 5.034 ns | 0.0747 ns | 0.0733 ns |         - |

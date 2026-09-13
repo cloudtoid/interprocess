@@ -10,7 +10,7 @@ Job=ShortRun  IterationCount=8  IterationTime=250ms
 LaunchCount=2  WarmupCount=3
 
 ```
-| Method                   | SubscriberCount | Mean     | Error    | StdDev   |
-|------------------------- |---------------- |---------:|---------:|---------:|
-| **ReceiveConcurrentlyAsync** | **1**               | **111.0 ns** |  **0.88 ns** |  **0.82 ns** |
-| **ReceiveConcurrentlyAsync** | **4**               | **202.7 ns** | **30.20 ns** | **29.66 ns** |
+| Method                   | SubscriberCount | Mean     | Error     | StdDev    |
+|------------------------- |---------------- |---------:|----------:|----------:|
+| **ReceiveConcurrentlyAsync** | **1**               | **94.91 ns** |  **0.746 ns** |  **0.733 ns** |
+| **ReceiveConcurrentlyAsync** | **4**               | **95.08 ns** | **15.997 ns** | **14.964 ns** |
