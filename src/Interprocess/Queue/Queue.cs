@@ -35,6 +35,7 @@ internal abstract class Queue : IDisposable
 
     protected CircularBuffer Buffer { get; }
     protected ILogger<Queue> Logger { get; }
+    protected bool IsDisposed => Volatile.Read(ref disposed) != 0;
 
     public void Dispose()
     {

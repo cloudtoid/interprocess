@@ -3,8 +3,7 @@ namespace Cloudtoid.Interprocess;
 internal sealed class Publisher : Queue, IPublisher
 {
     private readonly IInterprocessSemaphoreReleaser signal;
-    // The sign bit closes admission; the remaining bits count admitted enqueue calls.
-    private int operations;
+    private int activeEnqueues;
 
     internal Publisher(
         QueueOptions options,
@@ -25,34 +24,25 @@ internal sealed class Publisher : Queue, IPublisher
 
     public bool TryEnqueue(ReadOnlySpan<byte> message)
     {
-        var current = Volatile.Read(ref operations);
-        while (true)
-        {
-            ObjectDisposedException.ThrowIf(current < 0, this);
-            var observed = Interlocked.CompareExchange(ref operations, current + 1, current);
-            if (observed == current)
-                break;
-
-            current = observed;
-        }
-
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        Interlocked.Increment(ref activeEnqueues);
         try
         {
+            // Disposal may have started between the first check and incrementing the counter.
+            ObjectDisposedException.ThrowIf(IsDisposed, this);
             return TryEnqueueCore(message);
         }
         finally
         {
-            Interlocked.Decrement(ref operations);
+            Interlocked.Decrement(ref activeEnqueues);
         }
     }
 
     protected override void Dispose(bool disposing)
     {
-        // Closing admission and counting active operations use the same atomic word,
-        // so disposal cannot miss a call between its disposed check and admission.
-        Interlocked.Or(ref operations, int.MinValue);
+        // Queue.Dispose has already closed admission. Drain calls that passed the second check.
         SpinWait spin = default;
-        while (Volatile.Read(ref operations) != int.MinValue)
+        while (Volatile.Read(ref activeEnqueues) != 0)
             spin.SpinOnce();
 
         if (disposing)
