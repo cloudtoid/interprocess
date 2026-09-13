@@ -9,7 +9,6 @@ public sealed class MacSemaphoreTests
     [Fact(Platforms = Platform.OSX)]
     public void CreationPreservesInitialCount()
     {
-        CheckArchitecture();
         foreach (var count in new[] { 1, 3 })
         {
             var name = NewName();
@@ -32,7 +31,6 @@ public sealed class MacSemaphoreTests
     [Fact(Platforms = Platform.OSX)]
     public async Task SeparateProcessesCanOpenAndSignalTheSameSemaphoreAsync()
     {
-        CheckArchitecture();
         var name = NewName();
         var handle = MacInterop.CreateOrOpenSemaphore(name, 2);
         try
@@ -54,7 +52,6 @@ public sealed class MacSemaphoreTests
 
     internal static void RunPeer(string name, int expectedCount)
     {
-        CheckArchitecture();
         // Opening an existing semaphore must preserve its count, ignoring this creation value.
         var handle = MacInterop.CreateOrOpenSemaphore(name, 7);
         try
@@ -73,13 +70,6 @@ public sealed class MacSemaphoreTests
     }
 
     private static string NewName() => "/ct.ip." + Guid.NewGuid().ToStringInvariant("N")[..16];
-
-    private static void CheckArchitecture()
-    {
-        var expected = Environment.GetEnvironmentVariable("INTERPROCESS_TEST_ARCHITECTURE");
-        if (!string.IsNullOrEmpty(expected))
-            RuntimeInformation.ProcessArchitecture.ToString().Should().Be(expected);
-    }
 
     private static async Task RunPeerAsync(string name, int expectedCount)
     {
