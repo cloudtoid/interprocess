@@ -384,15 +384,7 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
         const int count = 20000;
         var options = new QueueOptions(this.options.QueueName, this.options.Path, 120);
         var received = new int[count];
-        var published = new int[4];
-        using var probe = new QueueProbe(options);
-        await using var progress = new Timer(
-            _ => Console.WriteLine(
-                $"Queue progress: readers={subscriberCount}, published={string.Join(",", published)}, "
-                    + $"received={received.Sum()}, {probe.Snapshot}"),
-            null,
-            1000,
-            1000);
+        // Bound hangs without assuming throughput on shared CI runners.
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         // Keep a participant alive while the workers start and finish.
         using var anchor = factory.CreatePublisher(options);
@@ -439,8 +431,6 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
                             cancellation.Token.ThrowIfCancellationRequested();
                             Thread.Yield();
                         }
-
-                        published[firstId]++;
                     }
                 },
                 cancellation.Token,
@@ -454,11 +444,6 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
 
     private sealed class QueueProbe(QueueOptions options) : Queue(options, NullLoggerFactory.Instance)
     {
-        internal unsafe string Snapshot =>
-            $"R={Interlocked.Read(ref Header->ReadOffset)}, W={Interlocked.Read(ref Header->WriteOffset)}, "
-                + $"lock={Interlocked.Read(ref Header->ReadLockTimestamp)}, state={HeadState}, "
-                + $"notification={Volatile.Read(ref Header->NotificationPending)}";
-
         internal unsafe long ReadLockTimestamp => Interlocked.Read(ref Header->ReadLockTimestamp);
 
         internal unsafe bool ReadsAreLocked => Interlocked.Read(ref Header->ReadLockTimestamp) != 0;

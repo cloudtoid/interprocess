@@ -10,7 +10,6 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]
     name: Build and Test on ${{ matrix.os }}
@@ -27,19 +26,4 @@ jobs:
             10.0.x
 
       - name: Build and Test
-        run: dotnet test src/Interprocess.sln --logger "console;verbosity=normal"
-
-      - name: Compare Mac stress-test progress
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          git fetch origin 3ed007cab598f2d3baefb34163c8836decf96641
-          git worktree add --detach "$RUNNER_TEMP/interprocess-base" 3ed007cab598f2d3baefb34163c8836decf96641
-          sed 's/Header->NotificationPending/Header->Reserved/g' src/Interprocess.Tests/SubscriberTests.cs > "$RUNNER_TEMP/interprocess-base/src/Interprocess.Tests/SubscriberTests.cs"
-          dotnet build "$RUNNER_TEMP/interprocess-base/src/Interprocess.Tests"
-          for attempt in 1 2 3; do
-            echo "BASELINE trial $attempt"
-            dotnet test "$RUNNER_TEMP/interprocess-base/src/Interprocess.Tests" --no-build --filter FullyQualifiedName~ConcurrentSubscribersReceiveEveryMessageExactlyOnceAsync --logger "console;verbosity=normal"
-            echo "COALESCED trial $attempt"
-            dotnet test src/Interprocess.Tests --no-build --filter FullyQualifiedName~ConcurrentSubscribersReceiveEveryMessageExactlyOnceAsync --logger "console;verbosity=normal"
-          done
+        run: dotnet test src/Interprocess.sln
