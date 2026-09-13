@@ -381,7 +381,8 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
     [InlineData(4)]
     public async Task ConcurrentSubscribersReceiveEveryMessageExactlyOnceAsync(int subscriberCount)
     {
-        const int count = 4000;
+        const int count = 20000;
+        var options = new QueueOptions(this.options.QueueName, this.options.Path, 120);
         var received = new int[count];
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         // Keep a participant alive while the workers start and finish.
@@ -392,30 +393,33 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
             readers[reader] = Task.Run(() =>
             {
                 using var subscriber = factory.CreateSubscriber(options);
-                var buffer = new byte[8];
+                var buffer = new byte[64];
                 for (var i = 0; i < count / subscriberCount; i++)
                 {
                     var message = subscriber.Dequeue(buffer, cancellation.Token);
-                    message.Length.Should().Be(8);
                     var id = BitConverter.ToInt32(message.Span);
                     id.Should().BeInRange(0, count - 1);
+                    message.Length.Should().Be(8 + (id % 57));
+                    message.Span[4..].ToArray().Should().OnlyContain(value => value == (byte)id);
                     Interlocked.Increment(ref received[id]);
                 }
             });
         }
 
-        var writers = new Task[2];
+        var writers = new Task[4];
         for (var writer = 0; writer < writers.Length; writer++)
         {
             var firstId = writer;
             writers[writer] = Task.Run(() =>
             {
                 using var publisher = factory.CreatePublisher(options);
-                var buffer = new byte[8];
-                for (var id = firstId; id < count; id += 2)
+                var buffer = new byte[64];
+                for (var id = firstId; id < count; id += writers.Length)
                 {
-                    BitConverter.TryWriteBytes(buffer, id).Should().BeTrue();
-                    while (!publisher.TryEnqueue(buffer))
+                    var message = buffer.AsSpan(0, 8 + (id % 57));
+                    message.Fill((byte)id);
+                    BitConverter.TryWriteBytes(message, id).Should().BeTrue();
+                    while (!publisher.TryEnqueue(message))
                     {
                         cancellation.Token.ThrowIfCancellationRequested();
                         Thread.Yield();
@@ -447,7 +451,7 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
         internal unsafe void UnlockReads() => Interlocked.Exchange(ref Header->ReadLockTimestamp, 0);
 
         internal unsafe void ReserveUnfinishedMessage() =>
-            Interlocked.Exchange(ref Header->WriteOffset, SafeIncrementMessageOffset(Header->WriteOffset, 16));
+            Interlocked.Exchange(ref Header->WriteOffset, checked(Header->WriteOffset + 16));
 
         internal unsafe void CompleteMessage()
         {

@@ -6,13 +6,13 @@ namespace Cloudtoid.Interprocess;
 internal struct QueueHeader
 {
     /// <summary>
-    /// Where the next message could potentially be read
+    /// Monotonically increasing byte position of the next message to read.
     /// </summary>
     [FieldOffset(0)]
     internal long ReadOffset;
 
     /// <summary>
-    /// Where the next message could potentially be written
+    /// Monotonically increasing byte position of the next message to write.
     /// </summary>
     [FieldOffset(8)]
     internal long WriteOffset;

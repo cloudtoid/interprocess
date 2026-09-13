@@ -7,8 +7,8 @@ public sealed class RecoveryTests(UniquePathFixture fixture) : IClassFixture<Uni
     [InlineData(true)]
     public async Task DiscardedMessagesCannotReappearAfterWrapAsync(bool blocking)
     {
-        // Exercise physical wrap, offset wrap at twice capacity, and full-buffer discards.
-        var cases = from start in new[] { 0, 48, 112 }
+        // Exercise physical wrap, positions beyond twice capacity, and full-buffer discards.
+        var cases = from start in new[] { 0, 48, 112, 240 }
                     from records in new[] { 2, 4 }
                     from reuseBuffer in new[] { false, true }
                     select CheckRecoveryAsync(start, records, blocking, reuseBuffer);
@@ -136,7 +136,7 @@ public sealed class RecoveryTests(UniquePathFixture fixture) : IClassFixture<Uni
         internal byte[] ReadBytes(long offset, long length) => Buffer.Read(offset, length).ToArray();
 
         internal unsafe void ReserveUnfinishedMessage() =>
-            Interlocked.Exchange(ref Header->WriteOffset, SafeIncrementMessageOffset(WriteOffset, 16));
+            Interlocked.Exchange(ref Header->WriteOffset, checked(WriteOffset + 16));
 
         internal unsafe void CompleteMessage(long offset)
         {

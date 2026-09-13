@@ -356,15 +356,15 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
     }
 
     private string BackingFile() =>
-        Path.Combine(options.Path, ".cloudtoid/interprocess/mmf", options.QueueName + ".qu");
+        Path.Combine(options.Path, ".cloudtoid/interprocess/v3/mmf", options.QueueName + ".qu");
 
     private void AssertResourcesAlive()
     {
         if (OperatingSystem.IsWindows())
         {
             // Open existing objects only, and close the probes before the next departure.
-            using var mapping = MemoryMappedFile.OpenExisting("CT_IP_" + options.QueueName);
-            using var semaphore = SysSemaphore.OpenExisting(@"Global\CT.IP." + options.QueueName);
+            using var mapping = MemoryMappedFile.OpenExisting("CT3_IP_" + options.QueueName);
+            using var semaphore = SysSemaphore.OpenExisting(@"Global\CT3.IP." + options.QueueName);
         }
         else
         {
@@ -380,14 +380,14 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
             {
                 if (OperatingSystem.IsWindows())
                 {
-                    using var mapping = MemoryMappedFile.OpenExisting("CT_IP_" + options.QueueName);
+                    using var mapping = MemoryMappedFile.OpenExisting("CT3_IP_" + options.QueueName);
                 }
             };
             Action openSemaphore = () =>
             {
                 if (OperatingSystem.IsWindows())
                 {
-                    using var semaphore = SysSemaphore.OpenExisting(@"Global\CT.IP." + options.QueueName);
+                    using var semaphore = SysSemaphore.OpenExisting(@"Global\CT3.IP." + options.QueueName);
                 }
             };
             // Forced-exit cleanup can outlive the last participant's explicit disposal.

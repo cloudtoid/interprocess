@@ -5,7 +5,7 @@ namespace Cloudtoid.Interprocess.Semaphore.Windows;
 // just a wrapper over the Windows named semaphore
 internal sealed class SemaphoreWindows : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
 {
-    private const string HandleNamePrefix = @"Global\CT.IP.";
+    private const string HandleNamePrefix = @"Global\CT3.IP.";
     private readonly SysSemaphore handle;
 
     internal SemaphoreWindows(string name) =>

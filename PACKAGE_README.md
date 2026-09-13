@@ -10,6 +10,16 @@ Requires .NET 10 or later and a 64-bit process.
 dotnet add package Cloudtoid.Interprocess
 ```
 
+## Upgrading to 3.0
+
+Version 3 changes the shared-memory protocol to prevent publisher reservations from overwriting unread
+messages after offset wrap. Drain the old queue and upgrade all publishers and subscribers together.
+V2 and v3 use separate resources even with the same queue name; queued messages are not migrated.
+
+The MMF stays circular and fixed in size. Logical positions never wrap: after approximately 9.22 exabytes
+of reserved bytes (including headers and padding), `TryEnqueue` throws `OverflowException` before changing
+the queue. Drain accepted messages and move all participants to a fresh queue.
+
 ## Example
 
 ```csharp

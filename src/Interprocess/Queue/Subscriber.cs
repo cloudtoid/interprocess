@@ -189,11 +189,10 @@ internal sealed class Subscriber : Queue, ISubscriber
                 if (DateTime.UtcNow.Ticks - (pending?.StartedTimestamp ?? start) > TicksForTenSeconds)
                 {
                     var discardedLength = writeOffset - readOffset;
-                    if (discardedLength < 0)
-                        discardedLength += Buffer.Capacity * 2;
 
                     // Reject a stale snapshot before clearing. These checks cannot fence an owner paused mid-clear.
-                    if (discardedLength > Buffer.Capacity
+                    if (discardedLength < 0
+                        || discardedLength > Buffer.Capacity
                         || Volatile.Read(ref Header->ReadLockTimestamp) != start
                         || Volatile.Read(ref Header->ReadOffset) != readOffset)
                     {
@@ -244,7 +243,7 @@ internal sealed class Subscriber : Queue, ISubscriber
             Buffer.Clear(readOffset, messageLength);
 
             // update the read offset of the queue
-            var newReadOffset = SafeIncrementMessageOffset(readOffset, messageLength);
+            var newReadOffset = checked(readOffset + messageLength);
             Interlocked.Exchange(ref Header->ReadOffset, newReadOffset);
         }
         finally
