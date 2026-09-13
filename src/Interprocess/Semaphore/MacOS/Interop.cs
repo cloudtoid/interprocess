@@ -28,8 +28,14 @@ internal static partial class Interop
 
     internal static IntPtr CreateOrOpenSemaphore(string name, uint initialCount)
     {
-        var handle = SemaphoreOpen(
-            name, OCREAT, 0, 0, 0, 0, 0, 0, (uint)PosixFilePermissions.ACCESSPERMS, initialCount);
+        // Apple ARM64 puts variadic arguments in 8-byte stack slots; x64 uses argument registers.
+        var handle = RuntimeInformation.ProcessArchitecture switch
+        {
+            Architecture.Arm64 => SemaphoreOpenArm64(
+                name, OCREAT, 0, 0, 0, 0, 0, 0, (uint)PosixFilePermissions.ACCESSPERMS, initialCount),
+            Architecture.X64 => SemaphoreOpenX64(name, OCREAT, (uint)PosixFilePermissions.ACCESSPERMS, initialCount),
+            _ => throw new PlatformNotSupportedException("Unsupported macOS process architecture.")
+        };
 
         if (handle != SemFailed)
             return handle;
@@ -145,7 +151,7 @@ internal static partial class Interop
     }
 
     [LibraryImport(Lib, EntryPoint = "sem_open", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
-    private static partial IntPtr SemaphoreOpen(
+    private static partial IntPtr SemaphoreOpenArm64(
         string name,
         int oflag,
         ulong __x2,
@@ -156,6 +162,9 @@ internal static partial class Interop
         ulong __x7,
         ulong mode,
         uint value);
+
+    [LibraryImport(Lib, EntryPoint = "sem_open", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
+    private static partial IntPtr SemaphoreOpenX64(string name, int oflag, uint mode, uint value);
 
     [LibraryImport(Lib, EntryPoint = "sem_post", SetLastError = true)]
     private static partial int SemaphorePost(IntPtr handle);
