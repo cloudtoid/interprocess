@@ -37,14 +37,14 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
             }
 
             using (var subscriber = factory.CreateSubscriber(options))
-            using (var signal = InterprocessSemaphore.CreateWaiter(options.QueueName))
             {
-                signal.Wait(0).Should().BeTrue("failed joins must preserve existing notifications");
+                ((Subscriber)subscriber).WaitForNotification(0).Should().BeTrue(
+                    "failed joins must preserve existing notifications");
                 subscriber.TryDequeue(out var first).Should().BeTrue();
                 first.ToArray().Should().Equal("*"u8.ToArray());
 
                 (await CommandAsync(child, "send")).Should().Be("sent");
-                signal.Wait(1000).Should().BeTrue();
+                ((Subscriber)subscriber).WaitForNotification(1000).Should().BeTrue();
                 subscriber.TryDequeue(out var second).Should().BeTrue();
                 second.ToArray().Should().Equal("*"u8.ToArray());
                 await StopAsync(child);
@@ -197,13 +197,13 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
                 File.Exists(BackingFile()).Should().BeTrue();
 
             using (var subscriber = factory.CreateSubscriber(options))
-            using (var signal = InterprocessSemaphore.CreateWaiter(options.QueueName))
             {
                 subscriber.TryDequeue(out _).Should().BeFalse();
-                signal.Wait(0).Should().BeFalse("the abandoned semaphore count must be reset too");
+                ((Subscriber)subscriber).WaitForNotification(0).Should().BeFalse(
+                    "the abandoned semaphore count must be reset too");
                 using var publisher = factory.CreatePublisher(options);
                 publisher.TryEnqueue("*"u8).Should().BeTrue();
-                signal.Wait(1000).Should().BeTrue();
+                ((Subscriber)subscriber).WaitForNotification(1000).Should().BeTrue();
                 subscriber.TryDequeue(out _).Should().BeTrue();
             }
 
@@ -222,17 +222,16 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
         try
         {
             using (var subscriber = factory.CreateSubscriber(options))
-            using (var signal = InterprocessSemaphore.CreateWaiter(options.QueueName))
             {
                 (await CommandAsync(child, "send")).Should().Be("sent");
                 child.Kill();
                 await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
 
                 using var replacement = factory.CreatePublisher(options);
-                signal.Wait(1000).Should().BeTrue();
+                ((Subscriber)subscriber).WaitForNotification(1000).Should().BeTrue();
                 subscriber.TryDequeue(out _).Should().BeTrue("a live subscriber preserves unread messages");
                 replacement.TryEnqueue("*"u8).Should().BeTrue();
-                signal.Wait(1000).Should().BeTrue();
+                ((Subscriber)subscriber).WaitForNotification(1000).Should().BeTrue();
                 subscriber.TryDequeue(out _).Should().BeTrue();
             }
 
@@ -254,13 +253,12 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
             {
                 await child.StandardInput.WriteLineAsync("exit");
                 using (var subscriber = factory.CreateSubscriber(options))
-                using (var signal = InterprocessSemaphore.CreateWaiter(options.QueueName))
                 {
                     await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
                     child.ExitCode.Should().Be(0);
                     using var publisher = factory.CreatePublisher(options);
                     publisher.TryEnqueue("*"u8).Should().BeTrue();
-                    signal.Wait(1000).Should().BeTrue();
+                    ((Subscriber)subscriber).WaitForNotification(1000).Should().BeTrue();
                     subscriber.TryDequeue(out _).Should().BeTrue();
                 }
 

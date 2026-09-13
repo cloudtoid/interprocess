@@ -3,7 +3,7 @@ using SysSemaphore = System.Threading.Semaphore;
 namespace Cloudtoid.Interprocess.Semaphore.Windows;
 
 // just a wrapper over the Windows named semaphore
-internal sealed class SemaphoreWindows : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
+internal sealed class SemaphoreWindows : IInterprocessSemaphoreWaiter
 {
     private const string HandleNamePrefix = @"Global\CT3.IP.";
     private readonly SysSemaphore handle;

@@ -87,12 +87,11 @@ public sealed class ProtocolIsolationTests(UniquePathFixture fixture) : IClassFi
         var factory = new QueueFactory();
         using var publisher = factory.CreatePublisher(options);
         using var subscriber = factory.CreateSubscriber(options);
-        using var signal = InterprocessSemaphore.CreateWaiter(options.QueueName);
-        signal.Wait(0).Should().BeFalse("v3 must not consume legacy notifications");
+        ((Subscriber)subscriber).WaitForNotification(0).Should().BeFalse("v3 must not consume legacy notifications");
         for (var i = 0; i < 20; i++)
         {
             publisher.TryEnqueue("v3-body!"u8).Should().BeTrue();
-            signal.Wait(0).Should().BeTrue();
+            ((Subscriber)subscriber).WaitForNotification(0).Should().BeTrue();
             subscriber.TryDequeue(out var message).Should().BeTrue();
             message.ToArray().Should().Equal("v3-body!"u8.ToArray());
         }

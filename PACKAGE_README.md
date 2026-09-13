@@ -10,18 +10,11 @@ Requires .NET 10 or later and a 64-bit process.
 dotnet add package Cloudtoid.Interprocess --prerelease
 ```
 
-## Upgrading to 3.0 alpha
+## Faster with v3 alpha
 
-Version 3 is an **alpha prerelease**. APIs and the shared-memory protocol may change between alpha releases.
-Drain the queue, stop all participants, and recreate it when upgrading between alpha versions.
+Version 3 coalesces notifications to reduce operating-system calls and speed up message delivery. Try the alpha for your workload; see the [version comparison and benchmarks](https://github.com/cloudtoid/interprocess#performance).
 
-Version 3 changes the shared-memory protocol to prevent publisher reservations from overwriting unread
-messages after offset wrap. Drain the old queue and upgrade all publishers and subscribers together.
-V2 and v3 use separate resources even with the same queue name; queued messages are not migrated.
-
-The MMF stays circular and fixed in size. Logical positions never wrap: after approximately 9.22 exabytes
-of reserved bytes (including headers and padding), `TryEnqueue` throws `OverflowException` before changing
-the queue. Drain accepted messages and move all participants to a fresh queue.
+Alpha APIs and the shared-memory protocol may change. Drain the queue, stop all participants, and upgrade them together using a fresh queue.
 
 ## Example
 

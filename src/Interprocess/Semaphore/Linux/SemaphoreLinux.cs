@@ -1,6 +1,6 @@
 namespace Cloudtoid.Interprocess.Semaphore.Linux;
 
-internal sealed class SemaphoreLinux : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
+internal sealed class SemaphoreLinux : IInterprocessSemaphoreWaiter
 {
     private const string HandleNamePrefix = "/ct3ip.";
     private readonly string name;

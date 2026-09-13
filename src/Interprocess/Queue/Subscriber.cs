@@ -9,12 +9,15 @@ internal sealed class Subscriber : Queue, ISubscriber
     private int activeReads;
     private PendingRead? pendingRead;
 
-    internal Subscriber(QueueOptions options, ILoggerFactory loggerFactory)
+    internal Subscriber(
+        QueueOptions options,
+        ILoggerFactory loggerFactory,
+        IInterprocessSemaphoreWaiter? signal = null)
         : base(options, loggerFactory)
     {
         try
         {
-            signal = InterprocessSemaphore.CreateWaiter(options.QueueName);
+            this.signal = signal ?? InterprocessSemaphore.CreateWaiter(options.QueueName);
         }
         catch
         {
@@ -44,6 +47,18 @@ internal sealed class Subscriber : Queue, ISubscriber
 
         Interlocked.Decrement(ref activeReads);
         ThrowIfCancellationRequested(cancellation);
+    }
+
+    // Also used by tests that inspect notifications without dequeuing a message.
+    internal unsafe bool WaitForNotification(int millisecondsTimeout)
+    {
+        if (!signal.Wait(millisecondsTimeout))
+            return false;
+
+        // Only a consumed permit can clear the flag. Resetting on timeout could allow
+        // another post while a paused participant still owns the previous one.
+        Interlocked.Exchange(ref Header->NotificationPending, 0);
+        return true;
     }
 
     protected override void Dispose(bool disposing)
@@ -77,10 +92,11 @@ internal sealed class Subscriber : Queue, ISubscriber
         }
     }
 
-    private ReadOnlyMemory<byte> DequeueCore(Memory<byte>? resultBuffer, CancellationToken cancellation)
+    private unsafe ReadOnlyMemory<byte> DequeueCore(Memory<byte>? resultBuffer, CancellationToken cancellation)
     {
         // Rejected admission must not enter the catch below, which touches the shared read lock.
         EnterRead(cancellation);
+        var relayNotification = false;
 
         try
         {
@@ -95,7 +111,7 @@ internal sealed class Subscriber : Queue, ISubscriber
                 // would yield, wait for a signal instead of burning CPU on an idle queue.
                 if (spin.NextSpinWillYield)
                 {
-                    signal.Wait(millisecondsTimeout: 5);
+                    relayNotification |= WaitForNotification(millisecondsTimeout: 5);
                     spin.Reset();
                 }
                 else
@@ -111,7 +127,17 @@ internal sealed class Subscriber : Queue, ISubscriber
         }
         finally
         {
-            Interlocked.Decrement(ref activeReads);
+            try
+            {
+                // A woken reader must pass the notification on if messages remain,
+                // including when cancellation, disposal, or a destination failure ends this call.
+                if (relayNotification && !Header->IsEmpty())
+                    Notify(signal);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref activeReads);
+            }
         }
     }
 

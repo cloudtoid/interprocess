@@ -93,15 +93,7 @@ internal sealed class Publisher : Queue, IPublisher
                     "Publishing to the shared memory queue failed leaving the queue in a bad state. The only option is to crash the application.");
             }
 
-            // signal the next receiver that there is a new message in the queue
-            try
-            {
-                signal.Release();
-            }
-            catch (SemaphoreFullException)
-            {
-                // The message is committed, and a full semaphore already has pending notifications.
-            }
+            Notify(signal);
 
             return true;
         }

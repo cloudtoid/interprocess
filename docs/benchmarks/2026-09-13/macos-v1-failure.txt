@@ -1,0 +1,10 @@
+Cloudtoid.Interprocess 1.0.175; native Apple M5 Max; macOS 26.6.2; .NET 10.0.12
+All four cases failed during queue creation; no timing results.
+
+System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation.
+ ---> System.ArgumentException: The initial count cannot be greater than 32767. (Parameter 'initialCount')
+   at Cloudtoid.Interprocess.Semaphore.MacOS.Interop.CreateOrOpenSemaphore(String name, UInt32 initialCount)
+   at Cloudtoid.Interprocess.Semaphore.MacOS.SemaphoreMacOS..ctor(String name, Boolean deleteOnDispose)
+   at Cloudtoid.Interprocess.InterprocessSemaphore.CreateReleaser(String name)
+   at Cloudtoid.Interprocess.Publisher..ctor(QueueOptions options, ILoggerFactory loggerFactory)
+   at Cloudtoid.Interprocess.QueueFactory.CreatePublisher(QueueOptions options)

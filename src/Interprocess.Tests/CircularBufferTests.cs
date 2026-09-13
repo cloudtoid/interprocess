@@ -113,7 +113,8 @@ public unsafe class CircularBufferTests
                 ReadOffset = 1,
                 WriteOffset = 2,
                 ReadLockTimestamp = long.MaxValue,
-                Reserved = long.MinValue
+                NotificationPending = int.MinValue,
+                Reserved = int.MaxValue
             };
             buffer.Write(value, 0);
             value.Should().BeEquivalentTo(*(QueueHeader*)ptr);
