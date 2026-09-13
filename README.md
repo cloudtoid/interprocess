@@ -16,6 +16,26 @@
 - [**Efficient**](#performance): Sending and receiving messages is almost heap memory allocation free reducing garbage collections.
 - [**Developer**](#author): Developed by a guy at Microsoft.
 
+## Faster with v3 alpha
+
+**6.4× faster round trips and 2.1× the concurrent throughput of v2** in our native Mac benchmarks. Version 3 coalesces notifications, avoiding repeated operating-system calls while readers are active.
+
+| Version | 8-byte enqueue + dequeue | 4 publishers / 4 subscribers |
+| --- | ---: | ---: |
+| Latest v1 (`1.0.175`) | Could not initialize¹ | Could not initialize¹ |
+| Latest v2 (`2.1.204`) | 208.3 ns | 1.02 million messages/s |
+| v3 alpha | **32.8 ns** | **2.14 million messages/s** |
+
+Same Mac, .NET 10 runtime, and benchmark source for all versions. These are in-process measurements; see [macOS results](#on-macos). ¹The published v1 package failed during semaphore creation on this Mac.
+
+**Upgrade to v3 alpha and try it with your workload:**
+
+```sh
+dotnet add package Cloudtoid.Interprocess --prerelease
+```
+
+Alpha APIs and the shared-memory protocol may change. Drain the queue, stop all participants, and upgrade them together using a fresh queue.
+
 ## NuGet Package
 
 The NuGet package for this library is published [here][NuGet]. Version 3 packages use `3.0.0-alpha.<build number>`
@@ -89,61 +109,6 @@ using var subscriber = factory.CreateSubscriber(options);
 subscriber.TryDequeue(messageBuffer, out var message);
 ```
 
-### Upgrading to 3.0 alpha
-
-Version 3 is an **alpha prerelease**. APIs and the shared-memory protocol may change between alpha releases.
-Drain the queue, stop all participants, and recreate it when upgrading between alpha versions.
-
-Version 3 changes the shared-memory protocol to fix a publisher reservation race that could overwrite
-unread messages after the write position wrapped. All publishers and subscribers for a queue must
-upgrade together. Drain the old queue and stop its participants before switching. Version 3 uses
-separate memory and semaphore names: v2 and v3 participants using the same queue name cannot exchange
-messages, and existing queued messages are not migrated automatically.
-
-The buffer and MMF remain circular and fixed in size. Logical byte positions increase monotonically;
-physical addresses still wrap at the buffer capacity. Reservations use the existing 64-bit compare-and-swap,
-with no new publisher lock or CPU requirement.
-
-Positions never reset while participants remain connected. If a reservation would overflow a signed
-64-bit position, `TryEnqueue` throws `OverflowException` before modifying the queue. Accepted messages
-can still drain; move all participants to a fresh queue to continue. The lifetime limit is approximately
-9.22 exabytes of reserved bytes, including message headers and padding (about 29 years at 10 GB/s).
-
-### Receiving messages
-
-Starting with 2.1, `TryDequeue` no longer takes a cancellation token. Use
-`TryDequeue(out message)` or `TryDequeue(buffer, out message)`. It returns `false` immediately
-when the queue is empty, another reader owns the lock, or the next publisher has not finished writing.
-`Dequeue(cancellationToken)` and `Dequeue(buffer, cancellationToken)` still wait and honor cancellation.
-
-When a publisher has an unfinished reservation, the subscriber retains its read lock and the existing
-ten-second recovery deadline between attempts. Keep polling or dispose the subscriber when finished;
-otherwise other subscribers may wait for the lock to expire. Recovery can discard messages behind a
-crashed publisher, as before. Discarded bytes are cleared before their space is released, so old ready
-headers cannot be mistaken for new messages after the ring wraps.
-
-Recovery assumes abandoned participants will not resume accessing the discarded memory. A timeout
-cannot distinguish a crash from a long pause: a publisher or a reader that resumes after its space or
-read lock has been reclaimed can still corrupt the queue. Clearing and checking ownership do not fence
-those late accesses; this remains a limitation of the current recovery protocol.
-
-### Queue lifetime
-
-Dispose each publisher and subscriber when finished. The queue, including unread messages, stays alive
-while any participant remains. After the last participant is disposed, the backing memory and named
-semaphore are removed. If the last process is forcibly terminated, the next connection resets the
-abandoned resources and starts with an empty queue.
-
-Publisher disposal stops new enqueue calls and waits for in-flight calls to finish before releasing
-shared memory and the semaphore. `TryEnqueue` throws `ObjectDisposedException` once admission closes.
-
-Subscriber disposal stops new reads, cancels blocking reads, and waits for admitted reads before releasing
-resources. Calls rejected because the subscriber is disposed continue to throw `OperationCanceledException`.
-
-All participants must use the same queue name, storage path, and capacity. On Unix, keep the storage
-directory in place while queues are active; creation and cleanup use advisory file locks on that directory
-and the backing files. Stop all participants before upgrading to this lifecycle implementation.
-
 ## Sample
 
 To see a sample implementation of a publisher and a subscriber process, try out the following two projects. You can run them side by side and see them in action:
@@ -155,114 +120,43 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 ## Performance
 
-A lot has gone into optimizing the implementation of this library. For instance, it is mostly heap-memory allocation free, reducing the need for garbage collection induced pauses.
-
-**Latest native macOS measurement**: a three-byte enqueue/dequeue round trip with a reused buffer averaged **210.0 ns** on an Apple M5 Max. Only the macOS results below were refreshed on September 12, 2026; the Windows and Linux sections retain their historical measurements.
-
-**Details**: To benchmark the performance and memory usage, we use [BenchmarkDotNet][BenchmarkOrg] and perform the following runs:
-
-|                                          Method |   Description |
-|------------------------------------------------ |-------------- |
-|                     Message enqueue and dequeue | Benchmarks the performance of sending a message to a client and receiving that message. It is inclusive of the duration to enqueue and dequeue a message. |
-| Message enqueue and dequeue - no message buffer | Benchmarks the performance of sending a message to a client and receiving that message. It is inclusive of the duration to enqueue and dequeue a message and memory allocation for the received message. |
-
-You can replicate the results by running the following command:
-
-```sh
-dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*QueueBenchmark*'
-```
-
-To compare throughput with one subscriber versus four concurrent subscribers:
-
-```sh
-dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*SubscriberBenchmark*' --iterationCount 8
-```
-
----
-
-### On Windows
-
-Host:
-
-```text
-BenchmarkDotNet=v0.13.1, OS=Windows 10.0.22000
-Intel Core i9-10900X CPU 3.70GHz, 1 CPU, 20 logical and 10 physical cores
-.NET SDK=6.0.201
-  [Host]   : .NET 6.0.3 (6.0.322.12309), X64 RyuJIT
-  .NET 6.0 : .NET 6.0.3 (6.0.322.12309), X64 RyuJIT
-```
-
-Results:
-
-|                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
-|------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                     Message enqueue and dequeue |    `305.6`|      `5.96`|       `6.62`|       `-` |
-| Message enqueue and dequeue - no message buffer |    `311.5`|      `5.90`|       `9.85`|    `32 B` |
-
----
-
 ### On macOS
 
-Measured **September 12, 2026**, running directly on the Mac, before the v3 protocol change:
+Measured September 13, 2026, on an **Apple M5 Max**, macOS 26.6.2, .NET 10.0.12, Release build. V3 source: [`60bc11c`](https://github.com/cloudtoid/interprocess/commit/60bc11c).
 
-```text
-BenchmarkDotNet v0.15.8, macOS Tahoe 26.6.2 (25G83) [Darwin 25.6.0]
-Apple M5 Max, 1 CPU, 18 logical and 18 physical cores
-.NET SDK 10.0.401
-.NET runtime 10.0.12, Arm64 RyuJIT
-Release build; 3 warm-up iterations; 8 measured iterations; 1 launch
-```
-
-All seven cases completed. Times are means in nanoseconds, normalized per operation. For enqueue/dequeue rows, an operation is one complete round trip. Concurrent-delivery rows report amortized time per delivered message.
-
-| Workload | Mean (ns) | StdDev (ns) | Allocated per operation |
+| Workload | Mean (ns) | StdDev (ns) | Allocated |
 | --- | ---: | ---: | ---: |
-| Enqueue, 3 bytes | 182.3 | 5.01 | 0 B |
-| Enqueue + dequeue, 3 bytes, reused buffer | 210.0 | 0.46 | 0 B |
-| Enqueue + dequeue, 3 bytes, new result array | 214.9 | 0.81 | 32 B |
-| Enqueue + dequeue, 50 bytes, reused buffer | 214.6 | 1.33 | 0 B |
-| Enqueue + dequeue, 50 bytes, ring-wrap workload | 223.8 | 1.08 | 0 B |
-| Concurrent delivery, 8 bytes, 1 subscriber | 246.5 | 2.20 | Not measured |
-| Concurrent delivery, 8 bytes, 4 subscribers | 344.7 | 1.81 | Not measured |
+| Enqueue, 3 bytes | 4.82 | 0.20 | 0 B |
+| Enqueue + dequeue, 3 bytes, reused buffer | 32.70 | 0.46 | 0 B |
+| Enqueue + dequeue, 3 bytes, new result array | 33.97 | 0.22 | 32 B |
+| Enqueue + dequeue, 50 bytes, reused buffer | 33.60 | 0.44 | 0 B |
+| Enqueue + dequeue, 50 bytes, ring-wrap workload | 39.46 | 0.26 | 0 B |
+| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 138.5 | 1.30 | — |
+| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 187.7 | 9.17 | — |
 
-The enqueue case batches 320,000 messages and drains the queue outside the timed body. The ring-wrap case uses a 120-byte queue so padded 64-byte records repeatedly cross the end of the buffer; two round trips per invocation are normalized to one. Concurrent delivery uses one publisher and dedicated subscriber threads to transfer batches of 65,536 messages, including worker startup and completion in the timing.
+In-process microbenchmarks, not latency between applications. Concurrent rows show amortized time per message, including worker startup and completion; their allocations were not measured. Enqueue drains outside the timed batch. [BenchmarkDotNet][BenchmarkOrg]: two launches, eight measured iterations, three warmups (50 for enqueue-only).
 
-These are in-process microbenchmarks, not end-to-end latency between separate applications. The concurrent cases measure throughput under contention, not individual message latency; their allocations were not measured. See the [complete native Mac reports and methodology](docs/benchmarks/2026-09-12/README.md) for source revision, errors, and reproduction details.
-
-Run all cases from the repository root:
+[Benchmark source and reports](docs/benchmarks/2026-09-13/). Run the Mac suite from the repository root:
 
 ```sh
-dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*' --warmupCount 3 --iterationCount 8 --artifacts BenchmarkDotNet.Artifacts
+dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*' --warmupCount 3 --iterationCount 8 --launchCount 2 --iterationTime 250
+dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*EnqueueBenchmark*' --warmupCount 50 --iterationCount 8 --launchCount 2
 ```
 
----
+### On Windows and Linux
 
-### On Ubuntu (through [WSL][WslDoc])
+Native v3 benchmarks are pending. Run the same comparison on either platform with .NET 10:
 
-Host:
-
-```text
-BenchmarkDotNet=v0.13.2, OS=ubuntu 20.04
-Intel Core i9-10900X CPU 3.70GHz, 1 CPU, 20 logical and 10 physical cores
-.NET SDK=6.0.403
-  [Host]   : .NET 6.0.11 (6.0.1122.52304), X64 RyuJIT AVX2
-  .NET 6.0 : .NET 6.0.11 (6.0.1122.52304), X64 RyuJIT AVX2
+```sh
+cd docs/benchmarks/2026-09-13/v3
+dotnet run -c Release -- --filter '*'
 ```
 
-Results:
-
-|                                          Method | Mean (ns) | Error (ns) | StdDev (ns) | Allocated |
-|------------------------------------------------ |----------:|-----------:|------------:|----------:|
-|                     Message enqueue and dequeue |    `169.9`|      `3.08`|       `4.01`|        `-`|
-| Message enqueue and dequeue - no message buffer |    `179.4`|      `1.91`|       `1.60`|     `32 B`|
+Use the adjacent `v1` and `v2` directories to compare the published versions.
 
 ## Implementation Notes
 
-This library relies on [Named Semaphores][NamedSemaphoresDoc] To signal the existence of a new message to all message subscribers and to do it across process boundaries. Named semaphores are synchronization constructs accessible across processes.
-
-.NET currently does not support named semaphores on Unix-based OSs (Linux, macOS, etc.). Instead we are using P/Invoke and relying on operating system's POSIX semaphore implementation. ([Linux](src/Interprocess/Semaphore/Linux/Interop.cs) and [macOS](src/Interprocess/Semaphore/macOS/Interop.cs) implementations).
-
-This implementation will be replaced with [`System.Threading.Semaphore`][SemaphoreDoc] once .NET adds support for named semaphores on all platforms.
+Messages travel through a shared, circular memory-mapped buffer. Coalesced notifications reduce operating-system calls while keeping blocked subscribers responsive. Cross-process wakeups use named semaphores, with POSIX implementations on [Linux](src/Interprocess/Semaphore/Linux/Interop.cs) and [macOS](src/Interprocess/Semaphore/MacOS/Interop.cs).
 
 ## How to Contribute
 
@@ -294,8 +188,5 @@ Here are a couple of items that we are working on.
 [macOSWiki]:https://en.wikipedia.org/wiki/macOS
 [FreeBSDOrg]:https://www.freebsd.org/
 [Wow64Wiki]:https://en.wikipedia.org/wiki/WoW64
-[WslDoc]:https://learn.microsoft.com/windows/wsl/about
 [BenchmarkOrg]:https://benchmarkdotnet.org/
-[NamedSemaphoresDoc]:https://docs.microsoft.com/dotnet/api/system.threading.semaphore#remarks
-[SemaphoreDoc]:https://docs.microsoft.com/dotnet/api/system.threading.semaphore
 [PedramLinkedIn]:https://www.linkedin.com/in/pedramrezaei/
