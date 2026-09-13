@@ -5,6 +5,10 @@ namespace Cloudtoid.Interprocess;
 /// <summary>
 /// Message subscriber that subscribes to the messages published by the publisher.
 /// </summary>
+/// <remarks>
+/// Disposal stops new reads, cancels blocking reads, and waits for admitted reads before releasing resources.
+/// Calls rejected because the subscriber is disposed throw <see cref="OperationCanceledException"/>.
+/// </remarks>
 public interface ISubscriber : IDisposable
 {
     /// <summary>

@@ -10,6 +10,8 @@ internal static class Program
         var options = new QueueOptions(args[1], args[0], 1024);
         if (args[2] == "publisher-disposal")
             await PublisherDisposalTests.RunChildAsync(options, args[3]);
+        else if (args[2] == "subscriber-disposal")
+            await SubscriberDisposalTests.RunChildAsync(options, args[3]);
         else
             RunParticipant(options, args[2]);
     }
