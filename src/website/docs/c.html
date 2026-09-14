@@ -66,4 +66,12 @@ cleanup:
 <p>Returns a <code>cip_error_kind</code>: <code>CIP_NO_ERROR = 0</code>, <code>CIP_INVALID_ARGUMENT = 1</code>, <code>CIP_CAPACITY_MISMATCH = 2</code>, <code>CIP_PUBLISHER_LIMIT = 3</code>, <code>CIP_EXHAUSTED = 4</code>, <code>CIP_CORRUPT = 5</code>, <code>CIP_IO_ERROR = 6</code>, or <code>CIP_INTERNAL_ERROR = 7</code>. Error state is diagnostic state, not a substitute for checking each function's return status.</p>
 <h2 id="shutdown">Concurrency and shutdown</h2>
 <p>Handles support concurrent operations, but closing concurrently with an operation is unsafe. Use bounded receive timeouts, signal your worker to stop, join it, then close the handle. There is no cancellation object or batch-send function in the C ABI. Open after fork; inherited handles must not be used in the child.</p>
-<p>Prebuilt SDKs contain shared libraries. For static linking, build <code>cloudtoid-interprocess-ffi</code> from source and define <code>CIP_STATIC</code> on Windows. See the <a href="https://github.com/cloudtoid/interprocess/tree/main/src/c#build-from-source">source-build instructions</a>.</p>
+<p>Prebuilt SDKs contain shared libraries. For static linking, build <code>cloudtoid-interprocess-ffi</code> from source and define <code>CIP_STATIC</code> on Windows. See the <a href="#build-from-source">source-build instructions</a>.</p>
+
+<h2 id="build-from-source">Build from source</h2>
+<p>From the repository root, with Rust and CMake installed:</p>
+<pre><code class="language-bash">cmake -S src/c -B target/c-sdk -DCMAKE_INSTALL_PREFIX="$HOME/.local"
+cmake --build target/c-sdk --config Release
+cmake --install target/c-sdk --config Release</code></pre>
+<p>Link with <code>pkg-config --cflags --libs cloudtoid-interprocess</code>. On Unix, these flags embed the installed library directory as a runtime search path. On Windows, add the DLL directory to <code>PATH</code> or place the DLL beside the executable.</p>
+<p>For a static library, run <code>cargo build --release -p cloudtoid-interprocess-ffi</code> and define <code>CIP_STATIC</code> when compiling Windows callers.</p>

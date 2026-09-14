@@ -2,7 +2,7 @@
 
 # Interprocess
 
-[Website](https://cloudtoid.com) · [Languages and packages](#languages) · [Quick start](#quick-start) · [Performance](#performance) · [Protocol v3](docs/protocol.md)
+[Website](https://cloudtoid.com) · [Documentation](https://cloudtoid.com/docs/) · [Languages and packages](#languages) · [Quick start](https://cloudtoid.com/docs/) · [Performance](#performance) · [Protocol v3](https://cloudtoid.com/docs/protocol/)
 
 [![NuGet](https://img.shields.io/nuget/v/Cloudtoid.Interprocess?label=NuGet)](https://www.nuget.org/packages/Cloudtoid.Interprocess)
 [![Rust](https://img.shields.io/crates/v/cloudtoid-interprocess?label=Rust)](https://crates.io/crates/cloudtoid-interprocess)
@@ -31,211 +31,20 @@ Interprocess is used internally by Microsoft.
 
 | Language | Package | Setup and API guide |
 | --- | --- | --- |
-| Rust | [`cloudtoid-interprocess`](https://crates.io/crates/cloudtoid-interprocess) (Cargo) | [Rust core](src/rust/README.md) |
-| C / C++ | [C SDK](https://github.com/cloudtoid/interprocess/releases/latest); [`cloudtoid-interprocess-ffi`](https://crates.io/crates/cloudtoid-interprocess-ffi) (Cargo) | [C ABI, headers, and shared library](src/c/README.md) |
-| Python | Source build (PyPI pending); import `cloudtoid_interprocess` | [Python 3.9+](src/python/README.md) |
-| Node.js | [`@cloudtoid/interprocess`](https://www.npmjs.com/package/@cloudtoid/interprocess) (npm) | [Node.js 18+, JavaScript and TypeScript](src/node/README.md) |
-| Go | [`github.com/cloudtoid/interprocess/src/go/v3`](https://pkg.go.dev/github.com/cloudtoid/interprocess/src/go/v3) | [Go 1.24+, cgo, and the C SDK](src/go/README.md) |
-| .NET | [`Cloudtoid.Interprocess`][NuGet] (NuGet) | [.NET 10+, C# and dependency injection](src/dotnet/README.md) |
+| Rust | [`cloudtoid-interprocess`](https://crates.io/crates/cloudtoid-interprocess) (Cargo) | [Rust core](https://cloudtoid.com/docs/rust/) |
+| C / C++ | [C SDK](https://github.com/cloudtoid/interprocess/releases/latest); [`cloudtoid-interprocess-ffi`](https://crates.io/crates/cloudtoid-interprocess-ffi) (Cargo) | [C ABI, headers, and shared library](https://cloudtoid.com/docs/c/) |
+| Python | Source build (PyPI pending); import `cloudtoid_interprocess` | [Python 3.9+](https://cloudtoid.com/docs/python/) |
+| Node.js | [`@cloudtoid/interprocess`](https://www.npmjs.com/package/@cloudtoid/interprocess) (npm) | [Node.js 18+, JavaScript and TypeScript](https://cloudtoid.com/docs/node/) |
+| Go | [`github.com/cloudtoid/interprocess/src/go/v3`](https://pkg.go.dev/github.com/cloudtoid/interprocess/src/go/v3) | [Go 1.24+, cgo, and the C SDK](https://cloudtoid.com/docs/go/) |
+| .NET | [`Cloudtoid.Interprocess`][NuGet] (NuGet) | [.NET 10+, C# and dependency injection](https://cloudtoid.com/docs/dotnet/) |
 
 Rust supplies the native engine; C, Python, Node.js, and Go use that engine. .NET has its own managed implementation of the same protocol. Node's platform binaries are companion `@cloudtoid/interprocess-*` packages; applications use the main package.
 
 ## Quick start
 
-These examples send and receive in one process so both endpoints remain connected. In separate programs, use the same queue name, capacity, and shared directory, and keep at least one endpoint connected throughout the handoff. Each message goes to one subscriber.
+Choose a language in the table above for installation commands, a working example, and its API reference. Start with [queue concepts](https://cloudtoid.com/docs/concepts/) when connecting separate processes or mixing languages.
 
-<details open>
-<summary>Rust</summary>
-
-Run in your Cargo project. Requires Rust 1.87 or later.
-
-```sh
-cargo add cloudtoid-interprocess
-```
-
-```rust
-use cloudtoid_interprocess::{Options, Publisher, Subscriber};
-
-let options = Options::new("example", 65536);
-let subscriber = Subscriber::open(&options)?;
-let publisher = Publisher::open(&options)?;
-publisher.try_send(b"hello")?;
-let message = subscriber.try_recv()?;
-println!("{message:?}");
-```
-
-Endpoints close when dropped. Use `recv()` to wait indefinitely or `recv_timeout(Duration)` for a bounded wait.
-
-</details>
-
-<details>
-<summary>C / C++</summary>
-
-macOS Apple Silicon example, using the GitHub CLI. For other platforms, choose darwin-x64, linux-arm64, linux-x64, or win32-x64 in both archive names. See the C guide for Windows setup.
-
-```sh
-gh release download native-v3.0.1 --repo cloudtoid/interprocess --pattern "*-darwin-arm64.tar.gz"
-mkdir -p cloudtoid-sdk
-tar -xzf cloudtoid-interprocess-3.0.1-darwin-arm64.tar.gz -C cloudtoid-sdk --strip-components=1
-export PKG_CONFIG_PATH="$PWD/cloudtoid-sdk/lib/pkgconfig:$PKG_CONFIG_PATH"
-```
-
-[Complete C SDK setup](src/c/README.md).
-
-```c
-#include <interprocess.h>
-
-int main(void) {
-    cip_subscriber *subscriber = NULL;
-    cip_publisher *publisher = NULL;
-    if (cip_subscriber_open("example", NULL, 65536, &subscriber) != 1)
-        return 1;
-    if (cip_publisher_open("example", NULL, 65536, &publisher) != 1) {
-        cip_subscriber_close(subscriber);
-        return 1;
-    }
-    if (cip_try_send(publisher, (const uint8_t *)"hello", 5) == 1) {
-        cip_buffer message;
-        if (cip_receive(subscriber, 1000, &message) == 1)
-            cip_buffer_free(message);
-    }
-    cip_publisher_close(publisher);
-    cip_subscriber_close(subscriber);
-    return 0;
-}
-```
-
-Timeouts are milliseconds; free returned buffers with `cip_buffer_free`.
-
-</details>
-
-<details>
-<summary>Python</summary>
-
-PyPI publishing is pending. Run in an activated Python 3.9+ virtual environment with Git, Rust, and a native linker installed.
-
-```sh
-python -m pip install "git+https://github.com/cloudtoid/interprocess.git@native-v3.0.1#subdirectory=src/python"
-```
-
-```python
-from cloudtoid_interprocess import Publisher, Subscriber
-
-with Subscriber("example", 65536) as subscriber, Publisher("example", 65536) as publisher:
-    if publisher.try_send(b"hello"):
-        print(subscriber.receive(timeout=1.0))
-```
-
-Context managers close endpoints. Timeouts are seconds; `receive()` waits indefinitely and permits Python signal handling.
-
-</details>
-
-<details>
-<summary>Node.js / TypeScript</summary>
-
-Run in your Node.js project. Requires Node.js 18 or later; platform binaries install automatically.
-
-```sh
-npm install @cloudtoid/interprocess
-```
-
-```js
-import { Publisher, Subscriber } from '@cloudtoid/interprocess';
-
-const subscriber = new Subscriber('example', 65536);
-const publisher = new Publisher('example', 65536);
-try {
-  if (publisher.trySend(Buffer.from('hello'))) {
-    const message = await subscriber.receive({
-      signal: AbortSignal.timeout(1000)
-    });
-    console.log(message.toString());
-  }
-} finally {
-  publisher.close();
-  subscriber.close();
-}
-```
-
-CommonJS `require` is also supported. Async receive accepts an optional `AbortSignal`; empty queues wait on a one-millisecond timer without occupying libuv workers.
-
-</details>
-
-<details>
-<summary>Go</summary>
-
-Install the C SDK first ([C guide](src/c/README.md)), then run in your Go module. Requires Go 1.24+, cgo enabled, a C compiler, and pkg-config.
-
-```sh
-go get github.com/cloudtoid/interprocess/src/go/v3@latest
-```
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/cloudtoid/interprocess/src/go/v3"
-	"time"
-)
-
-func main() {
-	options := interprocess.Options{Name: "example", Capacity: 65536}
-	subscriber, err := interprocess.OpenSubscriber(options)
-	if err != nil {
-		panic(err)
-	}
-	defer subscriber.Close()
-	publisher, err := interprocess.OpenPublisher(options)
-	if err != nil {
-		panic(err)
-	}
-	defer publisher.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	if sent, err := publisher.TrySend([]byte("hello")); err != nil {
-		panic(err)
-	} else if sent {
-		message, err := subscriber.Receive(ctx)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(string(message))
-	}
-}
-```
-
-Use `context.Context` for cancellation and deadlines. Install the C SDK before building the Go package.
-
-</details>
-
-<details>
-<summary>.NET / C#</summary>
-
-```sh
-dotnet add package Cloudtoid.Interprocess
-```
-
-```csharp
-using Cloudtoid.Interprocess;
-
-var factory = new QueueFactory();
-var options = new QueueOptions("example", 65536);
-using var subscriber = factory.CreateSubscriber(options);
-using var publisher = factory.CreatePublisher(options);
-using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-
-if (publisher.TryEnqueue("hello"u8)) {
-    var message = subscriber.Dequeue(cancellation.Token);
-    Console.WriteLine(System.Text.Encoding.UTF8.GetString(message.Span));
-}
-```
-
-Blocking receives accept a `CancellationToken`. For dependency injection, register `services.AddInterprocessQueue()` and resolve `IQueueFactory`. See the [.NET package guide](src/dotnet/README.md) and [publisher/subscriber samples](src/dotnet/Sample/).
-
-</details>
+Queues are transient: keep at least one publisher or subscriber connected throughout the handoff. Once all endpoints are gone, unread messages are lost and reopening the queue starts fresh.
 
 ## Faster with v3
 
@@ -250,15 +59,6 @@ The .NET v3 benchmarks show **12.0× faster round trips and 2.3× the concurrent
 Measured with .NET 10. [Original results and comparison harness](https://github.com/cloudtoid/interprocess/tree/95c512672d580dd836ba2554cd1f78c0c3826f6c/docs/benchmarks/2026-09-13). See [benchmark details](#on-macos). The new language libraries start with protocol v3.
 
 Upgrade existing v1/v2 applications together: drain the queue, stop all participants, and reopen a fresh queue using v3. All participants sharing a queue must use the same protocol.
-
-## Queue behavior
-
-- Use the same name, capacity, and storage path in every participant. Queue names must be unique even across different paths; Windows uses the name and ignores the path.
-- Each queue supports **2,048 connected publisher objects**. Slots are reused after disposal or confirmed process exit. The publisher table adds **256 KiB** plus 256 bytes of header/alignment storage; `Capacity` is the message-buffer size.
-- On Windows, use the same user session for all participants. Cross-account connections are not supported.
-- The queue is transient and remains available while any publisher or subscriber is connected. Once all are gone, unread messages are lost. Reopening the same name creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits. Dispose participants when finished.
-- A paused live participant keeps ownership. Recovery can reclaim abandoned work after a process exits, but may discard queued messages, including completed messages behind an unfinished reservation. This is an IPC queue, not durable storage.
-- Supply a destination buffer large enough for the message. A smaller buffer consumes the message and returns only the bytes that fit.
 
 ## Performance
 
@@ -324,13 +124,7 @@ Measured September 13, 2026, on an **Apple M5 Max**, Ubuntu 24.04 ARM64 VM (Lima
 
 Same .NET workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (200 for send-only), while concurrent runs used all four vCPUs and three warmups. [.NET benchmark source](src/dotnet/Interprocess.Benchmark/) · [Original reports](https://github.com/cloudtoid/interprocess/tree/95c512672d580dd836ba2554cd1f78c0c3826f6c/docs/benchmarks/2026-09-13).
 
-[Protocol v3](docs/protocol.md) documents the complete shared-memory format and synchronization rules. [Interoperability tests](tests/interop/README.md) exercise every publisher/subscriber language pair and mixed-language concurrent delivery across participant crashes.
-
-## Implementation Notes
-
-Messages travel through a shared, circular memory-mapped buffer. Coalesced notifications reduce operating-system calls while keeping blocked subscribers responsive. Rust and .NET blocking readers also retry after five-millisecond waits when notifications are missed; bindings follow their documented waiting and cancellation behavior. Cross-process wakeups use named semaphores, with POSIX implementations on [Linux](src/dotnet/Interprocess/Semaphore/Linux/Interop.cs) and [macOS](src/dotnet/Interprocess/Semaphore/MacOS/Interop.cs).
-
-Positions advance monotonically while the physical buffer wraps. Before the queue reaches `INT64_MAX` bytes reserved or `INT32_MAX` participant registrations over its lifetime, drain it and move all participants to a fresh queue.
+[Protocol v3](https://cloudtoid.com/docs/protocol/) documents the complete shared-memory format and synchronization rules. [Interoperability tests](tests/interop/README.md) exercise every publisher/subscriber language pair and mixed-language concurrent delivery across participant crashes.
 
 ## How to Contribute
 

@@ -22,3 +22,4 @@ jobs:
           node --check src/website/site.js
           node --check src/website/theme.js
           node --check src/website/docs.js
+          node --check src/website/protocol.js

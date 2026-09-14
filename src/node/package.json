@@ -11,7 +11,7 @@
     "LICENSE"
   ],
   "license": "MIT",
-  "homepage": "https://cloudtoid.com",
+  "homepage": "https://cloudtoid.com/docs/node/",
   "repository": {
     "type": "git",
     "url": "https://github.com/cloudtoid/interprocess.git",

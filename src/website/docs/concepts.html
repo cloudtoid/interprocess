@@ -23,4 +23,4 @@
 <p>Publisher reservations use native 64-bit atomics. The complete queue is not formally lock-free: readers serialize consumption, live paused owners can block progress, and creation and destruction use OS locks. Open native endpoints after <code>fork()</code>; do not use inherited endpoints in the child.</p>
 <h2 id="upgrades">Upgrades and long-lived queues</h2>
 <p>v3 is incompatible with the v1/v2 shared-memory layout. Drain the old queue, stop all participants, and upgrade them together using a fresh queue. The physical buffer wraps; logical counters do not. Counter exhaustion is an explicit error and requires a fresh queue after participants finish.</p>
-<p>For layout offsets, atomic ordering, and recovery details, read the <a href="https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md">full protocol v3 specification</a>.</p>
+<p>For layout offsets, atomic ordering, and recovery details, read the <a href="https://cloudtoid.com/docs/protocol/">full protocol v3 specification</a>.</p>

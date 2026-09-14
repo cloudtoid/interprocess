@@ -1,10 +1,56 @@
 [
-  {"slug":"", "label":"Overview", "title":"Developer documentation", "description":"Build fast cross-process messaging with Cloudtoid Interprocess. Installation guides and API references for Rust, Node.js, Go, C, Python, and .NET."},
-  {"slug":"concepts", "label":"Queue concepts", "title":"Queue lifetime, delivery, and interoperability", "description":"Understand transient queue lifetime, competing subscribers, capacity, message ordering, crash recovery, and cross-language compatibility in protocol v3."},
-  {"slug":"rust", "label":"Rust", "title":"Rust API reference", "description":"Install cloudtoid-interprocess and use Options, Publisher, and Subscriber. Reference for batch sends, reusable receive buffers, blocking waits, and errors."},
-  {"slug":"node", "label":"Node.js", "title":"Node.js & TypeScript API reference", "description":"Install @cloudtoid/interprocess. Send Uint8Array messages, receive Buffers, cancel with AbortSignal, and close endpoints using the Node.js API."},
-  {"slug":"go", "label":"Go", "title":"Go API reference", "description":"Use Cloudtoid Interprocess from Go with cgo. Configure Options, send and receive byte slices, reuse buffers, and cancel receives with context.Context."},
-  {"slug":"c", "label":"C", "title":"C API reference", "description":"Install the Cloudtoid Interprocess C SDK. Reference for handles, status codes, receive timeouts, owned buffers, and safe shutdown."},
-  {"slug":"python", "label":"Python", "title":"Python API reference", "description":"Build Cloudtoid Interprocess for Python. Send bytes and buffer objects, receive with timeouts, use context managers, and handle queue exceptions."},
-  {"slug":"dotnet", "label":".NET", "title":".NET API reference", "description":"Install Cloudtoid.Interprocess from NuGet. Use QueueFactory, QueueOptions, IPublisher, and ISubscriber with reusable buffers and CancellationToken."}
+  {
+    "slug": "",
+    "label": "Overview",
+    "title": "Developer documentation",
+    "description": "Build fast cross-process messaging with Cloudtoid Interprocess. Installation guides and API references for Rust, Node.js, Go, C, Python, and .NET."
+  },
+  {
+    "slug": "concepts",
+    "label": "Queue concepts",
+    "title": "Queue lifetime, delivery, and interoperability",
+    "description": "Understand transient queue lifetime, competing subscribers, capacity, message ordering, crash recovery, and cross-language compatibility in protocol v3."
+  },
+  {
+    "slug": "protocol",
+    "label": "Protocol v3",
+    "title": "Shared-memory protocol v3",
+    "description": "Explore an interactive circular queue, then read the complete Interprocess v3 specification: memory layout, atomic publication, ordering, lifetime, and crash recovery."
+  },
+  {
+    "slug": "rust",
+    "label": "Rust",
+    "title": "Rust API reference",
+    "description": "Install cloudtoid-interprocess and use Options, Publisher, and Subscriber. Reference for batch sends, reusable receive buffers, blocking waits, and errors."
+  },
+  {
+    "slug": "node",
+    "label": "Node.js",
+    "title": "Node.js & TypeScript API reference",
+    "description": "Install @cloudtoid/interprocess. Send Uint8Array messages, receive Buffers, cancel with AbortSignal, and close endpoints using the Node.js API."
+  },
+  {
+    "slug": "go",
+    "label": "Go",
+    "title": "Go API reference",
+    "description": "Use Cloudtoid Interprocess from Go with cgo. Configure Options, send and receive byte slices, reuse buffers, and cancel receives with context.Context."
+  },
+  {
+    "slug": "c",
+    "label": "C",
+    "title": "C API reference",
+    "description": "Install the Cloudtoid Interprocess C SDK. Reference for handles, status codes, receive timeouts, owned buffers, and safe shutdown."
+  },
+  {
+    "slug": "python",
+    "label": "Python",
+    "title": "Python API reference",
+    "description": "Build Cloudtoid Interprocess for Python. Send bytes and buffer objects, receive with timeouts, use context managers, and handle queue exceptions."
+  },
+  {
+    "slug": "dotnet",
+    "label": ".NET",
+    "title": ".NET API reference",
+    "description": "Install Cloudtoid.Interprocess from NuGet. Use QueueFactory, QueueOptions, IPublisher, and ISubscriber with reusable buffers and CancellationToken."
+  }
 ]
