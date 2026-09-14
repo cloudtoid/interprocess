@@ -124,14 +124,22 @@ test('native endpoints survive repeated process and worker teardown', async () =
   const cases = [
     ['plain Node', 'for(let i=0;i<5000;i++) Buffer.alloc(3)'],
     ['addon load only', `require(${JSON.stringify(modulePath)})`],
+    ['empty messages', script.replace('new Uint8Array([1,2,3])', 'new Uint8Array(0)').replace('length !== 3', 'length !== 0')],
+    ['explicit close', script + '\np.close(); s.close();'],
     ['send and receive', script],
+    ['send and receive without concurrent buffer sweeping', script, ['--no-concurrent-array-buffer-sweeping']],
   ];
-  for (const [label, source] of cases) {
+  const failures = [];
+  for (const [label, source, flags = []] of cases) {
     for (let i = 0; i < 12; i++) {
-      const child = spawnSync(process.execPath, ['-e', source], {encoding: 'utf8', timeout: 10000});
-      assert.equal(child.status, 0, `${label}: ${child.stderr || String(child.error)}`);
+      const child = spawnSync(process.execPath, [...flags, '-e', source], {encoding: 'utf8', timeout: 10000});
+      if (child.status !== 0) {
+        failures.push(`${label}: exit ${child.status}: ${child.stderr || String(child.error)}`);
+        break;
+      }
     }
   }
+  assert.deepEqual(failures, []);
   const name = `worker${process.pid}`, subscriber = new Subscriber(name, 64);
   try {
     const workers = Array.from({length: 4}, (_, id) => new Worker(`

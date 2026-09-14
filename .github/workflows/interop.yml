@@ -81,3 +81,8 @@ jobs:
       - run: pip install target/wheels/*.whl
       - run: python src/python/test_api.py
       - run: node --test src/node/test.js
+      - name: Check the minimum TypeScript version
+        if: matrix.node == '20'
+        run: |
+          npm install --prefix "$RUNNER_TEMP/interprocess-types" --ignore-scripts --no-audit --no-fund typescript@5.2.2 @types/node@18.16.19
+          node "$RUNNER_TEMP/interprocess-types/node_modules/typescript/bin/tsc" --strict --noEmit --target es2022 --module node16 --typeRoots "$RUNNER_TEMP/interprocess-types/node_modules/@types" tests/interop/typescript.ts
