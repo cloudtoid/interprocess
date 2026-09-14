@@ -1,3 +1,29 @@
+const installation = {
+  "Rust": [
+    "Run in your Cargo project. Requires Rust 1.87 or later.",
+    "cargo add cloudtoid-interprocess"
+  ],
+  "Node.js": [
+    "Run in your Node.js project. Requires Node.js 18 or later; platform binaries install automatically.",
+    "npm install @cloudtoid/interprocess"
+  ],
+  ".NET": [
+    "Run in your .NET project. Requires .NET 10 or later and a 64-bit process.",
+    "dotnet add package Cloudtoid.Interprocess"
+  ],
+  "Python": [
+    "PyPI publishing is pending. Run in an activated Python 3.9+ virtual environment with Git, Rust, and a native linker installed.",
+    "python -m pip install \"git+https://github.com/cloudtoid/interprocess.git@native-v3.0.1#subdirectory=src/python\""
+  ],
+  "Go": [
+    "Install the C SDK first (see the C guide), then run in your Go module. Requires Go 1.24+, cgo enabled, a C compiler, and pkg-config.",
+    "go get github.com/cloudtoid/interprocess/src/go/v3@latest"
+  ],
+  "C": [
+    "macOS Apple Silicon example, using the GitHub CLI. For other platforms, choose darwin-x64, linux-arm64, linux-x64, or win32-x64 in both archive names. See the C guide for Windows setup.",
+    "gh release download native-v3.0.1 --repo cloudtoid/interprocess --pattern \"*-darwin-arm64.tar.gz\"\nmkdir -p cloudtoid-sdk\ntar -xzf cloudtoid-interprocess-3.0.1-darwin-arm64.tar.gz -C cloudtoid-sdk --strip-components=1\nexport PKG_CONFIG_PATH=\"$PWD/cloudtoid-sdk/lib/pkgconfig:$PKG_CONFIG_PATH\""
+  ]
+};
 const examples = {
   Rust: ['rust', `let options = Options::new("work", 65536);
 let subscriber = Subscriber::open(&options)?;
@@ -59,6 +85,8 @@ const code = document.querySelector('#example code');
 function select(tab, focus = false) {
   tabs.forEach(t => { t.setAttribute('aria-selected', String(t === tab)); t.tabIndex = t === tab ? 0 : -1; });
   const language = tab.dataset.language, [folder, source] = examples[language];
+  document.querySelector('#install-note').textContent = installation[language][0];
+  document.querySelector('#install-command').textContent = installation[language][1];
   const grammar = { node: 'javascript', dotnet: 'csharp' }[folder] || folder;
   code.innerHTML = hljs.highlight(source, { language: grammar }).value;
   document.querySelector('#example').setAttribute('aria-label', `${language} example`);

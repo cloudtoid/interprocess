@@ -4,6 +4,13 @@
 
 [Website](https://cloudtoid.com) · [Languages and packages](#languages) · [Quick start](#quick-start) · [Performance](#performance) · [Protocol v3](docs/protocol.md)
 
+[![NuGet](https://img.shields.io/nuget/v/Cloudtoid.Interprocess?label=NuGet)](https://www.nuget.org/packages/Cloudtoid.Interprocess)
+[![Rust](https://img.shields.io/crates/v/cloudtoid-interprocess?label=Rust)](https://crates.io/crates/cloudtoid-interprocess)
+[![C FFI](https://img.shields.io/crates/v/cloudtoid-interprocess-ffi?label=C%20FFI)](https://crates.io/crates/cloudtoid-interprocess-ffi)
+[![npm](https://img.shields.io/npm/v/@cloudtoid/interprocess?label=npm)](https://www.npmjs.com/package/@cloudtoid/interprocess)
+[![Go](https://img.shields.io/github/v/tag/cloudtoid/interprocess?filter=src%2Fgo%2Fv*&label=Go)](https://pkg.go.dev/github.com/cloudtoid/interprocess/src/go/v3)
+[![C SDK](https://img.shields.io/github/v/release/cloudtoid/interprocess?filter=native-v*&label=C%20SDK)](https://github.com/cloudtoid/interprocess/releases/latest)
+
 [![Native core](https://github.com/cloudtoid/interprocess/actions/workflows/native.yml/badge.svg)](https://github.com/cloudtoid/interprocess/actions/workflows/native.yml)
 [![Interoperability](https://github.com/cloudtoid/interprocess/actions/workflows/interop.yml/badge.svg)](https://github.com/cloudtoid/interprocess/actions/workflows/interop.yml)
 [![License: MIT][LicenseBadge]][License]
@@ -20,15 +27,15 @@ Interprocess is used internally by Microsoft.
 
 ## Languages
 
-.NET v3 is available on NuGet. The Rust, C, Python, Node.js, and Go packages are in preview; use their source build guides below.
+.NET, Rust, Node.js, Go, and the C SDK are released and available to install. Python is available from source; publishing to PyPI is pending.
 
 | Language | Package | Setup and API guide |
 | --- | --- | --- |
-| Rust | `cloudtoid-interprocess` (Cargo) | [Rust core](src/rust/README.md) |
-| C / C++ | C SDK; `cloudtoid-interprocess-ffi` (Cargo) | [C ABI, headers, and shared library](src/c/README.md) |
-| Python | `cloudtoid-interprocess` (PyPI); import `cloudtoid_interprocess` | [Python 3.9+](src/python/README.md) |
-| Node.js | `@cloudtoid/interprocess` (npm) | [Node.js 18+, JavaScript and TypeScript](src/node/README.md) |
-| Go | `github.com/cloudtoid/interprocess/src/go/v3` | [Go 1.24+, cgo, and the C SDK](src/go/README.md) |
+| Rust | [`cloudtoid-interprocess`](https://crates.io/crates/cloudtoid-interprocess) (Cargo) | [Rust core](src/rust/README.md) |
+| C / C++ | [C SDK](https://github.com/cloudtoid/interprocess/releases/latest); [`cloudtoid-interprocess-ffi`](https://crates.io/crates/cloudtoid-interprocess-ffi) (Cargo) | [C ABI, headers, and shared library](src/c/README.md) |
+| Python | Source build (PyPI pending); import `cloudtoid_interprocess` | [Python 3.9+](src/python/README.md) |
+| Node.js | [`@cloudtoid/interprocess`](https://www.npmjs.com/package/@cloudtoid/interprocess) (npm) | [Node.js 18+, JavaScript and TypeScript](src/node/README.md) |
+| Go | [`github.com/cloudtoid/interprocess/src/go/v3`](https://pkg.go.dev/github.com/cloudtoid/interprocess/src/go/v3) | [Go 1.24+, cgo, and the C SDK](src/go/README.md) |
 | .NET | [`Cloudtoid.Interprocess`][NuGet] (NuGet) | [.NET 10+, C# and dependency injection](src/dotnet/README.md) |
 
 Rust supplies the native engine; C, Python, Node.js, and Go use that engine. .NET has its own managed implementation of the same protocol. Node's platform binaries are companion `@cloudtoid/interprocess-*` packages; applications use the main package.
@@ -39,6 +46,12 @@ These examples send and receive in one process so both endpoints remain connecte
 
 <details open>
 <summary>Rust</summary>
+
+Run in your Cargo project. Requires Rust 1.87 or later.
+
+```sh
+cargo add cloudtoid-interprocess
+```
 
 ```rust
 use cloudtoid_interprocess::{Options, Publisher, Subscriber};
@@ -57,6 +70,17 @@ Endpoints close when dropped. Use `recv()` to wait indefinitely or `recv_timeout
 
 <details>
 <summary>C / C++</summary>
+
+macOS Apple Silicon example, using the GitHub CLI. For other platforms, choose darwin-x64, linux-arm64, linux-x64, or win32-x64 in both archive names. See the C guide for Windows setup.
+
+```sh
+gh release download native-v3.0.1 --repo cloudtoid/interprocess --pattern "*-darwin-arm64.tar.gz"
+mkdir -p cloudtoid-sdk
+tar -xzf cloudtoid-interprocess-3.0.1-darwin-arm64.tar.gz -C cloudtoid-sdk --strip-components=1
+export PKG_CONFIG_PATH="$PWD/cloudtoid-sdk/lib/pkgconfig:$PKG_CONFIG_PATH"
+```
+
+[Complete C SDK setup](src/c/README.md).
 
 ```c
 #include <interprocess.h>
@@ -88,6 +112,12 @@ Timeouts are milliseconds; free returned buffers with `cip_buffer_free`.
 <details>
 <summary>Python</summary>
 
+PyPI publishing is pending. Run in an activated Python 3.9+ virtual environment with Git, Rust, and a native linker installed.
+
+```sh
+python -m pip install "git+https://github.com/cloudtoid/interprocess.git@native-v3.0.1#subdirectory=src/python"
+```
+
 ```python
 from cloudtoid_interprocess import Publisher, Subscriber
 
@@ -102,6 +132,12 @@ Context managers close endpoints. Timeouts are seconds; `receive()` waits indefi
 
 <details>
 <summary>Node.js / TypeScript</summary>
+
+Run in your Node.js project. Requires Node.js 18 or later; platform binaries install automatically.
+
+```sh
+npm install @cloudtoid/interprocess
+```
 
 ```js
 import { Publisher, Subscriber } from '@cloudtoid/interprocess';
@@ -127,6 +163,12 @@ CommonJS `require` is also supported. Async receive accepts an optional `AbortSi
 
 <details>
 <summary>Go</summary>
+
+Install the C SDK first ([C guide](src/c/README.md)), then run in your Go module. Requires Go 1.24+, cgo enabled, a C compiler, and pkg-config.
+
+```sh
+go get github.com/cloudtoid/interprocess/src/go/v3@latest
+```
 
 ```go
 package main

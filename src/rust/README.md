@@ -2,6 +2,16 @@
 
 Fast shared-memory byte queues for processes on the same machine. Exchange messages with Rust, C, Python, Node.js, Go, and .NET using the open v3 protocol.
 
+## Install
+
+Run in your Cargo project. Requires Rust 1.87 or later.
+
+```sh
+cargo add cloudtoid-interprocess
+```
+
+## Example
+
 ```rust
 use cloudtoid_interprocess::{Options, Publisher, Subscriber};
 fn main() -> Result<(), cloudtoid_interprocess::Error> {

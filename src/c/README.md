@@ -2,6 +2,21 @@
 
 The C ABI exposes the shared Rust engine to C/C++ and other native callers. It interoperates with .NET protocol v3.
 
+## Install the prebuilt SDK
+
+macOS Apple Silicon example, using the GitHub CLI. For other platforms, choose darwin-x64, linux-arm64, linux-x64, or win32-x64 in both archive names. See the C guide for Windows setup.
+
+```sh
+gh release download native-v3.0.1 --repo cloudtoid/interprocess --pattern "*-darwin-arm64.tar.gz"
+mkdir -p cloudtoid-sdk
+tar -xzf cloudtoid-interprocess-3.0.1-darwin-arm64.tar.gz -C cloudtoid-sdk --strip-components=1
+export PKG_CONFIG_PATH="$PWD/cloudtoid-sdk/lib/pkgconfig:$PKG_CONFIG_PATH"
+```
+
+On Windows, extract the `win32-x64` archive and set `PKG_CONFIG_PATH` to its `lib/pkgconfig` directory. Add its `lib` directory to `PATH` for the DLL. Go on Windows also requires a cgo-compatible C compiler and pkg-config.
+
+## Build from source
+
 From the repository root, with Rust and CMake installed:
 
 ```sh
