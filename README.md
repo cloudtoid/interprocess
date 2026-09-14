@@ -4,6 +4,13 @@
 
 [Website](https://cloudtoid.com) · [Languages and packages](#languages) · [Quick start](#quick-start) · [Performance](#performance) · [Protocol v3](docs/protocol.md)
 
+[![NuGet](https://img.shields.io/nuget/v/Cloudtoid.Interprocess?label=NuGet)](https://www.nuget.org/packages/Cloudtoid.Interprocess)
+[![Rust](https://img.shields.io/crates/v/cloudtoid-interprocess?label=Rust)](https://crates.io/crates/cloudtoid-interprocess)
+[![C FFI](https://img.shields.io/crates/v/cloudtoid-interprocess-ffi?label=C%20FFI)](https://crates.io/crates/cloudtoid-interprocess-ffi)
+[![npm](https://img.shields.io/npm/v/@cloudtoid/interprocess?label=npm)](https://www.npmjs.com/package/@cloudtoid/interprocess)
+[![Go](https://img.shields.io/github/v/tag/cloudtoid/interprocess?filter=src%2Fgo%2Fv*&label=Go)](https://pkg.go.dev/github.com/cloudtoid/interprocess/src/go/v3)
+[![C SDK](https://img.shields.io/github/v/release/cloudtoid/interprocess?filter=native-v*&label=C%20SDK)](https://github.com/cloudtoid/interprocess/releases/latest)
+
 [![Native core](https://github.com/cloudtoid/interprocess/actions/workflows/native.yml/badge.svg)](https://github.com/cloudtoid/interprocess/actions/workflows/native.yml)
 [![Interoperability](https://github.com/cloudtoid/interprocess/actions/workflows/interop.yml/badge.svg)](https://github.com/cloudtoid/interprocess/actions/workflows/interop.yml)
 [![License: MIT][LicenseBadge]][License]
@@ -20,15 +27,15 @@ Interprocess is used internally by Microsoft.
 
 ## Languages
 
-.NET v3 is available on NuGet. The Rust, C, Python, Node.js, and Go packages are in preview; use their source build guides below.
+.NET, Rust, Node.js, Go, and the C SDK are released and available to install. Python is available from source; publishing to PyPI is pending.
 
 | Language | Package | Setup and API guide |
 | --- | --- | --- |
-| Rust | `cloudtoid-interprocess` (Cargo) | [Rust core](src/rust/README.md) |
-| C / C++ | C SDK; `cloudtoid-interprocess-ffi` (Cargo) | [C ABI, headers, and shared library](src/c/README.md) |
-| Python | `cloudtoid-interprocess` (PyPI); import `cloudtoid_interprocess` | [Python 3.9+](src/python/README.md) |
-| Node.js | `@cloudtoid/interprocess` (npm) | [Node.js 18+, JavaScript and TypeScript](src/node/README.md) |
-| Go | `github.com/cloudtoid/interprocess/src/go/v3` | [Go 1.24+, cgo, and the C SDK](src/go/README.md) |
+| Rust | [`cloudtoid-interprocess`](https://crates.io/crates/cloudtoid-interprocess) (Cargo) | [Rust core](src/rust/README.md) |
+| C / C++ | [C SDK](https://github.com/cloudtoid/interprocess/releases/latest); [`cloudtoid-interprocess-ffi`](https://crates.io/crates/cloudtoid-interprocess-ffi) (Cargo) | [C ABI, headers, and shared library](src/c/README.md) |
+| Python | Source build (PyPI pending); import `cloudtoid_interprocess` | [Python 3.9+](src/python/README.md) |
+| Node.js | [`@cloudtoid/interprocess`](https://www.npmjs.com/package/@cloudtoid/interprocess) (npm) | [Node.js 18+, JavaScript and TypeScript](src/node/README.md) |
+| Go | [`github.com/cloudtoid/interprocess/src/go/v3`](https://pkg.go.dev/github.com/cloudtoid/interprocess/src/go/v3) | [Go 1.24+, cgo, and the C SDK](src/go/README.md) |
 | .NET | [`Cloudtoid.Interprocess`][NuGet] (NuGet) | [.NET 10+, C# and dependency injection](src/dotnet/README.md) |
 
 Rust supplies the native engine; C, Python, Node.js, and Go use that engine. .NET has its own managed implementation of the same protocol. Node's platform binaries are companion `@cloudtoid/interprocess-*` packages; applications use the main package.
