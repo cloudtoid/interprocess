@@ -13,5 +13,5 @@ WarmupCount=20
 ```
 | Method                                             | Mean     | Error    | StdDev   | Allocated |
 |--------------------------------------------------- |---------:|---------:|---------:|----------:|
-| &#39;Message enqueue and dequeue - long message&#39;       | 18.20 ns | 0.160 ns | 0.157 ns |         - |
-| &#39;Message enqueue and dequeue - ring-wrap workload&#39; | 21.65 ns | 0.495 ns | 0.463 ns |         - |
+| &#39;Message enqueue and dequeue - long message&#39;       | 17.64 ns | 0.216 ns | 0.212 ns |         - |
+| &#39;Message enqueue and dequeue - ring-wrap workload&#39; | 20.82 ns | 0.120 ns | 0.112 ns |         - |

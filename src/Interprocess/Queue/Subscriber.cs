@@ -24,7 +24,7 @@ internal sealed class Subscriber : Queue, ISubscriber
         this.options = options;
         try
         {
-            readerId = RegisterReader();
+            readerId = RegisterParticipant();
             lease = new ReaderLease(options, readerId);
             this.signal = signal ?? InterprocessSemaphore.CreateWaiter(options.QueueName);
         }
@@ -78,13 +78,24 @@ internal sealed class Subscriber : Queue, ISubscriber
         while (Volatile.Read(ref activeReads) != 0)
             spin.SpinOnce();
 
-        if (disposing)
+        try
         {
-            lease.Dispose();
-            signal.Dispose();
+            if (disposing)
+            {
+                try
+                {
+                    lease.Dispose();
+                }
+                finally
+                {
+                    signal.Dispose();
+                }
+            }
         }
-
-        base.Dispose(disposing);
+        finally
+        {
+            base.Dispose(disposing);
+        }
     }
 
     private bool TryDequeueCore(
@@ -152,9 +163,6 @@ internal sealed class Subscriber : Queue, ISubscriber
     {
         message = ReadOnlyMemory<byte>.Empty;
         var header = Header;
-        if (header->IsEmpty())
-            return false;
-
         var owner = header->ReadLockOwner;
         if (owner != 0)
         {
@@ -162,7 +170,8 @@ internal sealed class Subscriber : Queue, ISubscriber
             return false;
         }
 
-        if (Interlocked.CompareExchange(ref header->ReadLockOwner, readerId, 0L) != 0)
+        // A dead recovering reader can leave admission closed even when the queue is empty.
+        if (header->IsEmpty() || Interlocked.CompareExchange(ref header->ReadLockOwner, readerId, 0L) != 0)
             return false;
 
         try
@@ -196,9 +205,23 @@ internal sealed class Subscriber : Queue, ISubscriber
                 {
                     // Clear through the captured tail before publishers can reuse the space.
                     // Otherwise discarded ready headers could be consumed on a later lap.
-                    Buffer.Clear(readOffset, pending.WriteOffset - readOffset);
-                    Interlocked.Exchange(ref Header->ReadOffset, pending.WriteOffset);
-                    pendingRead = null;
+                    Publishers.CloseAdmission();
+                    try
+                    {
+                        if (Publishers.AnyActive())
+                        {
+                            pendingRead = new PendingRead(Stopwatch.GetTimestamp(), readOffset, pending.WriteOffset);
+                            return false;
+                        }
+
+                        Buffer.Clear(readOffset, pending.WriteOffset - readOffset);
+                        Interlocked.Exchange(ref Header->ReadOffset, pending.WriteOffset);
+                        pendingRead = null;
+                    }
+                    finally
+                    {
+                        Publishers.OpenAdmission();
+                    }
                 }
 
                 return false;
@@ -242,17 +265,6 @@ internal sealed class Subscriber : Queue, ISubscriber
         return true;
     }
 
-    private unsafe long RegisterReader()
-    {
-        while (true)
-        {
-            var previous = Volatile.Read(ref Header->LastReaderId);
-            var next = checked(previous + 1);
-            if (Interlocked.CompareExchange(ref Header->LastReaderId, next, previous) == previous)
-                return next;
-        }
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     private unsafe void TryRecoverReader(long owner)
     {
@@ -265,8 +277,14 @@ internal sealed class Subscriber : Queue, ISubscriber
         if (now < next || Interlocked.CompareExchange(ref nextRecoveryCheck, now + RecoveryInterval, next) != next)
             return;
 
-        if (!ReaderLease.IsAlive(options, owner))
-            Interlocked.CompareExchange(ref Header->ReadLockOwner, 0L, owner);
+        // Take ownership before reopening admission. A delayed recovery attempt must
+        // not reopen the gate after another reader has started its own recovery.
+        if (!ReaderLease.IsAlive(options, owner)
+            && Interlocked.CompareExchange(ref Header->ReadLockOwner, readerId, owner) == owner)
+        {
+            Publishers.OpenAdmission();
+            Interlocked.CompareExchange(ref Header->ReadLockOwner, 0L, readerId);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

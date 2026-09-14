@@ -30,10 +30,10 @@ internal struct QueueHeader
     internal int NotificationPending;
 
     /// <summary>
-    /// Last subscriber registration allocated in this queue lifetime.
+    /// Last participant registration allocated in this queue lifetime.
     /// </summary>
     [FieldOffset(28)]
-    internal int LastReaderId;
+    internal int LastParticipantId;
 
     internal readonly bool IsEmpty() =>
         ReadOffset == WriteOffset;

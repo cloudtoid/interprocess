@@ -14,6 +14,10 @@ internal static class Program
             await PublisherDisposalTests.RunChildAsync(options, args[3]);
         else if (args[2] == "subscriber-disposal")
             await SubscriberDisposalTests.RunChildAsync(options, args[3]);
+        else if (args[2] == "queue-init")
+            QueueResourceTests.RunInitializer(options);
+        else if (args[2] == "publisher-copy")
+            PublisherProcessRecoveryTests.RunChild(options);
         else if (args[2] == "reader-ownership")
             ReaderOwnershipTests.RunChild(options);
         else if (args[2] == "mac-semaphore")

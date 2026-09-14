@@ -3,6 +3,7 @@ namespace Cloudtoid.Interprocess;
 internal sealed class Publisher : Queue, IPublisher
 {
     private readonly IInterprocessSemaphoreReleaser signal;
+    private readonly PublisherLease lease;
     private int activeEnqueues;
 
     internal Publisher(
@@ -13,16 +14,18 @@ internal sealed class Publisher : Queue, IPublisher
     {
         try
         {
+            lease = Publishers.Register(RegisterParticipant());
             this.signal = signal ?? InterprocessSemaphore.CreateReleaser(options.QueueName);
         }
         catch
         {
+            lease?.Dispose();
             base.Dispose(true);
             throw;
         }
     }
 
-    public bool TryEnqueue(ReadOnlySpan<byte> message)
+    public unsafe bool TryEnqueue(ReadOnlySpan<byte> message)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         Interlocked.Increment(ref activeEnqueues);
@@ -30,7 +33,16 @@ internal sealed class Publisher : Queue, IPublisher
         {
             // Disposal may have started between the first check and incrementing the counter.
             ObjectDisposedException.ThrowIf(IsDisposed, this);
-            return TryEnqueueCore(message);
+            lease.Enter();
+            try
+            {
+                // Recovery closes admission before inspecting shared in-flight counters.
+                return !Publishers.IsAdmissionClosed && TryEnqueueCore(message);
+            }
+            finally
+            {
+                lease.Exit();
+            }
         }
         finally
         {
@@ -45,10 +57,24 @@ internal sealed class Publisher : Queue, IPublisher
         while (Volatile.Read(ref activeEnqueues) != 0)
             spin.SpinOnce();
 
-        if (disposing)
-            signal.Dispose();
-
-        base.Dispose(disposing);
+        try
+        {
+            if (disposing)
+            {
+                try
+                {
+                    signal.Dispose();
+                }
+                finally
+                {
+                    lease.Dispose();
+                }
+            }
+        }
+        finally
+        {
+            base.Dispose(disposing);
+        }
     }
 
     private unsafe bool TryEnqueueCore(ReadOnlySpan<byte> message)

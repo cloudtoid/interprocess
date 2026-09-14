@@ -43,9 +43,15 @@ internal sealed class MemoryView : IDisposable
     public void Dispose()
     {
         view.SafeMemoryMappedViewHandle.ReleasePointer();
-        view.Flush();
-        view.Dispose();
-        file.Dispose();
+        // Queue contents are shared immediately; this transient IPC buffer needs no disk flush.
+        try
+        {
+            view.Dispose();
+        }
+        finally
+        {
+            file.Dispose();
+        }
     }
 
     private unsafe byte* AcquirePointer()

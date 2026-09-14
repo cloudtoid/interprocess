@@ -7,10 +7,10 @@ Apple M5 Max, 1 CPU, 18 logical and 18 physical cores
   .NET 10.0 : .NET 10.0.12 (10.0.12, 10.0.1226.42308), Arm64 RyuJIT armv8.0-a
 
 Job=.NET 10.0  Runtime=.NET 10.0  IterationCount=8
-IterationTime=250ms  LaunchCount=2  WarmupCount=3
+IterationTime=250ms  LaunchCount=2  WarmupCount=20
 
 ```
 | Method                                            | Mean     | Error    | StdDev   | Gen0   | Allocated |
 |-------------------------------------------------- |---------:|---------:|---------:|-------:|----------:|
-| &#39;Message enqueue and dequeue - no message buffer&#39; | 19.85 ns | 0.238 ns | 0.233 ns | 0.0037 |      32 B |
-| &#39;Message enqueue and dequeue&#39;                     | 17.27 ns | 0.155 ns | 0.152 ns |      - |         - |
+| &#39;Message enqueue and dequeue - no message buffer&#39; | 20.00 ns | 0.153 ns | 0.150 ns | 0.0038 |      32 B |
+| &#39;Message enqueue and dequeue&#39;                     | 17.37 ns | 0.439 ns | 0.431 ns |      - |         - |

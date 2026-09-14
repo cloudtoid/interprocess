@@ -7,14 +7,14 @@ Exchange byte messages between processes on the same machine using a shared-memo
 Requires .NET 10 or later and a 64-bit process.
 
 ```sh
-dotnet add package Cloudtoid.Interprocess --prerelease
+dotnet add package Cloudtoid.Interprocess
 ```
 
-## Faster with v3 alpha
+## Faster with v3
 
-Version 3 coalesces notifications to reduce operating-system calls and speed up message delivery. Try the alpha for your workload; see the [version comparison and benchmarks](https://github.com/cloudtoid/interprocess#performance).
+Version 3 coalesces notifications to reduce operating-system calls and speed up message delivery. See the [version comparison and benchmarks](https://github.com/cloudtoid/interprocess#performance).
 
-Alpha APIs and the shared-memory protocol may change. Drain the queue, stop all participants, and upgrade them together using a fresh queue.
+Version 3 uses a new shared-memory format. Drain the queue, stop all participants, and upgrade them together using a fresh queue.
 
 ## Example
 
@@ -38,6 +38,10 @@ if (publisher.TryEnqueue(payload) &&
 ```
 
 For separate processes, create the publisher and subscriber in their respective programs using the same queue name, storage path, and capacity. The example uses the default temporary directory. Handle unsuccessful enqueue/dequeue attempts according to your application's retry and cancellation needs.
+
+Each queue supports up to 2,048 connected publisher objects. Its shared publisher table uses 256 KiB in addition to the message capacity and header/alignment storage. Dispose participants when finished; the queue remains available while any participant is connected.
+
+The queue is transient IPC storage. Recovery after a process exits can discard queued messages, including completed messages behind an unfinished reservation. Paused live operations are not reclaimed merely because a timeout passes. Destination buffers must be large enough to avoid truncating a consumed message.
 
 For dependency injection, register the queue services with `services.AddInterprocessQueue()` and resolve `IQueueFactory`.
 

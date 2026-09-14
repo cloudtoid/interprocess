@@ -30,8 +30,9 @@ public sealed class QueueOptions
         Capacity = CheckGreaterThan(capacity, 16, nameof(capacity));
         CheckParam(
             (capacity % 8) == 0,
-            nameof(queueName),
+            nameof(capacity),
             "messageCapacityInBytes should be a multiple of 8 (8 bytes = 64 bits).");
+        _ = GetQueueStorageSize();
     }
 
     /// <summary>
@@ -45,12 +46,12 @@ public sealed class QueueOptions
     public string Path { get; }
 
     /// <summary>
-    /// Gets the size of the queue in bytes. This does NOT include the space needed for the queue header.
+    /// Gets the size of the queue in bytes. This does NOT include the queue header and publisher table.
     /// </summary>
     public long Capacity { get; }
 
     /// <summary>
-    /// Gets the full size of the queue that includes both the header and message sections
+    /// Gets the full size of the queue, including the header, publisher table, and message buffer.
     /// </summary>
-    internal unsafe long GetQueueStorageSize() => sizeof(QueueHeader) + Capacity;
+    internal long GetQueueStorageSize() => checked(PublisherRegistry.BufferOffset + Capacity);
 }
