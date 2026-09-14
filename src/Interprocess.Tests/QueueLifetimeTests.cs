@@ -12,14 +12,14 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
     private readonly QueueOptions options = new(Guid.NewGuid().ToStringInvariant("N")[..16], fixture.Path, 1024);
     private readonly QueueFactory factory = new();
 
-    [Fact(Platforms = Platform.Linux | Platform.OSX)]
+    [Fact]
     public async Task MismatchedCapacityDoesNotChangeALiveQueueAsync()
     {
         using var child = await StartParticipantAsync("publisher");
         try
         {
             (await CommandAsync(child, "send")).Should().Be("sent");
-            var original = await File.ReadAllBytesAsync(BackingFile());
+            var original = OperatingSystem.IsWindows() ? null : await File.ReadAllBytesAsync(BackingFile());
             foreach (var capacity in new long[] { 512, 2048 })
             {
                 var mismatched = new QueueOptions(options.QueueName, options.Path, capacity);
@@ -32,7 +32,8 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
                             : factory.CreateSubscriber(mismatched);
                     };
                     join.Should().Throw<ArgumentException>();
-                    (await File.ReadAllBytesAsync(BackingFile())).Should().Equal(original);
+                    if (original is not null)
+                        (await File.ReadAllBytesAsync(BackingFile())).Should().Equal(original);
                 }
             }
 
@@ -58,7 +59,7 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
         }
     }
 
-    [Fact(Platforms = Platform.Linux | Platform.OSX)]
+    [Fact]
     public async Task CapacityCanChangeAfterTheLastParticipantLeavesAsync()
     {
         foreach (var killed in new[] { false, true })
@@ -71,7 +72,10 @@ public sealed class QueueLifetimeTests(UniquePathFixture fixture) : IClassFixtur
                 {
                     child.Kill();
                     await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
-                    File.Exists(BackingFile()).Should().BeTrue();
+                    if (OperatingSystem.IsWindows())
+                        AssertResourcesRemoved(afterForcedExit: true);
+                    else
+                        File.Exists(BackingFile()).Should().BeTrue();
                 }
                 else
                 {

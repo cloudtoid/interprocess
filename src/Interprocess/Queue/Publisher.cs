@@ -57,13 +57,24 @@ internal sealed class Publisher : Queue, IPublisher
         while (Volatile.Read(ref activeEnqueues) != 0)
             spin.SpinOnce();
 
-        if (disposing)
+        try
         {
-            signal.Dispose();
-            lease.Dispose();
+            if (disposing)
+            {
+                try
+                {
+                    signal.Dispose();
+                }
+                finally
+                {
+                    lease.Dispose();
+                }
+            }
         }
-
-        base.Dispose(disposing);
+        finally
+        {
+            base.Dispose(disposing);
+        }
     }
 
     private unsafe bool TryEnqueueCore(ReadOnlySpan<byte> message)

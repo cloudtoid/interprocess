@@ -76,7 +76,7 @@ public sealed class PublisherRecoveryTests(UniquePathFixture fixture) : IClassFi
     public void DisposedRegistrationsReuseSlotsAcrossQueueHistory()
     {
         using var keeper = new Probe(Options());
-        for (var i = 0; i < 1000; i++)
+        for (var i = 0; i < PublisherRegistry.MaximumPublishers * 2; i++)
         {
             using var lease = keeper.Lease(keeper.Register());
             lease.Enter();
@@ -84,12 +84,11 @@ public sealed class PublisherRecoveryTests(UniquePathFixture fixture) : IClassFi
             lease.Exit();
         }
 
-        keeper.Blocks.Should().Be(1);
         keeper.AnyActive().Should().BeFalse();
     }
 
     [Fact]
-    public void ConcurrentRegistrationsGrowAndReuseMultipleBlocks()
+    public void ConcurrentRegistrationsReuseSlots()
     {
         using var keeper = new Probe(Options());
         for (var pass = 0; pass < 2; pass++)
@@ -104,7 +103,6 @@ public sealed class PublisherRecoveryTests(UniquePathFixture fixture) : IClassFi
                 foreach (var lease in leases)
                     lease.Enter();
 
-                keeper.Blocks.Should().Be(3);
                 foreach (var lease in leases)
                 {
                     keeper.AnyActive().Should().BeTrue();
@@ -121,11 +119,83 @@ public sealed class PublisherRecoveryTests(UniquePathFixture fixture) : IClassFi
         }
     }
 
+    [Fact]
+    public void FullTableRejectsAnotherPublisherAndReusesReleasedSlot()
+    {
+        var options = Options();
+        var factory = new QueueFactory();
+        using var subscriber = factory.CreateSubscriber(options);
+        var publishers = new List<IPublisher>();
+        try
+        {
+            for (var i = 0; i < PublisherRegistry.MaximumPublishers; i++)
+                publishers.Add(factory.CreatePublisher(options));
+
+            var create = () => factory.CreatePublisher(options);
+            create.Should().Throw<InvalidOperationException>().WithMessage("*2048*");
+
+            // The final slot must be independent of both the table boundary and the ring.
+            for (var i = 0; i < 20; i++)
+            {
+                publishers[^1].TryEnqueue("last-slot"u8).Should().BeTrue();
+                subscriber.TryDequeue(out var message).Should().BeTrue();
+                message.ToArray().Should().Equal("last-slot"u8.ToArray());
+            }
+
+            publishers[0].Dispose();
+            using var replacement = factory.CreatePublisher(options);
+            replacement.TryEnqueue("reused"u8).Should().BeTrue();
+            subscriber.TryDequeue(out var reused).Should().BeTrue();
+            reused.ToArray().Should().Equal("reused"u8.ToArray());
+            create.Should().Throw<InvalidOperationException>();
+        }
+        finally
+        {
+            foreach (var publisher in publishers)
+                publisher.Dispose();
+        }
+    }
+
+    [Fact]
+    public void FullTableReclaimsDeadRegistrationWithUnfinishedCall()
+    {
+        var options = Options();
+        using var keeper = new Probe(options);
+        var leases = new List<PublisherLease>();
+        try
+        {
+            // Leave only the final slot available, containing a dead owner's count.
+            for (var i = 0; i < PublisherRegistry.MaximumPublishers - 1; i++)
+                leases.Add(keeper.Lease(keeper.Register()));
+
+            keeper.LeaveDeadRegistrationInLastSlot(options);
+            keeper.AnyActive().Should().BeFalse();
+            using var replacement = keeper.Lease(keeper.Register());
+            keeper.AnyActive().Should().BeFalse("the dead owner's count must be reset");
+            replacement.Enter();
+            keeper.AnyActive().Should().BeTrue();
+            replacement.Exit();
+            keeper.AnyActive().Should().BeFalse();
+        }
+        finally
+        {
+            foreach (var lease in leases)
+                lease.Dispose();
+        }
+    }
+
     private QueueOptions Options() => new(Guid.NewGuid().ToStringInvariant("N")[..16], fixture.Path, 64);
 
     private sealed class Probe(QueueOptions options) : Queue(options, NullLoggerFactory.Instance)
     {
-        internal int Blocks => Publishers.BlockCount;
+        internal unsafe void LeaveDeadRegistrationInLastSlot(QueueOptions registrationOptions)
+        {
+            var id = Register();
+            using var lifetime = new ReaderLease(registrationOptions, id);
+            var slot = (byte*)Header + PublisherRegistry.BufferOffset - PublisherRegistry.SlotSize;
+            *(long*)slot = id;
+            *(int*)(slot + sizeof(long)) = 1;
+        }
 
         internal long Register() => RegisterParticipant();
         internal PublisherLease Lease(long id) => Publishers.Register(id);

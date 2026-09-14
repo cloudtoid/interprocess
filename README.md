@@ -10,7 +10,7 @@
 **Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC][IPCWiki]). It uses a shared memory-mapped file for extremely fast and efficient communication between processes and it is used internally by Microsoft.
 
 - [**Fast**](#performance): It is *extremely* fast.
-- **Cross-platform**: It supports Windows, and Unix-based operating systems such as Linux, [macOS][macOSWiki], and [FreeBSD][FreeBSDOrg].
+- **Cross-platform**: It supports Windows, Linux, and [macOS][macOSWiki].
 - [**API**](#usage): Provides a simple and intuitive API to enqueue/send and dequeue/receive messages.
 - **Multiple publishers and subscribers**: It supports multiple publishers and subscribers to a shared queue.
 - [**Efficient**](#performance): Sending and receiving messages is almost heap memory allocation free reducing garbage collections.
@@ -109,6 +109,14 @@ using var subscriber = factory.CreateSubscriber(options);
 subscriber.TryDequeue(messageBuffer, out var message);
 ```
 
+## Queue behavior
+
+- Use the same name, capacity, and storage path in every participant. Queue names must be unique even across different paths; Windows uses the name and ignores the path.
+- Each queue supports **2,048 connected publisher objects**. Slots are reused after disposal or confirmed process exit. The publisher table adds **256 KiB** plus 128 bytes of header/alignment storage; `Capacity` is the message-buffer size.
+- Queue resources remain available while any publisher or subscriber is connected. Dispose participants when finished.
+- A paused live participant keeps ownership. Recovery can reclaim abandoned work after a process exits, but may discard queued messages, including completed messages behind an unfinished reservation. This is an IPC queue, not durable storage.
+- Supply a destination buffer large enough for the message. A smaller buffer consumes the message and returns only the bytes that fit.
+
 ## Sample
 
 To see a sample implementation of a publisher and a subscriber process, try out the following two projects. You can run them side by side and see them in action:
@@ -177,7 +185,9 @@ Same in-process workloads and allocation conventions as the Mac suite. Two launc
 
 ## Implementation Notes
 
-Messages travel through a shared, circular memory-mapped buffer. Coalesced notifications reduce operating-system calls while keeping blocked subscribers responsive. Cross-process wakeups use named semaphores, with POSIX implementations on [Linux](src/Interprocess/Semaphore/Linux/Interop.cs) and [macOS](src/Interprocess/Semaphore/MacOS/Interop.cs).
+Messages travel through a shared, circular memory-mapped buffer. Coalesced notifications reduce operating-system calls while keeping blocked subscribers responsive. Blocking readers also retry after five-millisecond waits when notifications are missed. Cross-process wakeups use named semaphores, with POSIX implementations on [Linux](src/Interprocess/Semaphore/Linux/Interop.cs) and [macOS](src/Interprocess/Semaphore/MacOS/Interop.cs).
+
+Positions advance monotonically while the physical buffer wraps. Before the queue reaches `long.MaxValue` bytes reserved or `int.MaxValue` participant registrations over its lifetime, drain it and move all participants to a fresh queue.
 
 ## How to Contribute
 
@@ -207,7 +217,6 @@ Here are a couple of items that we are working on.
 [NuGet]:https://www.nuget.org/packages/Cloudtoid.Interprocess/
 [IPCWiki]:https://en.wikipedia.org/wiki/Inter-process_communication
 [macOSWiki]:https://en.wikipedia.org/wiki/macOS
-[FreeBSDOrg]:https://www.freebsd.org/
 [Wow64Wiki]:https://en.wikipedia.org/wiki/WoW64
 [BenchmarkOrg]:https://benchmarkdotnet.org/
 [PedramLinkedIn]:https://www.linkedin.com/in/pedramrezaei/

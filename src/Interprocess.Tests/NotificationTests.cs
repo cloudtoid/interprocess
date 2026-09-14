@@ -187,11 +187,39 @@ public sealed class NotificationTests(UniquePathFixture fixture) : IClassFixture
         subscriber.WaitForNotification(0).Should().BeFalse();
     }
 
+    [Fact]
+    public async Task AbandonedPostDoesNotPreventLaterDeliveryAsync()
+    {
+        using var handle = new SysSemaphore(0, int.MaxValue);
+        using var signal = new TestSignal(handle) { AllowTimeouts = true };
+        using var subscriber = new Subscriber(options, NullLoggerFactory.Instance, signal);
+        using (var publisher = new Publisher(options, NullLoggerFactory.Instance, signal))
+        {
+            // Model an abandoned post: publication is complete, but no permit is produced.
+            signal.BeforeRelease = () => throw new InvalidOperationException("post abandoned");
+            Action publish = () => publisher.TryEnqueue("first"u8);
+            publish.Should().Throw<InvalidOperationException>();
+            subscriber.TryDequeue(out _).Should().BeTrue();
+        }
+
+        signal.BeforeRelease = null;
+        using var replacement = new Publisher(options, NullLoggerFactory.Instance, signal);
+        using var waiting = new ManualResetEventSlim();
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        signal.BeforeWait = waiting.Set;
+        var receive = Task.Run(() => subscriber.Dequeue(cancellation.Token));
+        (await Task.Run(() => waiting.Wait(TimeSpan.FromSeconds(5)))).Should().BeTrue();
+        replacement.TryEnqueue("later"u8).Should().BeTrue();
+        (await receive.WaitAsync(TimeSpan.FromSeconds(5))).ToArray().Should().Equal("later"u8.ToArray());
+        signal.Releases.Should().Be(1, "the polling fallback must deliver without another notification");
+    }
+
     private sealed class TestSignal(SysSemaphore handle) : IInterprocessSemaphoreWaiter
     {
         private int releases;
         private int positiveWaits;
 
+        internal bool AllowTimeouts { get; init; }
         internal Action? BeforeWait { get; set; }
         internal Action? AfterWait { get; set; }
         internal Action? BeforeRelease { get; set; }
@@ -212,8 +240,8 @@ public sealed class NotificationTests(UniquePathFixture fixture) : IClassFixture
 
             BeforeWait?.Invoke();
             // Disable the normal five-millisecond fallback so it cannot conceal a missed wakeup.
-            var consumed = handle.WaitOne(millisecondsTimeout == 0 ? 0 : 5000);
-            if (!consumed && millisecondsTimeout > 0)
+            var consumed = handle.WaitOne(millisecondsTimeout == 0 || AllowTimeouts ? millisecondsTimeout : 5000);
+            if (!consumed && millisecondsTimeout > 0 && !AllowTimeouts)
                 throw new TimeoutException("A reader missed its notification.");
 
             if (consumed)

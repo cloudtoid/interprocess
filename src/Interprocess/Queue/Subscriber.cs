@@ -78,13 +78,24 @@ internal sealed class Subscriber : Queue, ISubscriber
         while (Volatile.Read(ref activeReads) != 0)
             spin.SpinOnce();
 
-        if (disposing)
+        try
         {
-            lease.Dispose();
-            signal.Dispose();
+            if (disposing)
+            {
+                try
+                {
+                    lease.Dispose();
+                }
+                finally
+                {
+                    signal.Dispose();
+                }
+            }
         }
-
-        base.Dispose(disposing);
+        finally
+        {
+            base.Dispose(disposing);
+        }
     }
 
     private bool TryDequeueCore(

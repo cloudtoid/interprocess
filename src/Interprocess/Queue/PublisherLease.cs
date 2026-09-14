@@ -4,14 +4,12 @@ namespace Cloudtoid.Interprocess;
 // from recovery in other processes. Only a proven-dead registration can be stolen.
 internal sealed unsafe class PublisherLease(
     ReaderLease lifetime,
-    PublisherRegistry.Block block,
     byte* slot,
     long id) : IDisposable
 {
     public void Dispose()
     {
         Interlocked.CompareExchange(ref *(long*)slot, 0, id);
-        block.Dispose();
         lifetime.Dispose();
     }
 

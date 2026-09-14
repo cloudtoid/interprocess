@@ -39,6 +39,10 @@ if (publisher.TryEnqueue(payload) &&
 
 For separate processes, create the publisher and subscriber in their respective programs using the same queue name, storage path, and capacity. The example uses the default temporary directory. Handle unsuccessful enqueue/dequeue attempts according to your application's retry and cancellation needs.
 
+Each queue supports up to 2,048 connected publisher objects. Its shared publisher table uses 256 KiB in addition to the message capacity and header/alignment storage. Dispose participants when finished; the queue remains available while any participant is connected.
+
+The queue is transient IPC storage. Recovery after a process exits can discard queued messages, including completed messages behind an unfinished reservation. Paused live operations are not reclaimed merely because a timeout passes. Destination buffers must be large enough to avoid truncating a consumed message.
+
 For dependency injection, register the queue services with `services.AddInterprocessQueue()` and resolve `IQueueFactory`.
 
 [Publisher and subscriber samples](https://github.com/cloudtoid/interprocess/tree/main/src/Sample) · [Documentation](https://github.com/cloudtoid/interprocess) · [Report an issue](https://github.com/cloudtoid/interprocess/issues) · [MIT license](https://github.com/cloudtoid/interprocess/blob/main/LICENSE)

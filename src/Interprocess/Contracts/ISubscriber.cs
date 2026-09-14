@@ -12,8 +12,7 @@ namespace Cloudtoid.Interprocess;
 public interface ISubscriber : IDisposable
 {
     /// <summary>
-    /// Attempts to dequeue the next message if it is ready. This is a non-blocking
-    /// call and returns immediately.
+    /// Attempts to dequeue the next message if it is ready. It does not wait for a message.
     /// This overload allocates a <see cref="byte"/> array the size of the message in the
     /// queue and copies the message from the shared memory to it. To avoid this memory
     /// allocation, consider reusing a previously allocated <see cref="byte"/> array with
@@ -23,16 +22,15 @@ public interface ISubscriber : IDisposable
     /// </summary>
     /// <param name="message">The dequeued message.</param>
     /// <remarks>
-    /// An unfinished reservation retains the read lock and its ten-second recovery deadline between attempts.
-    /// Continue polling or dispose this subscriber; other subscribers may wait for that lock to expire.
+    /// Each attempt releases reader ownership before returning. An attempt may inspect participant
+    /// liveness and reclaim an abandoned range after the recovery interval. Live owners are never expired.
     /// </remarks>
     /// <returns>Returns <see langword="false"/> if the queue is empty, a reader owns the lock,
     /// or the next message is not ready.</returns>
     bool TryDequeue(out ReadOnlyMemory<byte> message);
 
     /// <summary>
-    /// Attempts to dequeue the next message if it is ready. This is a non-blocking
-    /// call and returns immediately. This method populates the <paramref name="buffer"/> that is passed in.
+    /// Attempts to dequeue the next message if it is ready. It does not wait for a message. This method populates the <paramref name="buffer"/> that is passed in.
     /// Make sure that the buffer is large enough to receive the entire message, or the message is truncated to fit the buffer.
     /// </summary>
     /// <param name="buffer">The memory buffer that is populated with the message. Make sure
@@ -40,8 +38,8 @@ public interface ISubscriber : IDisposable
     /// truncated to fit the buffer.</param>
     /// <param name="message">The dequeued message.</param>
     /// <remarks>
-    /// An unfinished reservation retains the read lock and its ten-second recovery deadline between attempts.
-    /// Continue polling or dispose this subscriber; other subscribers may wait for that lock to expire.
+    /// Each attempt releases reader ownership before returning. An attempt may inspect participant
+    /// liveness and reclaim an abandoned range after the recovery interval. Live owners are never expired.
     /// </remarks>
     /// <returns>Returns <see langword="false"/> if the queue is empty, a reader owns the lock,
     /// or the next message is not ready.</returns>
@@ -63,7 +61,7 @@ public interface ISubscriber : IDisposable
     /// <summary>
     /// Dequeues a message from the queue. If the queue is empty, it *waits* for the
     /// arrival of a new message. This call is blocking until a message is received.
-    /// This method does not allocated memory and only populates
+    /// This method does not allocate a result array and only populates
     /// the <paramref name="buffer"/> that is passed in. Make sure that the buffer is large
     /// enough to receive the entire message, or the message is truncated to fit the buffer.
     /// </summary>

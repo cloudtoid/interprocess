@@ -13,8 +13,8 @@ internal abstract class Queue : IDisposable
         view = new MemoryView(options, loggerFactory);
         try
         {
-            Buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);
-            Publishers = new PublisherRegistry(options);
+            Buffer = new CircularBuffer(PublisherRegistry.BufferOffset + view.Pointer, options.Capacity);
+            Publishers = new PublisherRegistry(options, view.Pointer);
         }
         catch
         {
@@ -53,10 +53,7 @@ internal abstract class Queue : IDisposable
         AppDomain.CurrentDomain.ProcessExit -= OnAppExit;
         Console.CancelKeyPress -= OnAppExit;
         if (disposing)
-        {
-            Publishers.Dispose();
             view.Dispose();
-        }
     }
 
     protected unsafe void Notify(IInterprocessSemaphoreReleaser signal)
