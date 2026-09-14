@@ -279,7 +279,6 @@ header nav a { font-weight: 550; }
 .hero h1 { font-weight: 700; letter-spacing: -.055em; margin-bottom: 30px; }
 .hero .version { color: var(--mint); border-color: #3c786d; background: #183e43; border-radius: 5px; }
 .hero .status-dot { background: var(--mint); }
-.hero .intro em { color: var(--mint); font-style: normal; }
 .hero-languages { color: var(--mint); font-size: 1rem; line-height: 1.8; margin: 16px 0; }
 .adoption { padding-top: 32px; padding-bottom: 32px; text-align: center; color: var(--muted); }
 .adoption p { margin: 0; font-size: 1.125rem; }
