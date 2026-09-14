@@ -26,6 +26,23 @@ The queue is transient: it stays alive while at least one publisher or subscribe
 
 `try_send` returns `Error::Full` when space or recovery admission is unavailable; retry according to your application's deadline. Other error variants distinguish invalid options, capacity mismatch, publisher limits, exhausted counters, corrupt records, and I/O failures. A notification failure does not turn a committed send into an error.
 
+For an explicit retry loop, distinguish a full queue from other failures and apply your application's deadline:
+
+```rust
+use cloudtoid_interprocess::{Publisher, Result};
+
+fn send(publisher: &Publisher) -> Result<()> {
+while let Err(error) = publisher.try_send(b"hello") {
+    if !error.is_full() { return Err(error); }
+    std::thread::yield_now();
+}
+    Ok(())
+}
+```
+
+
 `recv` and `recv_timeout` block the calling thread. In an async runtime, use a blocking worker (for example Tokio's `spawn_blocking`) with bounded waits so it can shut down. Open endpoints after `fork()`; inherited endpoints must not be used in the child. Dropping an inherited endpoint does not release the parent's registration.
 
 Queue names must be nonempty and contain no slash, backslash, or NUL. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.
+
+Batch sends return the committed prefix length. A short count, including zero, can mean a full queue, recovery, or a mid-batch error. Retry the unsent suffix to observe a persistent error; errors before any commit are raised immediately.

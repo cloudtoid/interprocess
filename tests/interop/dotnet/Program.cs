@@ -1,11 +1,11 @@
 using Cloudtoid.Interprocess;
 using System.Buffers.Binary;
 var mode = args[0];
-var options = new QueueOptions(args[1], args[2], 4096);
+var options = new QueueOptions(args[1], args[2], int.Parse(Environment.GetEnvironmentVariable("INTEROP_CAPACITY") ?? "4096"));
 var count = int.Parse(args[3]);
 var factory = new QueueFactory();
 byte[] Message(int i) {
-    var data = new byte[8 + i % 251];
+    var data = new byte[i % 251 == 250 ? 4088 : 8 + i % 251];
     BinaryPrimitives.WriteUInt64LittleEndian(data, (ulong)i);
     for (int j = 8; j < data.Length; j++) data[j] = (byte)((i + j) % 251);
     return data;
@@ -13,7 +13,7 @@ byte[] Message(int i) {
 if (mode is "hold-publisher" or "hold-subscriber") {
     using IDisposable endpoint = mode == "hold-publisher" ? factory.CreatePublisher(options) : factory.CreateSubscriber(options);
     Console.WriteLine("READY");
-    Thread.Sleep(Timeout.Infinite);
+    Console.ReadLine();
     return;
 }
 if (mode == "publish") {

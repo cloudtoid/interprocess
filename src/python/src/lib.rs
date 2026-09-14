@@ -10,9 +10,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-pyo3::create_exception!(cloudtoid_interprocess, CapacityMismatchError, PyValueError);
-pyo3::create_exception!(cloudtoid_interprocess, PublisherLimitError, PyRuntimeError);
-pyo3::create_exception!(cloudtoid_interprocess, CorruptQueueError, PyRuntimeError);
+pyo3::import_exception!(cloudtoid_interprocess._exceptions, CapacityMismatchError);
+pyo3::import_exception!(cloudtoid_interprocess._exceptions, PublisherLimitError);
+pyo3::import_exception!(cloudtoid_interprocess._exceptions, CorruptQueueError);
 
 fn error(e: core_queue::Error) -> PyErr {
     match e {
@@ -47,9 +47,9 @@ fn options(name: String, capacity: usize, path: Option<PathBuf>) -> Options {
     }
 }
 
-#[pyclass(module = "cloudtoid_interprocess._native")]
+#[pyclass(frozen, module = "cloudtoid_interprocess._native")]
 struct Publisher {
-    inner: Option<core_queue::Publisher>,
+    inner: RwLock<Option<core_queue::Publisher>>,
 }
 #[pymethods]
 impl Publisher {
@@ -57,16 +57,20 @@ impl Publisher {
     #[pyo3(signature = (name, capacity, path=None))]
     fn new(name: String, capacity: usize, path: Option<PathBuf>) -> PyResult<Self> {
         Ok(Self {
-            inner: Some(
+            inner: RwLock::new(Some(
                 core_queue::Publisher::open(&options(name, capacity, path)).map_err(error)?,
-            ),
+            )),
         })
     }
     fn try_send(&self, data: &Bound<'_, PyAny>) -> PyResult<bool> {
+        // Buffer exporters can run Python code, including close(); convert before locking.
+        let data = bytes(data)?;
         self.inner
+            .read()
+            .unwrap()
             .as_ref()
             .ok_or_else(closed)?
-            .try_send(bytes(data)?.as_bytes())
+            .try_send(data.as_bytes())
             .map(|()| true)
             .or_else(|e| match e {
                 core_queue::Error::Full => Ok(false),
@@ -78,19 +82,21 @@ impl Publisher {
         let messages = messages.iter().map(bytes).collect::<PyResult<Vec<_>>>()?;
         let slices = messages.iter().map(|m| m.as_bytes()).collect::<Vec<_>>();
         self.inner
+            .read()
+            .unwrap()
             .as_ref()
             .ok_or_else(closed)?
             .try_send_batch(&slices)
             .map_err(error)
     }
-    fn close(&mut self) {
-        self.inner.take();
+    fn close(&self) {
+        self.inner.write().unwrap().take();
     }
     fn __enter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
         slf
     }
     fn __exit__(
-        &mut self,
+        &self,
         _kind: &Bound<'_, PyAny>,
         _value: &Bound<'_, PyAny>,
         _traceback: &Bound<'_, PyAny>,

@@ -42,3 +42,4 @@ run('gcc' if os.name == 'nt' else 'cc', 'tests/interop/c_driver.c', *shlex.split
 run('go', 'build', '-o', ROOT / f'target/interop/go-driver{EXE}', './internal/interop', cwd=ROOT / 'src/go')
 run(sys.executable, 'tests/interop/run.py')
 run(sys.executable, 'tests/interop/mixed.py')
+run(sys.executable, 'tests/interop/lifetime.py')

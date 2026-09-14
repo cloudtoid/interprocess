@@ -1,10 +1,10 @@
-use cloudtoid_interprocess::{Error, Options, Publisher, Subscriber};
+use cloudtoid_interprocess::{Options, Publisher, Subscriber};
 use std::{
     io::{self, Write},
     time::Duration,
 };
 fn message(i: usize) -> Vec<u8> {
-    let mut data = vec![0; 8 + i % 251];
+    let mut data = vec![0; if i % 251 == 250 { 4088 } else { 8 + i % 251 }];
     data[..8].copy_from_slice(&(i as u64).to_le_bytes());
     for (j, byte) in data.iter_mut().enumerate().skip(8) {
         *byte = ((i + j) % 251) as u8;
@@ -13,7 +13,13 @@ fn message(i: usize) -> Vec<u8> {
 }
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
-    let options = Options::new(&args[2], 4096).with_path(&args[3]);
+    let options = Options::new(
+        &args[2],
+        std::env::var("INTEROP_CAPACITY")
+            .map(|v| v.parse().unwrap())
+            .unwrap_or(4096),
+    )
+    .with_path(&args[3]);
     let count = args[4].parse::<usize>().unwrap();
     if args[1].starts_with("hold-") {
         let _publisher;
@@ -36,14 +42,8 @@ fn main() {
         }
         for i in start..start + count {
             let data = message(i);
-            while publisher
-                .try_send(&data)
-                .map(|()| false)
-                .unwrap_or_else(|e| match e {
-                    Error::Full => true,
-                    e => panic!("{e}"),
-                })
-            {
+            while let Err(error) = publisher.try_send(&data) {
+                assert!(error.is_full(), "{error}");
                 std::thread::yield_now();
             }
         }

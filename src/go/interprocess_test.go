@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -53,7 +54,7 @@ func TestLifetimeAndMessages(t *testing.T) {
 	}()
 	p.Close()
 	calls.Wait()
-	if _, err := p.TrySend(nil); err != ErrClosed {
+	if _, err := p.TrySend(nil); !errors.Is(err, ErrClosed) {
 		t.Fatal(err)
 	}
 }
@@ -178,5 +179,40 @@ func TestErrorKindsAndConcurrentReceivers(t *testing.T) {
 	s.Close()
 	if _, _, err := s.TryReceiveInto(make([]byte, 8)); !errors.Is(err, ErrClosed) {
 		t.Fatal(err)
+	}
+}
+
+func TestIdleReceiveBackoff(t *testing.T) {
+	s, err := OpenSubscriber(Options{Name: fmt.Sprintf("idle%d", os.Getpid()), Capacity: 64})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	const waiters = 64
+	ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+	defer cancel()
+	var group sync.WaitGroup
+	failures := make(chan error, waiters)
+	before, started := runtime.NumCgoCall(), time.Now()
+	for i := 0; i < waiters; i++ {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			_, err := s.Receive(ctx)
+			if !errors.Is(err, context.DeadlineExceeded) {
+				failures <- err
+			}
+		}()
+	}
+	group.Wait()
+	close(failures)
+	for err := range failures {
+		t.Fatal(err)
+	}
+	elapsed := time.Since(started)
+	calls := runtime.NumCgoCall() - before
+	// Allows scheduling noise and startup retries, but rejects sustained 1 ms polling.
+	if calls > int64(waiters)*(int64(elapsed/(5*time.Millisecond))+10) {
+		t.Fatalf("%d idle cgo calls in %v", calls, elapsed)
 	}
 }

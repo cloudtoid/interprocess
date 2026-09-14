@@ -29,16 +29,18 @@ class Subscriber {
     const { signal } = options;
     // Follow AbortSignal's reason, including TimeoutError from AbortSignal.timeout.
     signal?.throwIfAborted();
+    let waitMs = 1;
     while (true) {
       const message = this.tryReceive();
       if (message !== null) return message;
       try {
-        await delay(1, undefined, { signal });
+        await delay(waitMs, undefined, { signal });
       } catch (error) {
         signal?.throwIfAborted();
         throw error;
       }
       signal?.throwIfAborted();
+      waitMs = Math.min(waitMs * 2, 10);
     }
   }
 

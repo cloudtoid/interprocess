@@ -121,9 +121,16 @@ test('native endpoints survive repeated process and worker teardown', async () =
     }
     // Leave endpoints for environment cleanup, as an exiting application may.
   `;
-  for (let i = 0; i < 12; i++) {
-    const child = spawnSync(process.execPath, ['-e', script], {encoding: 'utf8', timeout: 10000});
-    assert.equal(child.status, 0, child.stderr || String(child.error));
+  const cases = [
+    ['plain Node', 'for(let i=0;i<5000;i++) Buffer.alloc(3)'],
+    ['addon load only', `require(${JSON.stringify(modulePath)})`],
+    ['send and receive', script],
+  ];
+  for (const [label, source] of cases) {
+    for (let i = 0; i < 12; i++) {
+      const child = spawnSync(process.execPath, ['-e', source], {encoding: 'utf8', timeout: 10000});
+      assert.equal(child.status, 0, `${label}: ${child.stderr || String(child.error)}`);
+    }
   }
   const name = `worker${process.pid}`, subscriber = new Subscriber(name, 64);
   try {
@@ -142,4 +149,22 @@ test('native endpoints survive repeated process and worker teardown', async () =
     await Promise.all(exits);
     assert.deepEqual(messages.sort(), [0,1,2,3]);
   } finally { subscriber.close(); }
+});
+
+test('idle receives back off while cancellation remains interruptible', async () => {
+  const {setMaxListeners} = require('node:events');
+  const s = new Subscriber(`backoff${process.pid}`,64);
+  const abort = new AbortController();setMaxListeners(0, abort.signal);
+  let attempts=0;
+  const receive=s.tryReceive.bind(s);
+  s.tryReceive=()=>{ attempts++;return receive(); };
+  const start=performance.now(), count=64;
+  const waits=Array.from({length:count},()=>s.receive({signal:abort.signal}).catch(error=>error));
+  try {
+    await new Promise(resolve=>setTimeout(resolve,250));
+    const elapsed=performance.now()-start;
+    assert(attempts < count*(elapsed/5+10), `${attempts} idle attempts in ${elapsed} ms`);
+    const reason=new Error('stop');abort.abort(reason);
+    for(const result of await Promise.all(waits)) assert.equal(result,reason);
+  } finally { abort.abort();await Promise.all(waits);s.close(); }
 });

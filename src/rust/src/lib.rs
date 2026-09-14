@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 #![doc = include_str!("../README.md")]
 
 //! Shared-memory byte queues compatible with Cloudtoid.Interprocess protocol v3.
@@ -103,6 +104,13 @@ pub enum Error {
     Io(io::Error),
 }
 
+impl Error {
+    /// Whether space or recovery admission is temporarily unavailable.
+    pub fn is_full(&self) -> bool {
+        matches!(self, Self::Full)
+    }
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -111,7 +119,7 @@ impl fmt::Display for Error {
             Self::CapacityMismatch => f.write_str("capacity does not match the existing queue"),
             Self::PublisherLimit => f.write_str("the queue already has 2048 connected publishers"),
             Self::Exhausted => f.write_str("queue lifetime counter exhausted; use a fresh queue"),
-            Self::Corrupt => f.write_str("invalid shared-memory message header"),
+            Self::Corrupt => f.write_str("corrupt or inconsistent shared queue state"),
             Self::Io(error) => error.fmt(f),
         }
     }

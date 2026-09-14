@@ -11,8 +11,9 @@ package interprocess
 // OS thread, where the native thread-local error would no longer be its own.
 typedef struct { int32_t status; int32_t kind; char *error; } cip_result;
 static cip_result cip_result_for(int32_t status) {
-    cip_result r = {status, cip_last_error_kind(), NULL};
+    cip_result r = {status, 0, NULL};
     if (status < 0) {
+        r.kind = cip_last_error_kind();
         const char *message = cip_last_error();
         size_t size = strlen(message) + 1;
         r.error = (char*)malloc(size);
@@ -94,11 +95,11 @@ func result(r C.cip_result) (bool, error) {
 	return false, fmt.Errorf("%w: %s", kind, C.GoString(r.error))
 }
 func stringsFor(o Options) (*C.char, *C.char, func(), error) {
-	if o.Capacity <= 16 || o.Capacity%8 != 0 {
-		return nil, nil, nil, ErrInvalidArgument
+	if o.Capacity < 0 {
+		return nil, nil, nil, fmt.Errorf("%w: capacity must be nonnegative", ErrInvalidArgument)
 	}
 	if strings.IndexByte(o.Name, 0) >= 0 || strings.IndexByte(o.Path, 0) >= 0 {
-		return nil, nil, nil, ErrInvalidArgument
+		return nil, nil, nil, fmt.Errorf("%w: name and path must not contain NUL", ErrInvalidArgument)
 	}
 	name := C.CString(o.Name)
 	var path *C.char
@@ -175,6 +176,7 @@ func OpenSubscriber(o Options) (*Subscriber, error) {
 // ctx.Err(). Use context.Background() to wait without a deadline.
 func (s *Subscriber) Receive(ctx context.Context) ([]byte, error) {
 	var timer *time.Timer
+	backoff := time.Millisecond
 	for {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -184,16 +186,17 @@ func (s *Subscriber) Receive(ctx context.Context) ([]byte, error) {
 			return message, err
 		}
 		if timer == nil {
-			timer = time.NewTimer(time.Millisecond)
+			timer = time.NewTimer(backoff)
 			defer timer.Stop()
 		} else {
-			timer.Reset(time.Millisecond)
+			timer.Reset(backoff)
 		}
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-timer.C:
 		}
+		backoff = min(2*backoff, 10*time.Millisecond)
 	}
 }
 

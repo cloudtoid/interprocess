@@ -1,6 +1,6 @@
 # Cross-language interoperability
 
-The matrix runs Rust, C, Python, Node.js, Go, and .NET publishers against each of the six subscriber implementations, in separate processes. Each pair transfers 2,000 messages with deterministic content, increasing sequence numbers, and payload sizes from 8 to 258 bytes through a 4 KiB circular buffer. Every receiver checks complete payload equality and order. Process deadlines catch stalls. The subscriber holds the queue open before its publisher connects.
+The matrix runs Rust, C, Python, Node.js, Go, and .NET publishers against each of the six subscriber implementations, in separate processes. Each pair transfers 2,000 messages with deterministic content, increasing sequence numbers, and payload sizes from 8 to 258 bytes plus full-capacity 4,088-byte payloads through a 4 KiB circular buffer. Every receiver checks complete payload equality and order. Process deadlines catch stalls. The subscriber holds the queue open before its publisher connects.
 
 Run from the repository root with Rust, CMake, a C compiler, pkg-config, Go 1.24+, Node.js 18+, Python 3.9+, and .NET 10 on PATH:
 
@@ -18,3 +18,5 @@ After building, `run.py` can rerun the matrix. Use the Python environment contai
 `mixed.py` adds a shared queue with six concurrent publishers and six competing subscribers, one of each language. It checks 24,000 unique IDs and complete payloads across two traffic phases, while killing extra registered Rust and .NET publishers and subscribers. The killed endpoints do not own in-flight messages; the Rust fault-injection suite covers unfinished publisher reservations and reader ownership. Set `INTEROP_MIXED_COUNT` to change each publisher's per-phase count. The full build and CI run both scenarios.
 
 Queues are transient. The pair runner waits until the subscriber has opened the queue before starting its publisher, so endpoint lifetimes overlap. The mixed runner likewise keeps its subscribers attached throughout both publishing phases. Sending and exiting before any other endpoint connects would discard the messages.
+
+`lifetime.py` verifies every binding rejects a capacity mismatch against Rust-created and .NET-created queues, then checks final cleanup by each implementation before reopening with a different capacity.

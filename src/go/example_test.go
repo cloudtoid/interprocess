@@ -3,10 +3,11 @@ package interprocess_test
 import (
 	"fmt"
 	"github.com/cloudtoid/interprocess/src/go/v3"
+	"os"
 )
 
 func Example() {
-	options := interprocess.Options{Name: "go-example", Capacity: 65536}
+	options := interprocess.Options{Name: fmt.Sprintf("example%d", os.Getpid()), Capacity: 65536}
 	subscriber, err := interprocess.OpenSubscriber(options)
 	if err != nil {
 		panic(err)

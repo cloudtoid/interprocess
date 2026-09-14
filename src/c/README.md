@@ -34,7 +34,7 @@ cip_subscriber_close(subscriber);
 
 `cip_receive` returns owned bytes; free successful results with `cip_buffer_free`. Finish every call before closing its handle. See [protocol v3](https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md).
 
-Use `CIP_OK`, `CIP_UNAVAILABLE`, and `CIP_ERROR` to interpret status results. On error, `cip_last_error_kind()` gives a stable `cip_error_kind`; `cip_last_error()` provides diagnostic text on the same thread. Define `CIP_STATIC` when linking a static library on Windows.
+Use `CIP_OK`, `CIP_UNAVAILABLE`, and `CIP_ERROR` to interpret status results. On error, `cip_last_error_kind()` gives a stable `cip_error_kind`; `cip_last_error()` provides diagnostic text on the same thread. The prebuilt SDK contains shared libraries. Static linking is source-build only (`cargo build --release -p cloudtoid-interprocess-ffi`); define `CIP_STATIC` when using the resulting static library on Windows.
 
 Handles must not be closed concurrently with an operation. Use bounded `cip_receive` timeouts when shutdown is needed. Open handles after `fork()`; do not use inherited handles in the child. Closing an inherited handle leaves the parent's registration intact.
 

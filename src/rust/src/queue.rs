@@ -247,6 +247,9 @@ impl Publisher {
     }
 
     /// Publishes an ordered prefix, amortizing publisher admission across a batch.
+    /// Returns the committed prefix length. A short count (including zero) means
+    /// full, recovery, or a mid-batch error; retry the unsent suffix to observe a
+    /// persistent error. An error before any commit is returned immediately.
     pub fn try_send_batch(&self, messages: &[&[u8]]) -> Result<usize> {
         if messages.iter().any(|m| m.len() > i32::MAX as usize) {
             return Err(Error::Invalid("message exceeds the protocol length limit"));

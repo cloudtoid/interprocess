@@ -21,6 +21,27 @@ fn protocol_layout() {
     assert_eq!(offset_of!(Header, notification), 24);
     assert_eq!(offset_of!(Header, participant), 28);
     assert_eq!(BUFFER_OFFSET, 262400);
+    assert_eq!(SLOT_SIZE, 128);
+    let publisher = Publisher::open(&options(64)).unwrap();
+    let base = publisher.shared.mapping.ptr.as_ptr() as usize;
+    assert_eq!(publisher.shared.gate() as *const _ as usize - base, 128);
+    assert_eq!(publisher.shared.owner(0) as *const _ as usize - base, 256);
+    assert_eq!(publisher.shared.active(0) as *const _ as usize - base, 264);
+    assert_eq!(publisher.shared.owner(1) as *const _ as usize - base, 384);
+    #[cfg(windows)]
+    assert_eq!(
+        unsafe {
+            publisher
+                .shared
+                .mapping
+                .ptr
+                .as_ptr()
+                .add(32)
+                .cast::<i64>()
+                .read()
+        },
+        64
+    );
 }
 
 #[test]
@@ -123,14 +144,8 @@ fn concurrent_exactly_once() {
             scope.spawn(move || {
                 for i in 0..10_000u64 {
                     let value = (producer * 10_000 + i).to_le_bytes();
-                    while publisher
-                        .try_send(&value)
-                        .map(|()| false)
-                        .unwrap_or_else(|e| match e {
-                            Error::Full => true,
-                            e => panic!("{e}"),
-                        })
-                    {
+                    while let Err(error) = publisher.try_send(&value) {
+                        assert!(error.is_full(), "{error}");
                         std::thread::yield_now();
                     }
                 }
@@ -193,10 +208,12 @@ fn crash_child() {
     };
     let options = Options::new(name, 64);
     let mode = std::env::var("CIP_CRASH_MODE").unwrap();
-    if mode == "publisher" {
+    if mode == "publisher" || mode == "registered-publisher" {
         let publisher = Publisher::open(&options).unwrap();
-        publisher.shared.active(publisher.slot).store(1, SeqCst);
-        publisher.shared.header().write.store(16, SeqCst);
+        if mode == "publisher" {
+            publisher.shared.active(publisher.slot).store(1, SeqCst);
+            publisher.shared.header().write.store(16, SeqCst);
+        }
         println!("CRASH_READY");
         loop {
             std::thread::park();
@@ -209,6 +226,9 @@ fn crash_child() {
             .reader
             .store(subscriber.id, SeqCst);
         subscriber.shared.gate().store(1, SeqCst);
+        if mode == "claimed-reader" {
+            subscriber.shared.state(0).store(1, Release);
+        }
         println!("CRASH_READY");
         loop {
             std::thread::park();
@@ -249,7 +269,9 @@ fn killed_publisher_recovers_without_losing_queue() {
     child.kill().unwrap();
     child.wait().unwrap();
     let publisher = Publisher::open(&options).unwrap();
-    // Capture the abandoned tail before placing a later message behind it.
+    publisher.try_send(b"discard").unwrap();
+    // Recovery discards completed messages inside the captured tail, while
+    // preserving a message reserved after that snapshot.
     assert!(subscriber.try_recv().unwrap().is_none());
     publisher.try_send(b"after crash").unwrap();
     let message = subscriber.recv_timeout(Duration::from_secs(20)).unwrap();
@@ -417,4 +439,106 @@ fn batch_reports_committed_prefix_before_counter_exhaustion() {
         publisher.try_send_batch(&[b""]),
         Err(Error::Exhausted)
     ));
+}
+
+#[test]
+fn dead_publisher_registration_can_be_reclaimed_from_a_full_table() {
+    let options = options(64);
+    let _anchor = Subscriber::open(&options).unwrap();
+    let mut child = crashed_participant(&options, "registered-publisher");
+    let publishers: Vec<_> = (0..MAX_PUBLISHERS - 1)
+        .map(|_| Publisher::open(&options).unwrap())
+        .collect();
+    assert!(matches!(
+        Publisher::open(&options),
+        Err(Error::PublisherLimit)
+    ));
+    child.kill().unwrap();
+    child.wait().unwrap();
+    let replacement = Publisher::open(&options).unwrap();
+    replacement.try_send(b"replacement").unwrap();
+    drop(publishers);
+}
+
+#[test]
+fn dead_reader_with_claimed_record_is_recovered() {
+    let options = options(64);
+    let subscriber = Subscriber::open(&options).unwrap();
+    let publisher = Publisher::open(&options).unwrap();
+    publisher.try_send(b"claimed").unwrap();
+    let mut child = crashed_participant(&options, "claimed-reader");
+    child.kill().unwrap();
+    child.wait().unwrap();
+    subscriber.next_check.store(0, Release);
+    assert!(subscriber.try_recv().unwrap().is_none()); // repair reader ownership
+    assert!(subscriber.try_recv().unwrap().is_none()); // capture abandoned record
+    publisher.try_send(b"preserved").unwrap();
+    assert_eq!(
+        subscriber
+            .recv_timeout(Duration::from_secs(20))
+            .unwrap()
+            .unwrap(),
+        b"preserved"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn unknown_lease_remains_alive_and_last_close_removes_resources() {
+    use std::os::unix::fs::PermissionsExt;
+    let options = options(64);
+    let publisher = Publisher::open(&options).unwrap();
+    let root = options.path.join(".cloudtoid/interprocess/v3");
+    let directory = root.join("readers").join(&options.name);
+    let lease = directory.join(publisher.id.to_string());
+    if unsafe { libc::geteuid() } != 0 {
+        std::fs::set_permissions(&lease, std::fs::Permissions::from_mode(0o0)).unwrap();
+        assert!(Lease::alive(&options, publisher.id));
+        assert!(lease.exists());
+        std::fs::set_permissions(&lease, std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+    drop(publisher);
+    assert!(!directory.exists());
+    assert!(!root
+        .join("mmf")
+        .join(format!("{}.qu", options.name))
+        .exists());
+    let name = std::ffi::CString::new(format!("/ct3ip.{}", options.name)).unwrap();
+    assert_eq!(
+        unsafe { libc::sem_open(name.as_ptr(), 0) },
+        libc::SEM_FAILED
+    );
+    assert_eq!(
+        std::io::Error::last_os_error().raw_os_error(),
+        Some(libc::ENOENT)
+    );
+}
+
+#[test]
+fn concurrent_publishers_keep_their_own_message_order() {
+    let options = options(8192);
+    let subscriber = Subscriber::open(&options).unwrap();
+    std::thread::scope(|scope| {
+        for id in 0..4u32 {
+            let options = &options;
+            scope.spawn(move || {
+                let publisher = Publisher::open(options).unwrap();
+                for sequence in 0..100u32 {
+                    let mut data = [0; 8];
+                    data[..4].copy_from_slice(&id.to_le_bytes());
+                    data[4..].copy_from_slice(&sequence.to_le_bytes());
+                    publisher.try_send(&data).unwrap();
+                }
+            });
+        }
+    });
+    let mut expected = [0u32; 4];
+    for _ in 0..400 {
+        let data = subscriber.try_recv().unwrap().unwrap();
+        let id = u32::from_le_bytes(data[..4].try_into().unwrap()) as usize;
+        let sequence = u32::from_le_bytes(data[4..].try_into().unwrap());
+        assert_eq!(sequence, expected[id]);
+        expected[id] += 1;
+    }
+    assert_eq!(expected, [100; 4]);
 }

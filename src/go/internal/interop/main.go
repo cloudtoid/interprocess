@@ -19,7 +19,11 @@ func check(err error) {
 	}
 }
 func message(i int) []byte {
-	data := make([]byte, 8+i%251)
+	length := 8 + i%251
+	if i%251 == 250 {
+		length = 4088
+	}
+	data := make([]byte, length)
 	binary.LittleEndian.PutUint64(data, uint64(i))
 	for j := 8; j < len(data); j++ {
 		data[j] = byte((i + j) % 251)
@@ -28,6 +32,11 @@ func message(i int) []byte {
 }
 func main() {
 	options := queue.Options{Name: os.Args[2], Path: os.Args[3], Capacity: 4096}
+	if value := os.Getenv("INTEROP_CAPACITY"); value != "" {
+		capacity, err := strconv.Atoi(value)
+		check(err)
+		options.Capacity = capacity
+	}
 	count, err := strconv.Atoi(os.Args[4])
 	check(err)
 	if os.Args[1] == "publish" {

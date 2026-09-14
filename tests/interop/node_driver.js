@@ -1,15 +1,16 @@
 const assert = require('node:assert/strict');
 const { Publisher, Subscriber } = require('../../src/node');
 const [mode, name, path, count, start] = process.argv.slice(2);
+const capacity = Number(process.env.INTEROP_CAPACITY || 4096);
 function message(i) {
-  const data = Buffer.alloc(8 + i % 251);
+  const data = Buffer.alloc(i % 251 === 250 ? 4088 : 8 + i % 251);
   data.writeBigUInt64LE(BigInt(i));
   for (let j = 8; j < data.length; j++) data[j] = (i + j) % 251;
   return data;
 }
 async function main() {
   if (mode === 'publish') {
-    const p = new Publisher(name, 4096, path);
+    const p = new Publisher(name, capacity, path);
     try {
       if (start !== undefined) {
         console.log('READY');
@@ -22,7 +23,7 @@ async function main() {
       }
     } finally { p.close(); }
   } else {
-    const s = new Subscriber(name, 4096, path);
+    const s = new Subscriber(name, capacity, path);
     const signal = AbortSignal.timeout(30000);
     console.log('READY');
     try {
