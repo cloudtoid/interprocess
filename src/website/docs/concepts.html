@@ -1,0 +1,26 @@
+<p class="doc-lead">One queue, multiple publishers, competing subscribers. These rules apply across every language binding.</p>
+<h2 id="identity">Queue identity</h2>
+<p>All participants must use the same name, capacity, and Unix backing directory. Windows ignores the path; its mapping and lease objects are session-local, so participants must share a Windows session and compatible permissions.</p>
+<p>Use an explicit absolute path for cross-language Unix applications: runtime temporary directories can differ. Names must also be unique across directories because the notification semaphore uses the name, not the backing path.</p>
+<ul><li>Names must be nonempty, must not be <code>.</code> or <code>..</code>, and cannot contain slash or NUL.</li><li>Windows also rejects backslashes.</li><li>macOS allows at most 24 UTF-8 bytes; Linux allows 245. Short ASCII names of at most 24 bytes are portable.</li></ul>
+<h2 id="lifetime">Transient lifetime</h2>
+<p>A queue remains usable while at least one publisher or subscriber is attached. Closing a reader does not destroy a queue retained by other participants. After all endpoints close or their processes exit, unread messages are lost. Opening the same name again creates a fresh, empty queue.</p>
+<aside class="doc-note"><strong>Overlap endpoint lifetimes.</strong> Start the subscriber before a short-lived publisher finishes, or keep another publisher connected. A queue name is not a durable mailbox.</aside>
+<p>On Unix, stale files may remain after a crash until the next opener cleans them up. Their presence does not mean that messages can be resumed.</p>
+<h2 id="delivery">Delivery and ordering</h2>
+<p>Subscribers compete for messages: under ordinary operation, each message is consumed by one subscriber. This is a work-sharing queue, not broadcast. To deliver a copy to every consumer, use separate queues.</p>
+<p>Delivery follows reservation order. An unfinished earlier reservation can delay later messages. Successful sequential sends preserve order; concurrent calls have no defined relative order. Batch sends commit a prefix and may interleave with other publishers; a batch is not a transaction.</p>
+<p>The queue transports bytes, without a serializer. Agree on encoding, schema, and byte order in your application. Empty messages are valid. Distinguish an empty payload from the API's “no message” result.</p>
+<h2 id="capacity">Capacity and backpressure</h2>
+<p>Capacity is the circular message buffer size in bytes. It must exceed 16 and be divisible by 8. Total mapped storage is <code>262400 + capacity</code> bytes, including the header and publisher table. Each queue supports up to 2,048 connected publisher objects.</p>
+<p>Records include metadata and alignment, so the entire buffer is not available for payload bytes. A nonblocking send can report unavailable because space is exhausted or recovery temporarily blocks admission. Choose a retry deadline, bounded backoff, or an application-level overflow policy. Retrying cannot make an inherently oversized message fit.</p>
+<p>Receive-into APIs copy at most the supplied buffer length. An undersized buffer <strong>truncates and consumes</strong> the message; the remainder cannot be read later. Size reusable buffers for the largest payload you accept.</p>
+<h2 id="waiting">Waiting and cancellation</h2>
+<p>“Try” methods do not wait for a message or free space. An unavailable receive may also mean a reader owns consumption or the next record is not ready. Open, close, recovery checks, and wrapper synchronization can still involve operating-system work.</p>
+<p>Rust and C offer blocking receives with timeouts. Python waits with the GIL released and checks Python signals between bounded waits. .NET accepts a cancellation token on blocking <code>Dequeue</code>. Node.js and Go check immediately, then use adaptive timer backoff from 1 to 10 ms while idle. Their idle-to-active latency can include that interval plus scheduling delay. Prefer one receive loop per subscriber.</p>
+<h2 id="recovery">Crashes and recovery</h2>
+<p>Recovery reclaims abandoned work only after checking participant liveness. Paused live owners are not expired just because time passes. Messages can be lost during recovery, including completed messages behind an abandoned reservation. The queue does not provide durable acknowledgements or exactly-once effects.</p>
+<p>Publisher reservations use native 64-bit atomics. The complete queue is not formally lock-free: readers serialize consumption, live paused owners can block progress, and creation and destruction use OS locks. Open native endpoints after <code>fork()</code>; do not use inherited endpoints in the child.</p>
+<h2 id="upgrades">Upgrades and long-lived queues</h2>
+<p>v3 is incompatible with the v1/v2 shared-memory layout. Drain the old queue, stop all participants, and upgrade them together using a fresh queue. The physical buffer wraps; logical counters do not. Counter exhaustion is an explicit error and requires a fresh queue after participants finish.</p>
+<p>For layout offsets, atomic ordering, and recovery details, read the <a href="https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md">full protocol v3 specification</a>.</p>

@@ -1,0 +1,39 @@
+<p class="doc-lead">Send Python bytes and buffer objects through the shared Rust engine. Use context managers to keep endpoint lifetimes explicit.</p>
+<p class="doc-source"><a href="https://github.com/cloudtoid/interprocess/tree/main/src/python">Python package source ↗</a> · <a href="https://github.com/cloudtoid/interprocess/blob/main/src/python/src/lib.rs">Binding implementation ↗</a></p>
+<h2 id="install">Install from source</h2>
+<p>The Python package is not yet published on PyPI. Requires Python 3.9 or later, Git, Rust, and a native linker. Run in an activated virtual environment:</p>
+<pre><code class="language-bash">python -m pip install "git+https://github.com/cloudtoid/interprocess.git@native-v3.0.1#subdirectory=src/python"</code></pre>
+<h2 id="example">Send and receive</h2>
+<pre><code class="language-python">from cloudtoid_interprocess import Publisher, Subscriber
+
+with Subscriber("example", 65536) as subscriber:
+    with Publisher("example", 65536) as publisher:
+        if not publisher.try_send(b"hello"):
+            raise RuntimeError("Queue is full or recovering")
+        message = subscriber.receive(timeout=1.0)
+        if message is None:
+            raise TimeoutError("No message arrived")
+        print(message.decode("utf-8"))</code></pre>
+<h2 id="publisher">Publisher</h2>
+<h3 id="publisher-constructor"><code>Publisher(name, capacity, path=None)</code></h3>
+<p>Creates or joins the queue. <code>name</code> is a string, <code>capacity</code> is integer message-buffer bytes, and <code>path</code> is an optional filesystem path for Unix storage. The default is the OS temporary directory; Windows ignores path.</p>
+<h3 id="try-send"><code>try_send(data) -&gt; bool</code></h3>
+<p>Accepts bytes and objects implementing the buffer protocol, including bytearray and memoryview. Non-bytes inputs are snapshotted before sending. Returns False when full or recovering, True on commit; other failures raise.</p>
+<h3 id="try-send-batch"><code>try_send_batch(messages) -&gt; int</code></h3>
+<p>Pass a list of bytes-like messages. Returns the committed prefix length. A short count can mean full capacity, recovery, or a mid-batch error. Retry only the unsent suffix. Errors before any commit are raised immediately; the batch is not transactional.</p>
+<h3 id="publisher-close"><code>close() -&gt; None</code></h3>
+<p>Releases the endpoint. Repeated close is safe. Publisher supports <code>with</code> via <code>__enter__</code> and <code>__exit__</code>; leaving the block closes it without suppressing exceptions.</p>
+<h2 id="subscriber">Subscriber</h2>
+<h3 id="subscriber-constructor"><code>Subscriber(name, capacity, path=None)</code></h3>
+<p>Creates or joins the queue with the same configuration rules as Publisher.</p>
+<h3 id="try-receive"><code>try_receive() -&gt; bytes | None</code></h3>
+<p>Consumes one ready message and returns bytes. None means no message is ready. <code>b""</code> is a valid empty message, so test <code>message is not None</code> rather than truthiness.</p>
+<h3 id="receive"><code>receive(timeout=None) -&gt; bytes | None</code></h3>
+<p>Blocks until delivery or timeout. Timeout is a finite nonnegative number of <strong>seconds</strong>; None waits indefinitely and zero attempts once. Returns None on timeout. Negative, infinite, and NaN timeout values raise ValueError.</p>
+<h3 id="subscriber-close"><code>close() -&gt; None</code></h3>
+<p>Releases the subscriber. Repeated close is safe. Subscriber also supports <code>with</code>. A concurrent close waits for the current bounded native wait before releasing the handle.</p>
+<h2 id="errors">Exceptions</h2>
+<dl class="api-list"><dt><code>InterprocessError</code></dt><dd>Base for queue-specific exceptions below, not for every possible API failure.</dd><dt><code>CapacityMismatchError</code></dt><dd>Existing capacity differs; also a ValueError.</dd><dt><code>PublisherLimitError</code></dt><dd>No publisher slot is available; also a RuntimeError.</dd><dt><code>CorruptQueueError</code></dt><dd>Shared state is invalid; also a RuntimeError.</dd><dt><code>ValueError</code></dt><dd>Invalid configuration, invalid timeout, or a closed endpoint.</dd><dt><code>OverflowError</code></dt><dd>Counter exhaustion or an integer outside a native argument's range.</dd><dt><code>OSError</code></dt><dd>Operating-system failure.</dd><dt><code>TypeError</code></dt><dd>Invalid argument type or unsupported buffer object.</dd></dl>
+<h2 id="waiting">Waiting, signals, and lifetime</h2>
+<p>Receive releases the GIL while waiting and checks Python signals between native waits of at most 100 ms, subject to scheduling. A received message is returned rather than discarded to report a later signal. There is no native asyncio API; use a worker thread with bounded timeouts for orderly shutdown. Cancelling an asyncio wrapper does not stop its already-running blocking call.</p>
+<p>No public receive-into method is exposed. Close endpoints with context managers and keep their lifetimes overlapping across processes; see <a href="/docs/concepts/#lifetime">transient lifetime</a>.</p>

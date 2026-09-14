@@ -1,0 +1,26 @@
+<p class="doc-lead">Move bytes between processes with a shared-memory queue. Pick the API that fits your language; every implementation speaks the same v3 protocol.</p>
+<h2 id="choose-language">Choose your language</h2>
+<div class="doc-cards">
+<a href="/docs/rust/"><strong>Rust</strong><span>Owned bytes, reusable buffers, and batch sends.</span><code>cargo add cloudtoid-interprocess</code></a>
+<a href="/docs/node/"><strong>Node.js &amp; TypeScript</strong><span>Buffers, promises, and AbortSignal.</span><code>npm install @cloudtoid/interprocess</code></a>
+<a href="/docs/go/"><strong>Go</strong><span>Byte slices, context cancellation, and cgo.</span><code>go get github.com/cloudtoid/interprocess/src/go/v3@latest</code></a>
+<a href="/docs/c/"><strong>C</strong><span>A small ABI with explicit buffer ownership.</span><code>#include &lt;interprocess.h&gt;</code></a>
+<a href="/docs/python/"><strong>Python</strong><span>Bytes, timeouts, and context managers. Build from source.</span><code>from cloudtoid_interprocess import Publisher</code></a>
+<a href="/docs/dotnet/"><strong>.NET</strong><span>Spans, reusable memory, and CancellationToken.</span><code>dotnet add package Cloudtoid.Interprocess</code></a>
+</div>
+<h2 id="first-queue">Your first queue</h2>
+<ol><li>Install the package for your language. Go also needs the C SDK.</li><li>Choose a short queue name and a capacity, such as <code>65536</code> bytes. On Unix, choose an explicit shared directory when processes use different runtimes.</li><li>Open a subscriber and a publisher using the same identity and capacity.</li><li>Send bytes. Check the result: a full queue needs an application-level retry or backpressure policy.</li><li>Receive bytes and close each endpoint when its work is finished.</li></ol>
+<aside class="doc-note"><strong>Keep participants connected.</strong> The queue is transient. Once the last publisher or subscriber closes or exits, unread messages are lost. Reopening the same name starts a fresh queue.</aside>
+<h2 id="how-to-use">Which receive should I use?</h2>
+<p>Use a nonblocking receive when your application already controls scheduling. Use a waiting receive when you want the library to wait for work. Reuse caller-owned buffers in Rust, Go, C, or .NET to avoid allocating a result buffer on each receive.</p>
+<div class="doc-table"><table><thead><tr><th>Language</th><th>Try once</th><th>Wait for work</th></tr></thead><tbody>
+<tr><td>Rust</td><td><code>try_recv()</code></td><td><code>recv()</code> / <code>recv_timeout(Duration)</code></td></tr>
+<tr><td>Node.js</td><td><code>tryReceive()</code></td><td><code>await receive({ signal })</code></td></tr>
+<tr><td>Go</td><td><code>TryReceive()</code></td><td><code>Receive(ctx)</code></td></tr>
+<tr><td>C</td><td><code>cip_receive(handle, 0, &amp;buffer)</code></td><td><code>cip_receive(handle, timeout_ms, &amp;buffer)</code></td></tr>
+<tr><td>Python</td><td><code>try_receive()</code></td><td><code>receive(timeout=seconds)</code></td></tr>
+<tr><td>.NET</td><td><code>TryDequeue(out message)</code></td><td><code>Dequeue(cancellation)</code></td></tr>
+</tbody></table></div>
+<h2 id="compatibility">Platforms and compatibility</h2>
+<p>The protocol targets little-endian, 64-bit Linux, macOS, and Windows on x86-64 and ARM64. Prebuilt package availability varies: check your language's installation section. All connected processes must use protocol v3. Package versions can differ while remaining compatible with that protocol.</p>
+<p>Rust provides the native core behind C, Node.js, Python, and Go. .NET implements the same protocol independently. See <a href="/docs/concepts/">queue concepts</a> for delivery guarantees and <a href="/#performance">benchmarks</a> for measured throughput and latency.</p>

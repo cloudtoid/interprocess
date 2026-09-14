@@ -91,7 +91,7 @@ function select(tab, focus = false) {
   code.innerHTML = hljs.highlight(source, { language: grammar }).value;
   document.querySelector('#example').setAttribute('aria-label', `${language} example`);
   const link = document.querySelector('#language-docs');
-  link.href = `https://github.com/cloudtoid/interprocess/tree/main/src/${folder}`;
+  link.href = `/docs/${folder}/`;
   link.textContent = `Read the ${language} guide →`;
   document.querySelector('#copy-status').textContent = '';
   document.querySelector('#install-copy-status').textContent = '';

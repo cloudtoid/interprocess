@@ -1,0 +1,69 @@
+<p class="doc-lead">A compact C ABI for shared-memory messaging, with opaque handles, explicit status codes, and caller-controlled ownership.</p>
+<p class="doc-source"><a href="https://github.com/cloudtoid/interprocess/blob/main/src/c/include/interprocess.h">Public C header ↗</a> · <a href="https://github.com/cloudtoid/interprocess/releases/tag/native-v3.0.1">Prebuilt SDK downloads ↗</a></p>
+<h2 id="install">Install the SDK</h2>
+<p>Download the archive for your platform. This example uses the GitHub CLI on macOS Apple Silicon:</p>
+<pre><code class="language-bash">gh release download native-v3.0.1 --repo cloudtoid/interprocess --pattern "*-darwin-arm64.tar.gz"
+mkdir -p cloudtoid-sdk
+tar -xzf cloudtoid-interprocess-3.0.1-darwin-arm64.tar.gz -C cloudtoid-sdk --strip-components=1
+export PKG_CONFIG_PATH="$PWD/cloudtoid-sdk/lib/pkgconfig:$PKG_CONFIG_PATH"</code></pre>
+<p>Other archive suffixes are <code>darwin-x64</code>, <code>linux-arm64</code>, <code>linux-x64</code>, and <code>win32-x64</code>. Replace the suffix in both archive names. Linux prebuilt libraries require glibc 2.34 or later.</p>
+<p>On Windows, extract the archive, set <code>PKG_CONFIG_PATH</code> to its <code>lib/pkgconfig</code> directory, and add its <code>lib</code> directory to <code>PATH</code> for the DLL. Link against the import library. The header can also be included from C++.</p>
+<p>On Unix, compile a C program with pkg-config; the SDK flags include the runtime library search path:</p>
+<pre><code class="language-bash">cc example.c -o example $(pkg-config --cflags --libs cloudtoid-interprocess)
+./example</code></pre>
+<h2 id="example">Send and receive</h2>
+<pre><code class="language-c">#include &lt;interprocess.h&gt;
+#include &lt;stdio.h&gt;
+
+int main(void) {
+    cip_subscriber *subscriber = NULL;
+    cip_publisher *publisher = NULL;
+    int result = 1;
+    if (cip_subscriber_open("example", NULL, 65536, &amp;subscriber) != CIP_OK)
+        goto cleanup;
+    if (cip_publisher_open("example", NULL, 65536, &amp;publisher) != CIP_OK)
+        goto cleanup;
+    if (cip_try_send(publisher, (const uint8_t *)"hello", 5) != CIP_OK)
+        goto cleanup;
+    cip_buffer message;
+    if (cip_receive(subscriber, 1000, &amp;message) == CIP_OK) {
+        fwrite(message.data, 1, message.length, stdout);
+        cip_buffer_free(message);
+        result = 0;
+    }
+cleanup:
+    cip_publisher_close(publisher);
+    cip_subscriber_close(subscriber);
+    return result;
+}</code></pre>
+<h2 id="types">Types and status codes</h2>
+<p><code>cip_publisher</code> and <code>cip_subscriber</code> are opaque handles. The returned message type is:</p>
+<pre><code class="language-c">typedef struct cip_buffer {
+    uint8_t *data;
+    size_t length;
+} cip_buffer;</code></pre>
+<p>Functions returning <code>int32_t</code> status use <code>CIP_OK = 1</code> for success, <code>CIP_UNAVAILABLE = 0</code> for full/empty/timeout or temporary recovery, and <code>CIP_ERROR = -1</code> for failure. An empty message is still CIP_OK with length zero.</p>
+<h2 id="open-close">Open and close</h2>
+<h3 id="publisher-open"><code>int32_t cip_publisher_open(const char *name, const char *path, size_t capacity, cip_publisher **output)</code></h3>
+<h3 id="subscriber-open"><code>int32_t cip_subscriber_open(const char *name, const char *path, size_t capacity, cip_subscriber **output)</code></h3>
+<p>Create or join a queue and write the handle to output on success. Strings are UTF-8 and NUL-terminated. Path may be NULL for the temporary directory; Windows ignores it. Capacity must match all participants.</p>
+<h3 id="publisher-close"><code>void cip_publisher_close(cip_publisher *handle)</code></h3>
+<h3 id="subscriber-close"><code>void cip_subscriber_close(cip_subscriber *handle)</code></h3>
+<p>Release a handle exactly once, after every concurrent call has returned. Close(NULL) is safe. A non-null handle cannot be reused or closed again after release.</p>
+<h2 id="messages">Send and receive</h2>
+<h3 id="try-send"><code>int32_t cip_try_send(const cip_publisher *handle, const uint8_t *data, size_t length)</code></h3>
+<p>Copies one message. CIP_UNAVAILABLE means no room or recovery admission unavailable. Input memory must remain valid for the call; a NULL data pointer is allowed only with length zero.</p>
+<h3 id="receive"><code>int32_t cip_receive(const cip_subscriber *handle, int64_t timeout_ms, cip_buffer *output)</code></h3>
+<p>Copies and consumes a message into an owned buffer. Timeout is <strong>milliseconds</strong>: -1 waits indefinitely, 0 attempts once, and a positive value bounds the wait. Other negative values are invalid. CIP_UNAVAILABLE means no ready message before the timeout.</p>
+<h3 id="buffer-free"><code>void cip_buffer_free(cip_buffer buffer)</code></h3>
+<p>Free each successful receive result exactly once, including empty messages. Do not free a result from an unsuccessful receive or invent a buffer to pass here. Copying the struct does not create a second ownership right.</p>
+<h3 id="try-receive-into"><code>int32_t cip_try_receive_into(const cip_subscriber *handle, uint8_t *data, size_t capacity, size_t *copied)</code></h3>
+<p>Tries once and copies into caller-owned storage. On success, copied is the number of bytes written. An undersized buffer truncates and consumes the message. NULL data requires capacity zero. Use the status to distinguish an empty message from no message.</p>
+<h2 id="errors">Error details</h2>
+<h3 id="last-error"><code>const char *cip_last_error(void)</code></h3>
+<p>Diagnostic text in thread-local storage, valid until the next error on that thread. Read or copy it immediately after CIP_ERROR, on the same OS thread.</p>
+<h3 id="last-error-kind"><code>int32_t cip_last_error_kind(void)</code></h3>
+<p>Returns a <code>cip_error_kind</code>: <code>CIP_NO_ERROR = 0</code>, <code>CIP_INVALID_ARGUMENT = 1</code>, <code>CIP_CAPACITY_MISMATCH = 2</code>, <code>CIP_PUBLISHER_LIMIT = 3</code>, <code>CIP_EXHAUSTED = 4</code>, <code>CIP_CORRUPT = 5</code>, <code>CIP_IO_ERROR = 6</code>, or <code>CIP_INTERNAL_ERROR = 7</code>. Error state is diagnostic state, not a substitute for checking each function's return status.</p>
+<h2 id="shutdown">Concurrency and shutdown</h2>
+<p>Handles support concurrent operations, but closing concurrently with an operation is unsafe. Use bounded receive timeouts, signal your worker to stop, join it, then close the handle. There is no cancellation object or batch-send function in the C ABI. Open after fork; inherited handles must not be used in the child.</p>
+<p>Prebuilt SDKs contain shared libraries. For static linking, build <code>cloudtoid-interprocess-ffi</code> from source and define <code>CIP_STATIC</code> on Windows. See the <a href="https://github.com/cloudtoid/interprocess/tree/main/src/c#build-from-source">source-build instructions</a>.</p>

@@ -1,0 +1,69 @@
+<p class="doc-lead">Use Go byte slices and context cancellation over the native C ABI. Endpoints support concurrent calls and explicit cleanup.</p>
+<p class="doc-source"><a href="https://pkg.go.dev/github.com/cloudtoid/interprocess/src/go/v3">Generated Go reference ↗</a> · <a href="https://github.com/cloudtoid/interprocess/blob/main/src/go/interprocess.go">API source ↗</a></p>
+<h2 id="install">Install</h2>
+<p>Requires Go 1.24 or later, cgo enabled, a C compiler, and pkg-config. <a href="/docs/c/#install">Install the C SDK first</a> and set <code>PKG_CONFIG_PATH</code> to its <code>lib/pkgconfig</code> directory. On Windows, add the SDK's <code>lib</code> directory to <code>PATH</code> and use a cgo-compatible compiler.</p>
+<pre><code class="language-bash">go get github.com/cloudtoid/interprocess/src/go/v3@latest</code></pre>
+<p>The module's package name is <code>interprocess</code>. On Unix, the pkg-config flags include the installed library's runtime search path.</p>
+<h2 id="example">Send and receive</h2>
+<pre><code class="language-go">package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+
+    "github.com/cloudtoid/interprocess/src/go/v3"
+)
+
+func main() {
+    if err := run(); err != nil { panic(err) }
+}
+
+func run() error {
+    options := interprocess.Options{Name: "example", Capacity: 65536}
+    subscriber, err := interprocess.OpenSubscriber(options)
+    if err != nil { return err }
+    defer subscriber.Close()
+    publisher, err := interprocess.OpenPublisher(options)
+    if err != nil { return err }
+    defer publisher.Close()
+
+    sent, err := publisher.TrySend([]byte("hello"))
+    if err != nil { return err }
+    if !sent { return fmt.Errorf("queue is full or recovering") }
+    ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+    defer cancel()
+    message, err := subscriber.Receive(ctx)
+    if err != nil { return err }
+    fmt.Println(string(message))
+    return nil
+}</code></pre>
+<h2 id="options">Options</h2>
+<pre><code class="language-go">type Options struct {
+    Name, Path string
+    Capacity   int
+}</code></pre>
+<p><code>Name</code> identifies the queue. Empty <code>Path</code> uses the OS temporary directory; Windows ignores it. Capacity is message-buffer bytes, greater than 16 and divisible by 8. Options must match all other participants.</p>
+<h2 id="publisher">Publisher</h2>
+<h3 id="open-publisher"><code>OpenPublisher(o Options) (*Publisher, error)</code></h3>
+<p>Creates or joins the transient queue and registers a publisher. Defer Close after a successful open.</p>
+<h3 id="try-send"><code>(*Publisher).TrySend(message []byte) (bool, error)</code></h3>
+<p>Copies a message without waiting for space. <code>(false, nil)</code> means full or recovering; <code>(true, nil)</code> means committed.</p>
+<h3 id="publisher-close"><code>(*Publisher).Close() error</code></h3>
+<p>Waits for the current native calls, releases the endpoint, and returns nil. Repeated calls are safe.</p>
+<h2 id="subscriber">Subscriber</h2>
+<h3 id="open-subscriber"><code>OpenSubscriber(o Options) (*Subscriber, error)</code></h3>
+<p>Creates or joins the queue as a competing subscriber.</p>
+<h3 id="try-receive"><code>(*Subscriber).TryReceive() ([]byte, error)</code></h3>
+<p><code>(nil, nil)</code> means no ready message. A received empty message is a non-nil zero-length slice. Returned bytes are owned by Go.</p>
+<h3 id="try-receive-into"><code>(*Subscriber).TryReceiveInto(buffer []byte) (int, bool, error)</code></h3>
+<p>Returns bytes copied, whether a message was consumed, and an error. The boolean distinguishes an empty queue from an empty message. An undersized buffer truncates and consumes the entire message.</p>
+<h3 id="receive"><code>(*Subscriber).Receive(ctx context.Context) ([]byte, error)</code></h3>
+<p>Waits for a message, closure, or context cancellation. Returns <code>ctx.Err()</code> for cancellation or deadline expiry. Pass <code>context.Background()</code> for an indefinite wait; do not pass a nil context.</p>
+<h3 id="subscriber-close"><code>(*Subscriber).Close() error</code></h3>
+<p>Waits for current native calls before releasing the handle. Outstanding receives observe <code>ErrClosed</code> on their next attempt. Repeated close is safe.</p>
+<h2 id="errors">Errors</h2>
+<p>Use <code>errors.Is</code> with <code>ErrInvalidArgument</code>, <code>ErrCapacityMismatch</code>, <code>ErrPublisherLimit</code>, <code>ErrExhausted</code>, <code>ErrCorrupt</code>, <code>ErrIO</code>, <code>ErrInternal</code>, or <code>ErrClosed</code>. Full queues are reported through the send boolean, not a sentinel error. Context errors are <code>context.Canceled</code> or <code>context.DeadlineExceeded</code>.</p>
+<h2 id="concurrency">Concurrency and scheduling</h2>
+<p>Do not copy endpoints after first use. Always close them; concurrent operations are protected against handle release. Each idle Receive uses a Go timer with 1–10 ms adaptive backoff, interrupted by context cancellation. It does not keep an OS thread blocked in cgo while idle. Prefer one receive loop per subscriber and distribute work after receiving.</p>
+<p>This binding has no batch-send method. For lifetime and delivery guarantees, see <a href="/docs/concepts/">queue concepts</a>.</p>
