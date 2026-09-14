@@ -2,10 +2,8 @@
   const system = window.matchMedia('(prefers-color-scheme: dark)');
   let preference = 'system';
   const palettes = ['iris', 'cobalt', 'rose', 'terracotta', 'plum', 'teal', 'olive', 'graphite'];
-  let palette = 'iris';
+  let palette = palettes[Math.floor(Math.random() * palettes.length)];
   try {
-    const savedPalette = localStorage.getItem('cloudtoid-palette');
-    if (palettes.includes(savedPalette)) palette = savedPalette;
     const saved = localStorage.getItem('cloudtoid-theme');
     if (saved === 'light' || saved === 'dark') preference = saved;
   } catch { /* System preference still works when storage is unavailable. */ }
@@ -22,7 +20,6 @@
     function selectPalette(value) {
       palette = value;
       paletteControl.value = value;
-      try { localStorage.setItem('cloudtoid-palette', palette); } catch { }
       apply();
     }
     paletteControl.addEventListener('change', () => selectPalette(paletteControl.value));
