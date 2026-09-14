@@ -109,7 +109,7 @@ impl Subscriber {
                     .min(Duration::from_millis(100))
             });
             let message = py
-                .detach(|| subscriber.receive(Some(wait)))
+                .detach(|| subscriber.receive_timeout(wait))
                 .map_err(error)?;
             py.check_signals()?;
             if let Some(message) = message {

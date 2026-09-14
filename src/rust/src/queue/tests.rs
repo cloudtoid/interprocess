@@ -1,7 +1,7 @@
 use super::*;
 use std::{
     mem::{offset_of, size_of},
-    sync::atomic::AtomicUsize,
+    sync::{atomic::AtomicUsize, Arc},
 };
 
 fn options(capacity: usize) -> Options {
@@ -80,15 +80,15 @@ fn batch_prefix_and_timeout() {
     let subscriber = Subscriber::open(options).unwrap();
     assert_eq!(publisher.try_send_batch(&[b"a", b"b", b"c"]).unwrap(), 2);
     assert_eq!(
-        subscriber.receive(Some(Duration::ZERO)).unwrap().unwrap(),
+        subscriber.receive_timeout(Duration::ZERO).unwrap().unwrap(),
         b"a"
     );
     assert_eq!(
-        subscriber.receive(Some(Duration::ZERO)).unwrap().unwrap(),
+        subscriber.receive_timeout(Duration::ZERO).unwrap().unwrap(),
         b"b"
     );
     assert!(subscriber
-        .receive(Some(Duration::from_millis(10)))
+        .receive_timeout(Duration::from_millis(10))
         .unwrap()
         .is_none());
 }
@@ -227,7 +227,7 @@ fn killed_publisher_recovers_without_losing_queue() {
     // Capture the abandoned tail before placing a later message behind it.
     assert!(subscriber.try_receive().unwrap().is_none());
     assert!(publisher.try_send(b"after crash").unwrap());
-    let message = subscriber.receive(Some(Duration::from_secs(20))).unwrap();
+    let message = subscriber.receive_timeout(Duration::from_secs(20)).unwrap();
     assert_eq!(message.unwrap(), b"after crash");
 }
 
@@ -259,7 +259,7 @@ fn a_paused_live_publisher_must_not_be_reclaimed() {
     assert!(subscriber.try_receive().unwrap().is_none());
     let publisher = Publisher::open(options).unwrap();
     assert!(publisher.try_send(b"preserved").unwrap());
-    let stalled = subscriber.receive(Some(Duration::from_secs(11))).unwrap();
+    let stalled = subscriber.receive_timeout(Duration::from_secs(11)).unwrap();
     let read = subscriber.shared.header().read.load(Acquire);
     child.kill().unwrap();
     child.wait().unwrap();
@@ -267,7 +267,7 @@ fn a_paused_live_publisher_must_not_be_reclaimed() {
     assert_eq!(read, 0, "a live writer's reservation was reclaimed");
     assert_eq!(
         subscriber
-            .receive(Some(Duration::from_secs(20)))
+            .receive_timeout(Duration::from_secs(20))
             .unwrap()
             .unwrap(),
         b"preserved"
@@ -287,7 +287,7 @@ fn missed_notification_does_not_stall_a_blocking_receiver() {
         });
         assert_eq!(
             subscriber
-                .receive(Some(Duration::from_secs(1)))
+                .receive_timeout(Duration::from_secs(1))
                 .unwrap()
                 .unwrap(),
             b"no permit"

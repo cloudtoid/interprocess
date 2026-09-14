@@ -158,13 +158,13 @@ pub unsafe extern "C" fn cip_receive(
         if timeout_ms < -1 {
             return Err("timeout must be -1 or nonnegative".into());
         }
-        let timeout = (timeout_ms >= 0).then(|| Duration::from_millis(timeout_ms as u64));
-        match handle
-            .as_ref()
-            .ok_or("null subscriber")?
-            .receive(timeout)
-            .map_err(|e| e.to_string())?
-        {
+        let subscriber = handle.as_ref().ok_or("null subscriber")?;
+        let message = if timeout_ms == -1 {
+            subscriber.receive().map(Some)
+        } else {
+            subscriber.receive_timeout(Duration::from_millis(timeout_ms as u64))
+        };
+        match message.map_err(|e| e.to_string())? {
             Some(message) => {
                 let message = message.into_boxed_slice();
                 output.length = message.len();

@@ -38,6 +38,7 @@ static cip_result go_receive_into(cip_subscriber *s, uint8_t *data, size_t len, 
 */
 import "C"
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
@@ -118,8 +119,8 @@ func (p *Publisher) Close() error {
 	return nil
 }
 
-// Subscriber competes with other subscribers for messages. Close waits for
-// outstanding calls. Receive therefore requires a finite timeout.
+// Subscriber competes with other subscribers for messages. Close waits for the
+// current native call, then interrupts outstanding Receive calls.
 type Subscriber struct {
 	mu     sync.RWMutex
 	handle *C.cip_subscriber
@@ -139,12 +140,33 @@ func OpenSubscriber(o Options) (*Subscriber, error) {
 	return s, nil
 }
 
-// Receive returns (nil, nil) on timeout. Empty messages return a non-nil slice.
-// Zero timeout is nonblocking; negative timeouts are rejected.
-func (s *Subscriber) Receive(timeout time.Duration) ([]byte, error) {
-	if timeout < 0 {
-		return nil, errors.New("interprocess: timeout must be nonnegative")
+// Receive waits for a message, context cancellation, or Close. Cancellation returns
+// ctx.Err(). Use context.Background() to wait without a deadline.
+func (s *Subscriber) Receive(ctx context.Context) ([]byte, error) {
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		wait := 5 * time.Millisecond
+		if deadline, ok := ctx.Deadline(); ok {
+			remaining := time.Until(deadline)
+			if remaining <= 0 {
+				return nil, context.DeadlineExceeded
+			}
+			if remaining < wait {
+				wait = remaining
+			}
+		}
+		message, err := s.receiveFor(wait)
+		if message != nil || err != nil {
+			return message, err
+		}
 	}
+}
+
+// Bounded native calls let cancellation and Close make progress without a
+// goroutine per receive. The nonblocking path bypasses context and timer work.
+func (s *Subscriber) receiveFor(timeout time.Duration) ([]byte, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.handle == nil {
@@ -164,7 +186,9 @@ func (s *Subscriber) Receive(timeout time.Duration) ([]byte, error) {
 	copy(message, unsafe.Slice((*byte)(unsafe.Pointer(buffer.data)), len(message)))
 	return message, nil
 }
-func (s *Subscriber) TryReceive() ([]byte, error) { return s.Receive(0) }
+
+// TryReceive returns (nil, nil) when empty. Empty messages return a non-nil slice.
+func (s *Subscriber) TryReceive() ([]byte, error) { return s.receiveFor(0) }
 
 // TryReceiveInto truncates AND consumes messages larger than buffer. Its bool
 // distinguishes an empty queue from a successfully received zero-byte message.

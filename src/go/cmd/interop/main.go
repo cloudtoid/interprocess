@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	queue "github.com/cloudtoid/interprocess/src/go/v3"
@@ -32,7 +34,15 @@ func main() {
 		p, err := queue.OpenPublisher(options)
 		check(err)
 		defer p.Close()
-		for i := 0; i < count; i++ {
+		start := 0
+		if len(os.Args) > 5 {
+			start, err = strconv.Atoi(os.Args[5])
+			check(err)
+			fmt.Println("READY")
+			_, err = bufio.NewReader(os.Stdin).ReadString('\n')
+			check(err)
+		}
+		for i := start; i < start+count; i++ {
 			data := message(i)
 			for {
 				ok, err := p.TrySend(data)
@@ -48,8 +58,28 @@ func main() {
 		check(err)
 		defer s.Close()
 		fmt.Println("READY")
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if os.Args[1] == "collect" {
+			for {
+				data, err := s.Receive(ctx)
+				check(err)
+				if data == nil {
+					panic("collector timed out")
+				}
+				if len(data) == 0 {
+					break
+				}
+				id := int(binary.LittleEndian.Uint64(data))
+				if !bytes.Equal(data, message(id)) {
+					panic("message differs")
+				}
+				fmt.Println(id)
+			}
+			return
+		}
 		for i := 0; i < count; i++ {
-			data, err := s.Receive(30 * time.Second)
+			data, err := s.Receive(ctx)
 			check(err)
 			if !bytes.Equal(data, message(i)) {
 				panic(fmt.Sprintf("message %d differs", i))

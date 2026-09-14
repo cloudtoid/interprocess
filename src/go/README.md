@@ -23,8 +23,8 @@ if sent, err := publisher.TrySend([]byte("hello")); err != nil {
 }
 ```
 
-`TrySend` reports full/recovery without waiting. `TryReceive` returns nil when empty; empty messages return non-nil empty slices. `Receive(timeout)` takes a finite `time.Duration`. `TryReceiveInto` reuses caller storage and truncates/consumes messages that do not fit.
+`TrySend` reports full/recovery without waiting. `TryReceive` returns nil when empty; empty messages return non-nil empty slices. `Receive(ctx)` accepts a `context.Context` and returns `ctx.Err()` on cancellation or deadline expiry. Use `context.Background()` to wait indefinitely, or `context.WithTimeout` for a deadline. Cancellation is checked between native waits of at most five milliseconds. `TryReceiveInto` reuses caller storage and truncates/consumes messages that do not fit.
 
-Always close endpoints; do not copy them. Concurrent calls are supported. A per-handle read/write mutex makes Close wait for outstanding calls; it does not serialize publishers across processes. Native errors are copied before leaving cgo so goroutine migration cannot mix up thread-local error messages.
+Always close endpoints; do not copy them. Concurrent calls are supported. A per-handle read/write mutex makes Close wait for the current native call; outstanding blocking receives then return `ErrClosed`; it does not serialize publishers across processes. Native errors are copied before leaving cgo so goroutine migration cannot mix up thread-local error messages.
 
 All participants must agree on name, capacity, and Unix path. This is volatile IPC with process crash recovery, not durable storage or broadcast. See [protocol v3](https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md).

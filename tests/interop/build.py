@@ -38,3 +38,4 @@ run(ENV['DOTNET_HOST_PATH'], 'build', 'tests/interop/dotnet/Interop.csproj', '-c
 run('gcc' if os.name == 'nt' else 'cc', 'tests/interop/c_driver.c', f'-I{SDK / "include"}', f'-L{SDK / "lib"}', '-lcloudtoid_interprocess', '-o', f'target/interop/c-driver{EXE}')
 run('go', 'build', '-o', ROOT / f'target/interop/go-driver{EXE}', './cmd/interop', cwd=ROOT / 'src/go')
 run(sys.executable, 'tests/interop/run.py')
+run(sys.executable, 'tests/interop/mixed.py')

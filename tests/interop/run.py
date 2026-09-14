@@ -32,22 +32,23 @@ def ready(process):
     except queue.Empty: raise RuntimeError('subscriber startup timed out')
     if line.strip() != 'READY': raise RuntimeError(f'subscriber did not start: {line!r}')
 
-with tempfile.TemporaryDirectory(prefix='cip-interop-') as path:
-    for number, (writer, reader) in enumerate(itertools.product(LANGUAGES, repeat=2)):
-        name = f'i{os.getpid()}x{number}'
-        args = [name, path, COUNT]
-        with tempfile.TemporaryFile(mode='w+') as errors:
-            subscriber = subprocess.Popen(COMMANDS[reader] + ['subscribe', *args], stdout=subprocess.PIPE, stderr=errors, text=True)
-            try:
-                ready(subscriber)
-                subprocess.run(COMMANDS[writer] + ['publish', *args], check=True, timeout=45)
-                subscriber.communicate(timeout=45)
-                if subscriber.returncode:
-                    errors.seek(0)
-                    raise RuntimeError(errors.read())
-                print(f'PASS {writer:6} -> {reader:6}: {COUNT} messages', flush=True)
-            finally:
-                if subscriber.poll() is None:
-                    subscriber.kill()
-                    subscriber.wait()
-print(f'PASS: {len(LANGUAGES)**2} language pairs', flush=True)
+if __name__ == '__main__':
+    with tempfile.TemporaryDirectory(prefix='cip-interop-') as path:
+        for number, (writer, reader) in enumerate(itertools.product(LANGUAGES, repeat=2)):
+            name = f'i{os.getpid()}x{number}'
+            args = [name, path, COUNT]
+            with tempfile.TemporaryFile(mode='w+') as errors:
+                subscriber = subprocess.Popen(COMMANDS[reader] + ['subscribe', *args], stdout=subprocess.PIPE, stderr=errors, text=True)
+                try:
+                    ready(subscriber)
+                    subprocess.run(COMMANDS[writer] + ['publish', *args], check=True, timeout=45)
+                    subscriber.communicate(timeout=45)
+                    if subscriber.returncode:
+                        errors.seek(0)
+                        raise RuntimeError(errors.read())
+                    print(f'PASS {writer:6} -> {reader:6}: {COUNT} messages', flush=True)
+                finally:
+                    if subscriber.poll() is None:
+                        subscriber.kill()
+                        subscriber.wait()
+    print(f'PASS: {len(LANGUAGES)**2} language pairs', flush=True)

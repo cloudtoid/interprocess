@@ -12,7 +12,7 @@ assert_eq!(subscriber.try_receive()?.unwrap(), b"hello");
 # Ok::<(), cloudtoid_interprocess::Error>(())
 ```
 
-Reuse receive storage with `try_receive_into`; it truncates and consumes oversized messages, matching .NET. `try_send_batch` amortizes admission across a prefix of messages. Use `receive(Some(timeout))` to wait, or `receive(None)` for an indefinite wait. Dropping the last endpoint releases queue resources; process crashes do not destroy queues with surviving participants.
+Reuse receive storage with `try_receive_into`; it truncates and consumes oversized messages, matching .NET. `try_send_batch` amortizes admission across a prefix of messages. Use `receive_timeout(duration)` for a bounded wait (`None` means timeout), or `receive()` to wait indefinitely and return a message. Dropping the last endpoint releases queue resources; process crashes do not destroy queues with surviving participants.
 
 Publishers reserve with native 64-bit atomics. Readers serialize consumption. A paused live participant retains ownership; abandoned work is recovered only after checking process liveness. Queues are volatile and messages can be discarded during crash recovery. See the [v3 protocol specification](https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md) for the complete contract.
 

@@ -123,7 +123,7 @@ Use the same v3 queue from multiple languages. The native packages are currently
 | Node.js | [Node package](src/node/README.md) |
 | Go | [Go package](src/go/README.md) |
 
-[Protocol v3](docs/protocol.md) documents the complete shared-memory format and synchronization rules. [Interoperability tests](tests/interop/README.md) exercise every publisher/subscriber language pair on Linux, Windows, and macOS.
+[Protocol v3](docs/protocol.md) documents the complete shared-memory format and synchronization rules. [Interoperability tests](tests/interop/README.md) exercise every publisher/subscriber language pair, plus mixed-language concurrent delivery across participant crashes, on Linux, Windows, and macOS.
 
 ## Queue behavior
 

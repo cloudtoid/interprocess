@@ -10,13 +10,15 @@ static size_t message(unsigned i, unsigned char *data) {
     return length;
 }
 int main(int argc, char **argv) {
-    if (argc != 5) return 2;
+    if (argc != 5 && argc != 6) return 2;
     unsigned count = (unsigned)strtoul(argv[4], NULL, 10);
     unsigned char expected[259];
     if (strcmp(argv[1], "publish") == 0) {
         cip_publisher *p = NULL;
         check(cip_publisher_open(argv[2], argv[3], 4096, &p));
-        for (unsigned i = 0; i < count; i++) {
+        unsigned start = argc == 6 ? (unsigned)strtoul(argv[5], NULL, 10) : 0;
+        if (argc == 6) { puts("READY"); fflush(stdout); getchar(); }
+        for (unsigned i = start; i < start + count; i++) {
             size_t length = message(i, expected);
             int status;
             do { status = cip_try_send(p, expected, length); check(status); } while (!status);
@@ -26,6 +28,24 @@ int main(int argc, char **argv) {
         cip_subscriber *s = NULL;
         check(cip_subscriber_open(argv[2], argv[3], 4096, &s));
         puts("READY"); fflush(stdout);
+        if (strcmp(argv[1], "collect") == 0) {
+            for (;;) {
+                cip_buffer actual;
+                int status = cip_receive(s, 30000, &actual); check(status);
+                if (!status) return 3;
+                if (actual.length == 0) { cip_buffer_free(actual); break; }
+                if (actual.length < 8) return 3;
+                uint64_t id = 0;
+                for (unsigned j = 0; j < 8; j++) id |= (uint64_t)actual.data[j] << (8*j);
+                if (id > UINT32_MAX) return 3;
+                size_t length = message((unsigned)id, expected);
+                if (actual.length != length || memcmp(actual.data, expected, length)) return 3;
+                cip_buffer_free(actual);
+                printf("%u\n", (unsigned)id); fflush(stdout);
+            }
+            cip_subscriber_close(s);
+            return 0;
+        }
         for (unsigned i = 0; i < count; i++) {
             size_t length = message(i, expected);
             cip_buffer actual;

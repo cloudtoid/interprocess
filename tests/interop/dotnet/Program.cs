@@ -12,7 +12,9 @@ byte[] Message(int i) {
 }
 if (mode == "publish") {
     using var p = factory.CreatePublisher(options);
-    for (int i = 0; i < count; i++) {
+    var start = args.Length > 4 ? int.Parse(args[4]) : 0;
+    if (args.Length > 4) { Console.WriteLine("READY"); Console.ReadLine(); }
+    for (int i = start; i < start + count; i++) {
         var data = Message(i);
         while (!p.TryEnqueue(data)) Thread.Yield();
     }
@@ -20,6 +22,16 @@ if (mode == "publish") {
     using var s = factory.CreateSubscriber(options);
     Console.WriteLine("READY");
     using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+    if (mode == "collect") {
+        while (true) {
+            var data = s.Dequeue(timeout.Token);
+            if (data.IsEmpty) break;
+            var id = checked((int)BinaryPrimitives.ReadUInt64LittleEndian(data.Span));
+            if (!data.Span.SequenceEqual(Message(id))) throw new Exception($"Message {id} differs");
+            Console.WriteLine(id);
+        }
+        return;
+    }
     for (int i = 0; i < count; i++) {
         var data = s.Dequeue(timeout.Token);
         if (!data.Span.SequenceEqual(Message(i))) throw new Exception($"Message {i} differs");

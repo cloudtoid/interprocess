@@ -11,8 +11,8 @@ export class Subscriber {
   constructor(name: string, capacity: number, path?: string);
   /** Null means no ready message. An empty Buffer is a real message. */
   tryReceive(): Buffer | null;
-  /** Runs on a libuv worker. Use finite waits; each pending call occupies one worker. */
-  receive(timeoutMs: number): Promise<Buffer | null>;
-  /** Pending receives finish within their timeout and retain the queue until then. */
+  /** Checks immediately, then retries on a 1 ms timer. Rejects with signal.reason on cancellation. */
+  receive(options?: { signal?: AbortSignal }): Promise<Buffer>;
+  /** Releases the endpoint. Pending receives reject; closing repeatedly is safe. */
   close(): void;
 }

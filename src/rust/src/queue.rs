@@ -7,7 +7,7 @@ use std::{
     ptr,
     sync::{
         atomic::{AtomicI32, AtomicI64, AtomicU64, Ordering::*},
-        Arc, OnceLock,
+        OnceLock,
     },
     time::{Duration, Instant},
 };
@@ -40,15 +40,15 @@ struct Shared {
 }
 
 impl Shared {
-    fn open(options: Options) -> Result<Arc<Self>> {
+    fn open(options: Options) -> Result<Self> {
         options.validate()?;
         let mapping = Mapping::open(&options)?;
         let signal = Signal::open(&options.name)?;
-        Ok(Arc::new(Self {
+        Ok(Self {
             signal,
             mapping,
             options,
-        }))
+        })
     }
 
     #[inline]
@@ -188,7 +188,7 @@ impl Shared {
 /// A concurrently usable publisher. Dropping it releases its registration.
 pub struct Publisher {
     _lease: Lease,
-    shared: Arc<Shared>,
+    shared: Shared,
     id: i64,
     slot: usize,
 }
@@ -307,7 +307,7 @@ struct Pending {
 /// A subscriber. Multiple subscribers compete for messages; delivery is not broadcast.
 pub struct Subscriber {
     _lease: Lease,
-    shared: Arc<Shared>,
+    shared: Shared,
     id: i64,
     pending: UnsafeCell<Option<Pending>>,
     next_check: AtomicU64,
@@ -369,9 +369,20 @@ impl Subscriber {
         })
     }
 
-    /// Waits for a message, or returns None after a finite timeout. A zero timeout
+    /// Waits for a message indefinitely.
+    pub fn receive(&self) -> Result<Vec<u8>> {
+        // The unbounded path only returns on delivery or error.
+        self.receive_wait(None)
+            .map(|message| message.expect("unbounded wait timed out"))
+    }
+
+    /// Waits for a message, or returns None after the timeout. A zero timeout
     /// performs one attempt. Missed notifications retain the five-millisecond retry.
-    pub fn receive(&self, timeout: Option<Duration>) -> Result<Option<Vec<u8>>> {
+    pub fn receive_timeout(&self, timeout: Duration) -> Result<Option<Vec<u8>>> {
+        self.receive_wait(Some(timeout))
+    }
+
+    fn receive_wait(&self, timeout: Option<Duration>) -> Result<Option<Vec<u8>>> {
         let started = Instant::now();
         let mut relay = false;
         let result = (|| loop {

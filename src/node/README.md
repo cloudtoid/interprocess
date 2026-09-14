@@ -16,7 +16,11 @@ try {
 }
 ```
 
-`trySend` returns false when full or recovering. `trySendBatch` returns the accepted prefix length. `tryReceive` returns a Buffer or null; an empty Buffer is a real message. `await subscriber.receive(timeoutMs)` waits on a libuv worker and requires a finite timeout. Each pending call occupies a worker; use dedicated Worker threads for large numbers of independent blocking subscriptions. Closing prevents new calls; pending receives retain their queue registration until they complete.
+`trySend` returns false when full or recovering. `trySendBatch` returns the accepted prefix length. `tryReceive` returns a Buffer or null; an empty Buffer is a real message.
+
+`await subscriber.receive()` waits for a message. Pass `{ signal }` to cancel, or use `subscriber.receive({ signal: AbortSignal.timeout(1000) })` for a one-second deadline. Cancellation rejects with the signal's reason. `close()` releases the endpoint and makes pending receives reject.
+
+Ready messages use the nonblocking path immediately. Empty queues retry on a one-millisecond timer without occupying libuv workers. Idle-to-active delivery can incur that polling interval, and a busy event loop can delay timers and cancellation.
 
 Every participant must agree on name, capacity, and Unix path (optional third constructor argument). Capacity is bytes, excludes metadata, exceeds 16, and is divisible by 8. Subscribers compete for messages. Queues are volatile, with recovery for crashed participants; they do not provide durable delivery.
 
