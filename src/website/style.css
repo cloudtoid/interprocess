@@ -16,6 +16,8 @@
   --soft: #f5f5f7;
   --accent: #5753c6;
   --rose: #ca244d;
+  --hero-background: #eeedf7;
+  --section-background: #f0f1f5;
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 [data-theme="dark"] {
@@ -30,6 +32,8 @@
   --soft: #1c1d20;
   --accent: #b1a9ff;
   --rose: #ff92ad;
+  --hero-background: #1a1926;
+  --section-background: #191a20;
   --button-text: #111113;
   --button-hover: #7773e6;
   --syntax-keyword: #d1afff;
@@ -272,7 +276,7 @@ footer .brand { color: var(--ink); }
 
 /* Slate surfaces and restrained iris accents, based on Radix Colors. */
 header { border-bottom: 1px solid var(--line); }
-.hero { padding-top: 88px; padding-bottom: 80px; gap: 64px; }
+.hero { padding-top: 88px; padding-bottom: 80px; gap: 64px; background: var(--hero-background); box-shadow: 0 0 0 100vmax var(--hero-background); clip-path: inset(0 -100vmax); }
 .hero h1 { font-weight: 700; letter-spacing: -.055em; }
 .hero .eyebrow { color: var(--accent); }
 .hero-languages { color: var(--muted); font-size: 15px; margin: 18px 0; }
@@ -302,7 +306,7 @@ header { border-bottom: 1px solid var(--line); }
 .code-window { border-radius: 8px; background: var(--surface); }
 .tabs, .code-footer { background: var(--soft); }
 .tabs [aria-selected=true] { background: var(--surface); }
-.open { background: var(--soft); }
+.efficiency, .open { background: var(--section-background); }
 .open-inner { align-items: center; }
 @media (max-width:800px) {
   .hero { padding-top: 52px; padding-bottom: 48px; gap: 36px; }
