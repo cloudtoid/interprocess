@@ -1,6 +1,11 @@
 name: Release native packages
 on:
   workflow_dispatch:
+    inputs:
+      publish_python:
+        description: Publish Python packages to PyPI
+        type: boolean
+        default: true
 permissions:
   contents: read
 concurrency:
@@ -120,6 +125,7 @@ jobs:
             esac
           done
   python:
+    if: inputs.publish_python
     needs: [source, assemble]
     runs-on: ubuntu-latest
     environment: pypi
@@ -174,7 +180,7 @@ jobs:
           done
           publish_package release-packages/npm/main
   release:
-    needs: [source, assemble, rust, python, node]
+    needs: [source, assemble, rust, node]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -199,6 +205,6 @@ jobs:
             fi
           done
           if ! gh release view "native-v$VERSION" >/dev/null 2>&1; then
-            gh release create "native-v$VERSION" --verify-tag --title "Native libraries $VERSION" --notes "Rust, C, Python, Node.js, and Go packages for the shared v3 protocol. See each language README and docs/protocol.md for installation and behavior."
+            gh release create "native-v$VERSION" --verify-tag --title "Native libraries $VERSION" --notes "C SDK and Go module release for the shared v3 protocol, alongside the Rust and Node.js packages. Python publication is managed separately. See each language README and docs/protocol.md for installation and behavior."
           fi
           gh release upload "native-v$VERSION" release-packages/*.tar.gz --clobber
