@@ -62,7 +62,7 @@ function select(tab, focus = false) {
   code.textContent = source;
   document.querySelector('#example').setAttribute('aria-label', `${language} example`);
   const link = document.querySelector('#language-docs');
-  link.href = `https://github.com/cloudtoid/interprocess/tree/main/src/${folder}`;
+  link.href = `https://github.com/cloudtoid/interprocess/tree/171bfbdb3c1b31343fafefaf28bc67a477e75abb/src/${folder}`;
   link.textContent = `Read the ${language} guide →`;
   document.querySelector('#copy-status').textContent = '';
   if (focus) tab.focus();
