@@ -18,10 +18,10 @@ internal struct QueueHeader
     internal long WriteOffset;
 
     /// <summary>
-    /// Time (ticks) at which the read lock was taken. It is set to zero if not lock
+    /// The unique subscriber registration holding the read lock, or zero.
     /// </summary>
     [FieldOffset(16)]
-    internal long ReadLockTimestamp;
+    internal long ReadLockOwner;
 
     /// <summary>
     /// One when a notification permit is pending or a participant is about to post it.
@@ -30,10 +30,10 @@ internal struct QueueHeader
     internal int NotificationPending;
 
     /// <summary>
-    /// Reserved for future use.
+    /// Last subscriber registration allocated in this queue lifetime.
     /// </summary>
     [FieldOffset(28)]
-    internal int Reserved;
+    internal int LastReaderId;
 
     internal readonly bool IsEmpty() =>
         ReadOffset == WriteOffset;

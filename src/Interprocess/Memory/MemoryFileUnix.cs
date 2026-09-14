@@ -8,12 +8,14 @@ internal sealed class MemoryFileUnix : IMemoryFile
     private readonly string directory;
     private readonly string file;
     private readonly string queueName;
+    private readonly QueueOptions options;
     private readonly FileStream stream;
     private readonly ILogger<MemoryFileUnix> logger;
     private int disposed;
 
     internal MemoryFileUnix(QueueOptions options, ILoggerFactory loggerFactory)
     {
+        this.options = options;
         logger = loggerFactory.CreateLogger<MemoryFileUnix>();
         queueName = options.QueueName;
         directory = Path.Combine(options.Path, Folder);
@@ -29,6 +31,7 @@ internal sealed class MemoryFileUnix : IMemoryFile
             {
                 // No live participants: recover any resources left behind by a crash.
                 InterprocessSemaphore.Unlink(queueName);
+                ReaderLease.Cleanup(options);
                 stream.SetLength(0);
             }
             else if (stream.Length != options.GetQueueStorageSize())
@@ -73,6 +76,7 @@ internal sealed class MemoryFileUnix : IMemoryFile
                     // Joining and leaving are serialized, so a new participant cannot open
                     // the old resources between this check and their removal.
                     InterprocessSemaphore.Unlink(queueName);
+                    ReaderLease.Cleanup(options);
                     if (!PathUtil.TryDeleteFile(file))
                         logger.FailedToDeleteSharedMemoryFile();
                 }

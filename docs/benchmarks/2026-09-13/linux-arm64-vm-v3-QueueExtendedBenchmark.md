@@ -1,7 +1,7 @@
 ```
 
 BenchmarkDotNet v0.15.8, Linux Ubuntu 24.04.4 LTS (Noble Numbat)
--
+-, 4 physical cores
 .NET SDK 10.0.401
   [Host]    : .NET 10.0.12 (10.0.12, 10.0.1226.42308), Arm64 RyuJIT armv8.0-a
   .NET 10.0 : .NET 10.0.12 (10.0.12, 10.0.1226.42308), Arm64 RyuJIT armv8.0-a
@@ -11,7 +11,7 @@ IterationCount=8  IterationTime=250ms  LaunchCount=2
 WarmupCount=20
 
 ```
-| Method                                             | Mean     | Error   | StdDev  | Allocated |
-|--------------------------------------------------- |---------:|--------:|--------:|----------:|
-| &#39;Message enqueue and dequeue - long message&#39;       | 156.1 ns | 4.26 ns | 3.78 ns |         - |
-| &#39;Message enqueue and dequeue - ring-wrap workload&#39; | 177.6 ns | 3.38 ns | 3.16 ns |         - |
+| Method                                             | Mean     | Error    | StdDev   | Allocated |
+|--------------------------------------------------- |---------:|---------:|---------:|----------:|
+| &#39;Message enqueue and dequeue - long message&#39;       | 18.20 ns | 0.160 ns | 0.157 ns |         - |
+| &#39;Message enqueue and dequeue - ring-wrap workload&#39; | 21.65 ns | 0.495 ns | 0.463 ns |         - |

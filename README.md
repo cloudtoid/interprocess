@@ -18,15 +18,15 @@
 
 ## Faster with v3 alpha
 
-**6.4× faster round trips and 2.1× the concurrent throughput of v2** in our native Mac benchmarks. Version 3 coalesces notifications, avoiding repeated operating-system calls while readers are active.
+**11.7× faster round trips and 3.2× the concurrent throughput of v2** in our native Mac benchmarks. Version 3 coalesces notifications, avoiding repeated operating-system calls while readers are active.
 
 | Version | 8-byte enqueue + dequeue | 4 publishers / 4 subscribers |
 | --- | ---: | ---: |
 | Latest v1 (`1.0.175`) | — | — |
 | Latest v2 (`2.1.204`) | 208.3 ns | 1.02 million messages/s |
-| v3 alpha | **32.8 ns** | **2.14 million messages/s** |
+| v3 alpha | **17.77 ns** | **3.26 million messages/s** |
 
-Measured on the same Mac with .NET 10. See [benchmark details](#on-macos). Windows ARM64 VM benchmarks also measured **22× faster round trips and 4.6× the throughput of v2**; see the [Windows results](#on-windows).
+Measured on the same Mac with .NET 10. See [benchmark details](#on-macos). Windows ARM64 VM benchmarks also measured **49× faster round trips and 9.9× the throughput of v2**; see the [Windows results](#on-windows).
 
 **Upgrade to v3 alpha and try it with your workload:**
 
@@ -122,58 +122,58 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 ### On macOS
 
-Measured September 13, 2026, on an **Apple M5 Max**, macOS 26.6.2, .NET 10.0.12, Release build. V3 source: [`60bc11c`](https://github.com/cloudtoid/interprocess/commit/60bc11c).
+Measured September 13, 2026, on an **Apple M5 Max**, macOS 26.6.2, .NET 10.0.12, Release build. V3 source: [`9fc6b15`](https://github.com/cloudtoid/interprocess/commit/9fc6b15).
 
 | Workload | Mean (ns) | StdDev (ns) | Allocated |
 | --- | ---: | ---: | ---: |
-| Enqueue, 3 bytes | 4.82 | 0.20 | 0 B |
-| Enqueue + dequeue, 3 bytes, reused buffer | 32.70 | 0.46 | 0 B |
-| Enqueue + dequeue, 3 bytes, new result array | 33.97 | 0.22 | 32 B |
-| Enqueue + dequeue, 50 bytes, reused buffer | 33.60 | 0.44 | 0 B |
-| Enqueue + dequeue, 50 bytes, ring-wrap workload | 39.46 | 0.26 | 0 B |
-| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 138.5 | 1.30 | — |
-| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 187.7 | 9.17 | — |
+| Enqueue, 3 bytes | 4.84 | 0.07 | 0 B |
+| Enqueue + dequeue, 3 bytes, reused buffer | 17.27 | 0.15 | 0 B |
+| Enqueue + dequeue, 3 bytes, new result array | 19.85 | 0.23 | 32 B |
+| Enqueue + dequeue, 50 bytes, reused buffer | 18.01 | 0.21 | 0 B |
+| Enqueue + dequeue, 50 bytes, ring-wrap workload | 21.61 | 0.21 | 0 B |
+| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 104.90 | 1.17 | — |
+| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 139.70 | 6.43 | — |
 
-In-process microbenchmarks, not latency between applications. Concurrent rows show amortized time per message, including worker startup and completion; their allocations were not measured. Enqueue drains outside the timed batch. [BenchmarkDotNet][BenchmarkOrg]: two launches, eight measured iterations, three warmups (50 for enqueue-only).
+In-process microbenchmarks, not latency between applications. Concurrent rows show amortized time per message, including worker startup and completion; their allocations were not measured. Enqueue drains outside the timed batch. [BenchmarkDotNet][BenchmarkOrg]: two launches, eight measured iterations, three warmups (200 for enqueue-only).
 
 [Benchmark source and reports](docs/benchmarks/2026-09-13/). Run the Mac suite from the repository root:
 
 ```sh
 dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*' --warmupCount 3 --iterationCount 8 --launchCount 2 --iterationTime 250
-dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*EnqueueBenchmark*' --warmupCount 50 --iterationCount 8 --launchCount 2
+dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*EnqueueBenchmark*' --warmupCount 200 --iterationCount 8 --launchCount 2
 ```
 
 ### On Windows
 
-Measured September 13, 2026, on an **Apple M5 Max**, Windows 11 Pro 25H2 ARM64 VM (UTM, 4 vCPUs, 12 GiB RAM), .NET 10.0.12, Release build. V3 source: [`52de9c4`](https://github.com/cloudtoid/interprocess/commit/52de9c4).
+Measured September 13, 2026, on an **Apple M5 Max**, Windows 11 Pro 25H2 ARM64 VM (UTM, 4 vCPUs, 12 GiB RAM), .NET 10.0.12, Release build. V3 source: [`9fc6b15`](https://github.com/cloudtoid/interprocess/commit/9fc6b15).
 
 | Workload | Mean (ns) | StdDev (ns) | Allocated |
 | --- | ---: | ---: | ---: |
-| Enqueue, 3 bytes | 4.98 | 0.17 | 0 B |
-| Enqueue + dequeue, 3 bytes, reused buffer | 40.43 | 0.39 | 0 B |
-| Enqueue + dequeue, 3 bytes, new result array | 42.49 | 0.62 | 32 B |
-| Enqueue + dequeue, 50 bytes, reused buffer | 41.64 | 0.67 | 0 B |
-| Enqueue + dequeue, 50 bytes, ring-wrap workload | 44.80 | 0.99 | 0 B |
-| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 110.99 | 0.82 | — |
-| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 202.68 | 29.66 | — |
+| Enqueue, 3 bytes | 4.92 | 0.08 | 0 B |
+| Enqueue + dequeue, 3 bytes, reused buffer | 18.47 | 0.43 | 0 B |
+| Enqueue + dequeue, 3 bytes, new result array | 19.61 | 0.42 | 32 B |
+| Enqueue + dequeue, 50 bytes, reused buffer | 18.10 | 0.49 | 0 B |
+| Enqueue + dequeue, 50 bytes, ring-wrap workload | 22.16 | 0.24 | 0 B |
+| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 94.91 | 0.73 | — |
+| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 95.08 | 14.96 | — |
 
-Same in-process workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (50 for enqueue-only), while concurrent runs used all four vCPUs and three warmups. [Benchmark source and reports](docs/benchmarks/2026-09-13/).
+Same in-process workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (200 for enqueue-only), while concurrent runs used all four vCPUs and three warmups. [Benchmark source and reports](docs/benchmarks/2026-09-13/).
 
 ### On Linux
 
-Measured September 13, 2026, on an **Apple M5 Max**, Ubuntu 24.04 ARM64 VM (Lima/Apple Virtualization, 4 vCPUs, 8 GiB RAM), .NET 10.0.12, Release build. V3 source: [`52de9c4`](https://github.com/cloudtoid/interprocess/commit/52de9c4).
+Measured September 13, 2026, on an **Apple M5 Max**, Ubuntu 24.04 ARM64 VM (Lima/QEMU, 4 vCPUs, 8 GiB RAM), Linux 6.12.94 with 16 KiB pages, .NET 10.0.12, Release build. V3 source: [`9fc6b15`](https://github.com/cloudtoid/interprocess/commit/9fc6b15).
 
 | Workload | Mean (ns) | StdDev (ns) | Allocated |
 | --- | ---: | ---: | ---: |
-| Enqueue, 3 bytes | 29.58 | 0.40 | 0 B |
-| Enqueue + dequeue, 3 bytes, reused buffer | 147.93 | 2.05 | 0 B |
-| Enqueue + dequeue, 3 bytes, new result array | 142.45 | 1.82 | 32 B |
-| Enqueue + dequeue, 50 bytes, reused buffer | 156.07 | 3.78 | 0 B |
-| Enqueue + dequeue, 50 bytes, ring-wrap workload | 177.64 | 3.16 | 0 B |
-| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 142.63 | 1.86 | — |
-| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 221.13 | 19.94 | — |
+| Enqueue, 3 bytes | 5.05 | 0.07 | 0 B |
+| Enqueue + dequeue, 3 bytes, reused buffer | 17.97 | 0.48 | 0 B |
+| Enqueue + dequeue, 3 bytes, new result array | 21.15 | 0.27 | 32 B |
+| Enqueue + dequeue, 50 bytes, reused buffer | 18.20 | 0.16 | 0 B |
+| Enqueue + dequeue, 50 bytes, ring-wrap workload | 21.65 | 0.46 | 0 B |
+| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 107.70 | 1.73 | — |
+| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 161.00 | 13.33 | — |
 
-Same in-process workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (50 for enqueue-only), while concurrent runs used all four vCPUs and three warmups. [Benchmark source and reports](docs/benchmarks/2026-09-13/).
+Same in-process workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (200 for enqueue-only), while concurrent runs used all four vCPUs and three warmups. [Benchmark source and reports](docs/benchmarks/2026-09-13/).
 
 ## Implementation Notes
 

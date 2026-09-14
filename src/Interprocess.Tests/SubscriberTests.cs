@@ -67,25 +67,6 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
     }
 
     [Fact]
-    public void FailedReadDoesNotReleaseASuccessorLockOrRestoreItsMessage()
-    {
-        using var probe = new QueueProbe(options);
-        using var publisher = factory.CreatePublisher(options);
-        using var subscriber = factory.CreateSubscriber(options);
-        using var destination = new TestMemory();
-        var memory = destination.Memory;
-        var successorTimestamp = DateTime.UtcNow.Ticks + TimeSpan.FromSeconds(1).Ticks;
-        destination.OnAccess = () => probe.SetReadLock(successorTimestamp);
-        destination.FailReads = true;
-        publisher.TryEnqueue("message!"u8).Should().BeTrue();
-
-        Assert.Throws<InvalidOperationException>(() => subscriber.TryDequeue(memory, out _));
-
-        probe.ReadLockTimestamp.Should().Be(successorTimestamp);
-        probe.HeadState.Should().Be(MessageHeader.LockedToBeConsumedState);
-    }
-
-    [Fact]
     public async Task ConcurrentVariableLengthMessagesKeepTheirLengthAndPayloadAsync()
     {
         const int count = 1000;
@@ -141,19 +122,6 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
         subscriber.TryDequeue(out _).Should().BeTrue();
     }
 
-    [Fact]
-    public void ExpiredSubscriberLockCanBeRecovered()
-    {
-        using var probe = new QueueProbe(options);
-        using var publisher = factory.CreatePublisher(options);
-        using var subscriber = factory.CreateSubscriber(options);
-        publisher.TryEnqueue("message!"u8).Should().BeTrue();
-        probe.AbandonReadLock();
-        subscriber.TryDequeue(out var message).Should().BeTrue();
-        message.ToArray().Should().Equal("message!"u8.ToArray());
-        probe.ReadsAreLocked.Should().BeFalse();
-    }
-
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -207,17 +175,13 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
     }
 
     [Fact]
-    public void DisposingSubscriberReleasesPendingReservation()
+    public void UnfinishedReadDoesNotBlockOtherSubscribers()
     {
         using var probe = new QueueProbe(options);
         using var subscriber = factory.CreateSubscriber(options);
         using var successor = factory.CreateSubscriber(options);
         probe.ReserveUnfinishedMessage();
         subscriber.TryDequeue(out _).Should().BeFalse();
-        probe.ReadsAreLocked.Should().BeTrue();
-
-        subscriber.Dispose();
-
         probe.ReadsAreLocked.Should().BeFalse();
         probe.CompleteMessage();
         successor.TryDequeue(out var message).Should().BeTrue();
@@ -241,43 +205,32 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
         });
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void PendingReservationDoesNotReleaseASuccessorLock(bool dispose)
-    {
-        using var probe = new QueueProbe(options);
-        using var subscriber = factory.CreateSubscriber(options);
-        probe.ReserveUnfinishedMessage();
-        subscriber.TryDequeue(out _).Should().BeFalse();
-        var successorTimestamp = DateTime.UtcNow.Ticks + TimeSpan.FromSeconds(1).Ticks;
-        probe.SetReadLock(successorTimestamp);
-
-        if (dispose)
-            subscriber.Dispose();
-        else
-            subscriber.TryDequeue(out _).Should().BeFalse();
-
-        probe.ReadLockTimestamp.Should().Be(successorTimestamp);
-    }
-
     [Fact]
-    public void PendingReservationCanBeTakenOverAfterItsLockExpires()
+    public async Task OldPendingReadCannotDiscardANewReservationAfterWrapAsync()
     {
         using var probe = new QueueProbe(options);
+        using var publisher = factory.CreatePublisher(options);
         using var subscriber = factory.CreateSubscriber(options);
-        using var successor = factory.CreateSubscriber(options);
+        using var other = factory.CreateSubscriber(options);
         probe.ReserveUnfinishedMessage();
         subscriber.TryDequeue(out _).Should().BeFalse();
-        probe.AbandonReadLock();
-        successor.TryDequeue(out _).Should().BeFalse();
+        await Task.Delay(TimeSpan.FromSeconds(10.1));
+        probe.CompleteMessage();
+        other.TryDequeue(out _).Should().BeTrue();
+
+        // Return to the same physical slot with a different monotonic read position.
+        for (var i = 0; i < (options.Capacity / 16) - 1; i++)
+        {
+            publisher.TryEnqueue("advance!"u8).Should().BeTrue();
+            other.TryDequeue(out _).Should().BeTrue();
+        }
+
+        probe.ReserveUnfinishedMessage();
         subscriber.TryDequeue(out _).Should().BeFalse();
         probe.CompleteMessage();
-
-        successor.TryDequeue(out var message).Should().BeTrue();
+        subscriber.TryDequeue(out var message).Should().BeTrue();
         message.ToArray().Should().Equal("message!"u8.ToArray());
         subscriber.TryDequeue(out _).Should().BeFalse();
-        probe.ReadsAreLocked.Should().BeFalse();
     }
 
     [Fact]
@@ -352,7 +305,8 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
 
         try
         {
-            SpinWait.SpinUntil(() => probe.ReadsAreLocked, TimeSpan.FromSeconds(1)).Should().BeTrue();
+            await Task.Delay(20);
+            read.IsCompleted.Should().BeFalse();
             await cancellation.CancelAsync();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(
                 async () => await read.WaitAsync(TimeSpan.FromSeconds(1)));
@@ -444,21 +398,11 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
 
     private sealed class QueueProbe(QueueOptions options) : Queue(options, NullLoggerFactory.Instance)
     {
-        internal unsafe long ReadLockTimestamp => Interlocked.Read(ref Header->ReadLockTimestamp);
+        internal unsafe bool ReadsAreLocked => Interlocked.Read(ref Header->ReadLockOwner) != 0;
 
-        internal unsafe bool ReadsAreLocked => Interlocked.Read(ref Header->ReadLockTimestamp) != 0;
+        internal unsafe void LockReads() => Interlocked.Exchange(ref Header->ReadLockOwner, long.MaxValue);
 
-        internal unsafe int HeadState => ((MessageHeader*)Buffer.GetPointer(Header->ReadOffset))->State;
-
-        internal unsafe void SetReadLock(long timestamp) =>
-            Interlocked.Exchange(ref Header->ReadLockTimestamp, timestamp);
-
-        internal unsafe void LockReads() => Interlocked.Exchange(ref Header->ReadLockTimestamp, DateTime.UtcNow.Ticks);
-
-        internal unsafe void AbandonReadLock() =>
-            Interlocked.Exchange(ref Header->ReadLockTimestamp, DateTime.UtcNow.Ticks - TimeSpan.FromSeconds(11).Ticks);
-
-        internal unsafe void UnlockReads() => Interlocked.Exchange(ref Header->ReadLockTimestamp, 0);
+        internal unsafe void UnlockReads() => Interlocked.Exchange(ref Header->ReadLockOwner, 0);
 
         internal unsafe void ReserveUnfinishedMessage() =>
             Interlocked.Exchange(ref Header->WriteOffset, checked(Header->WriteOffset + 16));
@@ -479,7 +423,6 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
 
         internal bool FailReads { get; set; }
         internal bool SupportsPinning { get; set; } = true;
-        internal Action? OnAccess { get; set; }
 
         public override Span<byte> GetSpan()
         {
@@ -506,7 +449,6 @@ public sealed class SubscriberTests(UniquePathFixture fixture) : IClassFixture<U
 
         private void CheckAccess()
         {
-            OnAccess?.Invoke();
             if (FailReads)
                 throw new InvalidOperationException("Destination memory is unavailable.");
         }

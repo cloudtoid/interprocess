@@ -8,9 +8,9 @@ virt-10.0 1.00GHz, 1 CPU, 4 logical and 4 physical cores
 
 Job=.NET 10.0  Affinity=0001  Runtime=.NET 10.0
 InvocationCount=1  IterationCount=8  LaunchCount=2
-UnrollFactor=1  WarmupCount=50
+UnrollFactor=1  WarmupCount=200
 
 ```
 | Method            | Mean     | Error     | StdDev    | Allocated |
 |------------------ |---------:|----------:|----------:|----------:|
-| &#39;Message enqueue&#39; | 4.982 ns | 0.1797 ns | 0.1681 ns |         - |
+| &#39;Message enqueue&#39; | 4.918 ns | 0.0775 ns | 0.0761 ns |         - |
