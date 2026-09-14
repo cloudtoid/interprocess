@@ -18,15 +18,15 @@
 
 ## Faster with v3
 
-**11.7× faster round trips and 3.2× the concurrent throughput of v2** in our native Mac benchmarks. Version 3 coalesces notifications, avoiding repeated operating-system calls while readers are active.
+**12.0× faster round trips and 2.3× the concurrent throughput of v2** in our native Mac benchmarks. Version 3 coalesces notifications, avoiding repeated operating-system calls while readers are active.
 
 | Version | 8-byte enqueue + dequeue | 4 publishers / 4 subscribers |
 | --- | ---: | ---: |
 | Latest v1 (`1.0.175`) | — | — |
-| Latest v2 (`2.1.204`) | 208.3 ns | 1.02 million messages/s |
-| v3 | **17.77 ns** | **3.26 million messages/s** |
+| Latest v2 (`2.1.204`) | 214.6 ns | 1.04 million messages/s |
+| v3 | **17.82 ns** | **2.42 million messages/s** |
 
-Measured on the same Mac with .NET 10. See [benchmark details](#on-macos). Windows ARM64 VM benchmarks also measured **49× faster round trips and 9.9× the throughput of v2**; see the [Windows results](#on-windows).
+Measured on the same Mac with .NET 10. See [benchmark details](#on-macos).
 
 **Upgrade to v3 and try it with your workload:**
 
@@ -111,7 +111,7 @@ subscriber.TryDequeue(messageBuffer, out var message);
 ## Queue behavior
 
 - Use the same name, capacity, and storage path in every participant. Queue names must be unique even across different paths; Windows uses the name and ignores the path.
-- Each queue supports **2,048 connected publisher objects**. Slots are reused after disposal or confirmed process exit. The publisher table adds **256 KiB** plus 128 bytes of header/alignment storage; `Capacity` is the message-buffer size.
+- Each queue supports **2,048 connected publisher objects**. Slots are reused after disposal or confirmed process exit. The publisher table adds **256 KiB** plus 256 bytes of header/alignment storage; `Capacity` is the message-buffer size.
 - On Windows, use the same user session for all participants. Cross-account connections are not supported.
 - Queue resources remain available while any publisher or subscriber is connected. Dispose participants when finished.
 - A paused live participant keeps ownership. Recovery can reclaim abandoned work after a process exits, but may discard queued messages, including completed messages behind an unfinished reservation. This is an IPC queue, not durable storage.
@@ -130,25 +130,26 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 ### On macOS
 
-Measured September 13, 2026, on an **Apple M5 Max**, macOS 26.6.2, .NET 10.0.12, Release build. V3 source: [`9fc6b15`](https://github.com/cloudtoid/interprocess/commit/9fc6b15).
+Measured September 13, 2026, on an **Apple M5 Max**, macOS 26.6.2, .NET 10.0.12, Release build. V3 source: [`f990ba3`](https://github.com/cloudtoid/interprocess/commit/f990ba3).
 
 | Workload | Mean (ns) | StdDev (ns) | Allocated |
 | --- | ---: | ---: | ---: |
-| Enqueue, 3 bytes | 4.84 | 0.07 | 0 B |
-| Enqueue + dequeue, 3 bytes, reused buffer | 17.27 | 0.15 | 0 B |
-| Enqueue + dequeue, 3 bytes, new result array | 19.85 | 0.23 | 32 B |
-| Enqueue + dequeue, 50 bytes, reused buffer | 18.01 | 0.21 | 0 B |
-| Enqueue + dequeue, 50 bytes, ring-wrap workload | 21.61 | 0.21 | 0 B |
-| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 104.90 | 1.17 | — |
-| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 139.70 | 6.43 | — |
+| Enqueue, 3 bytes | 5.74 | 0.13 | 0 B |
+| Enqueue + dequeue, 3 bytes, reused buffer | 17.37 | 0.43 | 0 B |
+| Enqueue + dequeue, 3 bytes, new result array | 20.00 | 0.15 | 32 B |
+| Enqueue + dequeue, 50 bytes, reused buffer | 18.81 | 0.23 | 0 B |
+| Enqueue + dequeue, 50 bytes, ring-wrap workload | 21.35 | 0.08 | 0 B |
+| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 113.40 | 0.95 | — |
+| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 155.30 | 11.19 | — |
 
-In-process microbenchmarks, not latency between applications. Concurrent rows show amortized time per message, including worker startup and completion; their allocations were not measured. Enqueue drains outside the timed batch. [BenchmarkDotNet][BenchmarkOrg]: two launches, eight measured iterations, three warmups (200 for enqueue-only).
+In-process microbenchmarks, not latency between applications. Concurrent rows show amortized time per message, including worker startup and completion; their allocations were not measured. Enqueue drains outside the timed batch. [BenchmarkDotNet][BenchmarkOrg]: two launches, eight measured iterations, 20 warmups (200 for enqueue-only; three for concurrent delivery).
 
 [Benchmark source and reports](docs/benchmarks/2026-09-13/). Run the Mac suite from the repository root:
 
 ```sh
-dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*' --warmupCount 3 --iterationCount 8 --launchCount 2 --iterationTime 250
+dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*QueueBenchmark*' '*QueueExtendedBenchmark*' --warmupCount 20 --iterationCount 8 --launchCount 2 --iterationTime 250
 dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*EnqueueBenchmark*' --warmupCount 200 --iterationCount 8 --launchCount 2
+dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*SubscriberBenchmark*' --warmupCount 3 --iterationCount 8 --launchCount 2 --iterationTime 250
 ```
 
 ### On Windows
@@ -169,17 +170,17 @@ Same in-process workloads and allocation conventions as the Mac suite. Two launc
 
 ### On Linux
 
-Measured September 13, 2026, on an **Apple M5 Max**, Ubuntu 24.04 ARM64 VM (Lima/QEMU, 4 vCPUs, 8 GiB RAM), Linux 6.12.94 with 16 KiB pages, .NET 10.0.12, Release build. V3 source: [`9fc6b15`](https://github.com/cloudtoid/interprocess/commit/9fc6b15).
+Measured September 13, 2026, on an **Apple M5 Max**, Ubuntu 24.04 ARM64 VM (Lima/QEMU, 4 vCPUs, 8 GiB RAM), Linux 6.12.94 with 16 KiB pages, .NET 10.0.12, Release build. V3 source: [`f990ba3`](https://github.com/cloudtoid/interprocess/commit/f990ba3).
 
 | Workload | Mean (ns) | StdDev (ns) | Allocated |
 | --- | ---: | ---: | ---: |
-| Enqueue, 3 bytes | 5.05 | 0.07 | 0 B |
-| Enqueue + dequeue, 3 bytes, reused buffer | 17.97 | 0.48 | 0 B |
-| Enqueue + dequeue, 3 bytes, new result array | 21.15 | 0.27 | 32 B |
-| Enqueue + dequeue, 50 bytes, reused buffer | 18.20 | 0.16 | 0 B |
-| Enqueue + dequeue, 50 bytes, ring-wrap workload | 21.65 | 0.46 | 0 B |
-| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 107.70 | 1.73 | — |
-| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 161.00 | 13.33 | — |
+| Enqueue, 3 bytes | 6.00 | 0.07 | 0 B |
+| Enqueue + dequeue, 3 bytes, reused buffer | 16.68 | 0.18 | 0 B |
+| Enqueue + dequeue, 3 bytes, new result array | 19.78 | 0.20 | 32 B |
+| Enqueue + dequeue, 50 bytes, reused buffer | 17.64 | 0.21 | 0 B |
+| Enqueue + dequeue, 50 bytes, ring-wrap workload | 20.82 | 0.11 | 0 B |
+| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 112.90 | 1.10 | — |
+| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 158.60 | 13.64 | — |
 
 Same in-process workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (200 for enqueue-only), while concurrent runs used all four vCPUs and three warmups. [Benchmark source and reports](docs/benchmarks/2026-09-13/).
 
@@ -212,7 +213,7 @@ Here are a couple of items that we are working on.
 [LicenseBadge]:https://img.shields.io/badge/License-MIT-blue.svg
 [WorkflowBadgePublish]:https://github.com/cloudtoid/interprocess/workflows/publish/badge.svg
 [PublishWorkflow]:https://github.com/cloudtoid/interprocess/actions/workflows/publish.yml
-[NuGetBadge]:https://img.shields.io/nuget/vpre/Cloudtoid.Interprocess
+[NuGetBadge]:https://img.shields.io/nuget/v/Cloudtoid.Interprocess
 [DotNetPlatformBadge]:https://img.shields.io/badge/.net-%3E%3D%2010.0-blue
 [NuGet]:https://www.nuget.org/packages/Cloudtoid.Interprocess/
 [IPCWiki]:https://en.wikipedia.org/wiki/Inter-process_communication

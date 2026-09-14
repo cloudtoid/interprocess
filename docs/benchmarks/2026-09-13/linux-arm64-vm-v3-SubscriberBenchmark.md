@@ -12,5 +12,5 @@ LaunchCount=2  WarmupCount=3
 ```
 | Method                   | SubscriberCount | Mean     | Error    | StdDev   |
 |------------------------- |---------------- |---------:|---------:|---------:|
-| **ReceiveConcurrentlyAsync** | **1**               | **107.7 ns** |  **1.76 ns** |  **1.73 ns** |
-| **ReceiveConcurrentlyAsync** | **4**               | **161.0 ns** | **13.57 ns** | **13.33 ns** |
+| **ReceiveConcurrentlyAsync** | **1**               | **112.9 ns** |  **1.12 ns** |  **1.10 ns** |
+| **ReceiveConcurrentlyAsync** | **4**               | **158.6 ns** | **14.59 ns** | **13.64 ns** |

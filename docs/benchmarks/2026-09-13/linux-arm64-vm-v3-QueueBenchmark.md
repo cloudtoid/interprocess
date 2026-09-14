@@ -13,5 +13,5 @@ WarmupCount=20
 ```
 | Method                                            | Mean     | Error    | StdDev   | Gen0   | Allocated |
 |-------------------------------------------------- |---------:|---------:|---------:|-------:|----------:|
-| &#39;Message enqueue and dequeue - no message buffer&#39; | 21.15 ns | 0.285 ns | 0.267 ns | 0.0149 |      32 B |
-| &#39;Message enqueue and dequeue&#39;                     | 17.97 ns | 0.491 ns | 0.482 ns |      - |         - |
+| &#39;Message enqueue and dequeue - no message buffer&#39; | 19.78 ns | 0.206 ns | 0.202 ns | 0.0149 |      32 B |
+| &#39;Message enqueue and dequeue&#39;                     | 16.68 ns | 0.186 ns | 0.183 ns |      - |         - |

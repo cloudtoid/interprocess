@@ -7,10 +7,10 @@ Apple M5 Max, 1 CPU, 18 logical and 18 physical cores
   .NET 10.0 : .NET 10.0.12 (10.0.12, 10.0.1226.42308), Arm64 RyuJIT armv8.0-a
 
 Job=.NET 10.0  Runtime=.NET 10.0  InvocationCount=1
-IterationCount=8  LaunchCount=2  UnrollFactor=1
-WarmupCount=200
+IterationCount=8  IterationTime=250ms  LaunchCount=2
+UnrollFactor=1  WarmupCount=200
 
 ```
 | Method            | Mean     | Error     | StdDev    | Allocated |
 |------------------ |---------:|----------:|----------:|----------:|
-| &#39;Message enqueue&#39; | 4.838 ns | 0.0711 ns | 0.0698 ns |         - |
+| &#39;Message enqueue&#39; | 5.736 ns | 0.1293 ns | 0.1270 ns |         - |
