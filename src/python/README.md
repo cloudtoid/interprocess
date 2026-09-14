@@ -4,7 +4,7 @@
 
 Fast shared-memory byte queues. Exchange messages directly with Rust, C, Go, Node.js, and .NET processes using the same v3 queue.
 
-## Install
+## [Install](https://cloudtoid.com/docs/python/#install)
 
 PyPI publishing is pending. Run in an activated Python 3.9+ virtual environment with Git, Rust, and a native linker installed.
 

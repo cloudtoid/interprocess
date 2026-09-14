@@ -4,7 +4,7 @@
 
 Fast shared-memory byte queues for processes on the same machine. Exchange messages with Rust, C, Python, Node.js, Go, and .NET using the open v3 protocol.
 
-## Install
+## [Install](https://cloudtoid.com/docs/rust/#install)
 
 Run in your Cargo project. Requires Rust 1.87 or later.
 

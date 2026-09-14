@@ -4,7 +4,7 @@
 
 The C ABI exposes the shared Rust engine to C/C++ and other native callers. It interoperates with .NET protocol v3.
 
-## Install the prebuilt SDK
+## [Install the prebuilt SDK](https://cloudtoid.com/docs/c/#install)
 
 macOS Apple Silicon example, using the GitHub CLI. For other platforms, choose darwin-x64, linux-arm64, linux-x64, or win32-x64 in both archive names. See the [C guide](https://cloudtoid.com/docs/c/) for Windows setup.
 
@@ -17,17 +17,7 @@ export PKG_CONFIG_PATH="$PWD/cloudtoid-sdk/lib/pkgconfig:$PKG_CONFIG_PATH"
 
 On Windows, extract the `win32-x64` archive and set `PKG_CONFIG_PATH` to its `lib/pkgconfig` directory. Add its `lib` directory to `PATH` for the DLL. Go on Windows also requires a cgo-compatible C compiler and pkg-config.
 
-## Build from source
-
-From the repository root, with Rust and CMake installed:
-
-```sh
-cmake -S src/c -B target/c-sdk -DCMAKE_INSTALL_PREFIX="$HOME/.local"
-cmake --build target/c-sdk --config Release
-cmake --install target/c-sdk --config Release
-```
-
-Link with `pkg-config --cflags --libs cloudtoid-interprocess`. On Unix, these flags embed the installed library directory as a runtime search path. Windows callers use the DLL and import library; add the DLL directory to `PATH` or place the DLL beside the executable. The C header documents status codes, timeout units, ownership, buffer truncation, and concurrent-close requirements.
+[Build the SDK from source](https://cloudtoid.com/docs/c/#build-from-source).
 
 ## Example
 

@@ -4,7 +4,7 @@
 
 Exchange byte messages between processes on the same machine using a shared-memory queue. Multiple publishers and subscribers can connect to the same queue on Windows, Linux, or macOS.
 
-## Install
+## [Install](https://cloudtoid.com/docs/dotnet/#install)
 
 Requires .NET 10 or later and a 64-bit process.
 

@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
+documentation = "https://cloudtoid.com/docs/rust/"
 authors.workspace = true
 readme = "README.md"
 rust-version = "1.87"

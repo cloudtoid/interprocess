@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
+documentation = "https://cloudtoid.com/docs/c/"
 authors.workspace = true
 description = "C ABI for Cloudtoid Interprocess shared-memory queues"
 

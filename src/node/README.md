@@ -4,7 +4,7 @@
 
 Exchange bytes directly with Rust, C, Python, Go, and .NET processes through fast shared-memory queues.
 
-## Install
+## [Install](https://cloudtoid.com/docs/node/#install)
 
 Run in your Node.js project. Requires Node.js 18 or later; platform binaries install automatically.
 

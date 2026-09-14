@@ -6,7 +6,7 @@ Shared-memory byte queues backed by the same Rust core as the C, Python, and Nod
 
 Install the [C SDK](https://cloudtoid.com/docs/c/), make its `pkgconfig` directory available through `PKG_CONFIG_PATH`, and, on Windows, add its DLL directory to `PATH`. On Unix, pkg-config embeds the installed library directory as a runtime search path. This package requires cgo, a C compiler, and `pkg-config`.
 
-## Install
+## [Install](https://cloudtoid.com/docs/go/#install)
 
 Install the C SDK first (see the C guide), then run in your Go module. Requires Go 1.24+, cgo enabled, a C compiler, and pkg-config.
 

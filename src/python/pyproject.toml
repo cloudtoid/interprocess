@@ -16,7 +16,7 @@ classifiers = ["Programming Language :: Python :: 3", "Programming Language :: R
 [project.urls]
 Homepage = "https://cloudtoid.com"
 Repository = "https://github.com/cloudtoid/interprocess"
-Documentation = "https://cloudtoid.com/docs/protocol/"
+Documentation = "https://cloudtoid.com/docs/python/"
 
 [tool.maturin]
 python-source = "python"
