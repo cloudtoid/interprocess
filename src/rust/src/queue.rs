@@ -241,9 +241,7 @@ impl Publisher {
         if self.shared.gate().load(Acquire) != 0 {
             return Err(Error::Full);
         }
-        self.send_admitted(message)?
-            .then_some(())
-            .ok_or(Error::Full)
+        self.send_admitted(message)
     }
 
     /// Publishes an ordered prefix, amortizing publisher admission across a batch.
@@ -251,9 +249,6 @@ impl Publisher {
     /// full, recovery, or a mid-batch error; retry the unsent suffix to observe a
     /// persistent error. An error before any commit is returned immediately.
     pub fn try_send_batch(&self, messages: &[&[u8]]) -> Result<usize> {
-        if messages.iter().any(|m| m.len() > i32::MAX as usize) {
-            return Err(Error::Invalid("message exceeds the protocol length limit"));
-        }
         let count = self.shared.active(self.slot);
         count.fetch_add(1, SeqCst);
         let _active = Active(count);
@@ -263,8 +258,8 @@ impl Publisher {
         let mut sent = 0;
         for message in messages {
             match self.send_admitted(message) {
-                Ok(true) => sent += 1,
-                Ok(false) => break,
+                Ok(()) => sent += 1,
+                Err(Error::Full) => break,
                 // Preserve the committed prefix even if a lifetime counter runs
                 // out mid-batch. Retrying the remainder surfaces the error.
                 Err(_) if sent > 0 => break,
@@ -274,13 +269,13 @@ impl Publisher {
         Ok(sent)
     }
 
-    fn send_admitted(&self, message: &[u8]) -> Result<bool> {
+    fn send_admitted(&self, message: &[u8]) -> Result<()> {
         if message.len() > i32::MAX as usize {
             return Err(Error::Invalid("message exceeds the protocol length limit"));
         }
         let length = (message.len() + 15) & !7;
         let Some(max_used) = self.shared.options.capacity.checked_sub(length) else {
-            return Ok(false);
+            return Err(Error::Full);
         };
         let header = self.shared.header();
         loop {
@@ -290,7 +285,7 @@ impl Publisher {
                 return Err(Error::Corrupt);
             };
             if used < 0 || used > max_used as i64 {
-                return Ok(false);
+                return Err(Error::Full);
             }
             let next = write.checked_add(length as i64).ok_or(Error::Exhausted)?;
             if header
@@ -311,7 +306,7 @@ impl Publisher {
             }
             self.shared.state(write).store(2, Release);
             self.shared.notify();
-            return Ok(true);
+            return Ok(());
         }
     }
 }
@@ -570,9 +565,6 @@ impl Subscriber {
     }
 }
 
-#[cfg(test)]
-mod tests;
-
 impl std::fmt::Debug for Publisher {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Publisher")
@@ -589,3 +581,6 @@ impl std::fmt::Debug for Subscriber {
             .finish_non_exhaustive()
     }
 }
+
+#[cfg(test)]
+mod tests;

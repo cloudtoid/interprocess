@@ -65,18 +65,18 @@ impl Publisher {
     fn try_send(&self, data: &Bound<'_, PyAny>) -> PyResult<bool> {
         // Buffer exporters can run Python code, including close(); convert before locking.
         let data = bytes(data)?;
-        self.inner
+        match self
+            .inner
             .read()
             .unwrap()
             .as_ref()
             .ok_or_else(closed)?
             .try_send(data.as_bytes())
-            .map(|()| true)
-            .or_else(|e| match e {
-                core_queue::Error::Full => Ok(false),
-                e => Err(e),
-            })
-            .map_err(error)
+        {
+            Ok(()) => Ok(true),
+            Err(e) if e.is_full() => Ok(false),
+            Err(e) => Err(error(e)),
+        }
     }
     fn try_send_batch(&self, messages: Vec<Bound<'_, PyAny>>) -> PyResult<usize> {
         let messages = messages.iter().map(bytes).collect::<PyResult<Vec<_>>>()?;
@@ -188,14 +188,5 @@ impl Subscriber {
 fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Publisher>()?;
     m.add_class::<Subscriber>()?;
-    m.add(
-        "CapacityMismatchError",
-        m.py().get_type::<CapacityMismatchError>(),
-    )?;
-    m.add(
-        "PublisherLimitError",
-        m.py().get_type::<PublisherLimitError>(),
-    )?;
-    m.add("CorruptQueueError", m.py().get_type::<CorruptQueueError>())?;
     Ok(())
 }

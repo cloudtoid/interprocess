@@ -49,16 +49,11 @@ impl Publisher {
     }
     #[napi]
     pub fn try_send(&self, data: Uint8Array) -> Result<bool, String> {
-        self.inner
-            .as_ref()
-            .ok_or_else(closed)?
-            .try_send(&data)
-            .map(|()| true)
-            .or_else(|e| match e {
-                core_queue::Error::Full => Ok(false),
-                e => Err(e),
-            })
-            .map_err(error)
+        match self.inner.as_ref().ok_or_else(closed)?.try_send(&data) {
+            Ok(()) => Ok(true),
+            Err(e) if e.is_full() => Ok(false),
+            Err(e) => Err(error(e)),
+        }
     }
     #[napi]
     pub fn try_send_batch(&self, messages: Vec<Uint8Array>) -> Result<u32, String> {
@@ -99,12 +94,7 @@ impl Subscriber {
             .map_err(error)?;
         message
             .map(|message| {
-                // On Windows, V8's concurrent sweeping of external buffers can
-                // signal a closing libuv handle at shutdown. Keep ownership in Node.
-                #[cfg(windows)]
                 let buffer = BufferSlice::copy_from(&env, message);
-                #[cfg(not(windows))]
-                let buffer = BufferSlice::from_data(&env, message);
                 buffer.map_err(|e| Error::new("ERR_IO".to_owned(), e.to_string()))
             })
             .transpose()
