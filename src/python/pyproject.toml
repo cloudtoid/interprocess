@@ -1,0 +1,23 @@
+[build-system]
+requires = ["maturin>=1.9,<2"]
+build-backend = "maturin"
+
+[project]
+name = "cloudtoid-interprocess"
+version = "3.0.0"
+description = "Fast shared-memory byte queues across Python, Rust, C, Go, Node.js, and .NET"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
+authors = [{name = "Cloudtoid"}]
+classifiers = ["Programming Language :: Python :: 3", "Programming Language :: Rust", "Topic :: System :: Distributed Computing"]
+
+[project.urls]
+Homepage = "https://cloudtoid.com"
+Repository = "https://github.com/cloudtoid/interprocess"
+Documentation = "https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md"
+
+[tool.maturin]
+python-source = "python"
+module-name = "cloudtoid_interprocess._native"

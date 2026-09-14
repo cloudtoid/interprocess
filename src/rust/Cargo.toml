@@ -1,0 +1,22 @@
+[package]
+name = "cloudtoid-interprocess"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+readme = "README.md"
+rust-version = "1.87"
+keywords = ["ipc", "shared-memory", "queue", "interprocess"]
+categories = ["concurrency", "os"]
+description = "Fast cross-language shared-memory queues with process crash recovery"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Memory", "Win32_System_Threading", "Win32_Security"] }
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "x86_64-pc-windows-msvc"]

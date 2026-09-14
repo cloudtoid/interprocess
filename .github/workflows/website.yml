@@ -1,0 +1,20 @@
+name: Website
+on:
+  push:
+    branches: [main]
+    paths: ['src/website/**', '.github/workflows/website.yml']
+  pull_request:
+    paths: ['src/website/**', '.github/workflows/website.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python src/website/build.py
+      - run: node --check src/website/site.js

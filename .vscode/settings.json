@@ -1,17 +1,14 @@
 {
-    "cSpell.words": [
-        "Cloudtoid",
-        "Diagnoser",
-        "finalizer",
-        "Interprocess",
-        "Kaby",
-        "Onnx",
-        "Pedram",
-        "Posix",
-        "Rezaei",
-        "Roslynator",
-        "Timespec",
-        "Xeon",
-        "Xunit"
-    ]
+  "cSpell.words": [
+    "Cloudtoid",
+    "Diagnoser",
+    "finalizer",
+    "Interprocess",
+    "Pedram",
+    "Posix",
+    "Rezaei",
+    "Roslynator",
+    "Timespec",
+    "Xunit"
+  ]
 }

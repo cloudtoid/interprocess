@@ -7,7 +7,7 @@
       "command": "dotnet",
       "args": [
         "build",
-        "${workspaceFolder}/src"
+        "${workspaceFolder}/src/dotnet/Interprocess.sln"
       ],
       "group": {
         "kind": "build",
@@ -20,6 +20,6 @@
         "reveal": "always",
         "panel": "shared"
       }
-    },
+    }
   ]
 }
