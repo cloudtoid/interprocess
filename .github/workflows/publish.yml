@@ -58,6 +58,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -66,10 +68,10 @@ jobs:
             10.0.x
 
       - name: Test - Release
-        run: dotnet test -c Release -p:VersionSuffix=${{github.run_number}} src/dotnet/Interprocess.sln
+        run: dotnet test -c Release src/dotnet/Interprocess.sln
 
       - name: Pack
-        run: dotnet pack -c Release --no-build --output . --version-suffix ${{github.run_number}} src/dotnet/Interprocess/Interprocess.csproj
+        run: dotnet pack -c Release --no-build --output . src/dotnet/Interprocess/Interprocess.csproj
 
       - name: NuGet login
         uses: NuGet/login@v1
