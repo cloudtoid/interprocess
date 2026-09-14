@@ -348,3 +348,13 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# Native and language package build output
+/target/
+**/.venv/
+**/*.node
+**/dist/
+**/*.egg-info/
+**/*.so
+**/*.dylib
+**/__pycache__/

@@ -1,0 +1,18 @@
+{
+  "name": "@cloudtoid/interprocess",
+  "version": "3.0.0",
+  "description": "Fast shared-memory byte queues across Node.js, Rust, C, Go, Python, and .NET",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": ["index.js", "index.d.ts", "README.md", "LICENSE"],
+  "license": "MIT",
+  "repository": {"type": "git", "url": "https://github.com/cloudtoid/interprocess.git", "directory": "src/node"},
+  "engines": {"node": ">=18"},
+  "scripts": {"build": "node build.js", "test": "node --test test.js"},
+  "optionalDependencies": {
+    "@cloudtoid/interprocess-darwin-arm64": "3.0.0",
+    "@cloudtoid/interprocess-darwin-x64": "3.0.0",
+    "@cloudtoid/interprocess-linux-x64": "3.0.0",
+    "@cloudtoid/interprocess-win32-x64": "3.0.0"
+  }
+}

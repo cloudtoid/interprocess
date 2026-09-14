@@ -26,4 +26,4 @@ jobs:
             10.0.x
 
       - name: Build and Test
-        run: dotnet test src/Interprocess.sln --configuration Release
+        run: dotnet test src/dotnet/Interprocess.sln --configuration Release

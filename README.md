@@ -121,8 +121,8 @@ subscriber.TryDequeue(messageBuffer, out var message);
 
 To see a sample implementation of a publisher and a subscriber process, try out the following two projects. You can run them side by side and see them in action:
 
-- [Publisher](src/Sample/Publisher/)
-- [Subscriber](src/Sample/Subscriber/)
+- [Publisher](src/dotnet/Sample/Publisher/)
+- [Subscriber](src/dotnet/Sample/Subscriber/)
 
 Please note that you can start multiple publishers and subscribers sending and receiving messages to and from the same message queue.
 
@@ -147,9 +147,9 @@ In-process microbenchmarks, not latency between applications. Concurrent rows sh
 [Benchmark source and reports](docs/benchmarks/2026-09-13/). Run the Mac suite from the repository root:
 
 ```sh
-dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*QueueBenchmark*' '*QueueExtendedBenchmark*' --warmupCount 20 --iterationCount 8 --launchCount 2 --iterationTime 250
-dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*EnqueueBenchmark*' --warmupCount 200 --iterationCount 8 --launchCount 2
-dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*SubscriberBenchmark*' --warmupCount 3 --iterationCount 8 --launchCount 2 --iterationTime 250
+dotnet run --project src/dotnet/Interprocess.Benchmark -c Release -- --filter '*QueueBenchmark*' '*QueueExtendedBenchmark*' --warmupCount 20 --iterationCount 8 --launchCount 2 --iterationTime 250
+dotnet run --project src/dotnet/Interprocess.Benchmark -c Release -- --filter '*EnqueueBenchmark*' --warmupCount 200 --iterationCount 8 --launchCount 2
+dotnet run --project src/dotnet/Interprocess.Benchmark -c Release -- --filter '*SubscriberBenchmark*' --warmupCount 3 --iterationCount 8 --launchCount 2 --iterationTime 250
 ```
 
 ### On Windows
@@ -186,7 +186,7 @@ Same in-process workloads and allocation conventions as the Mac suite. Two launc
 
 ## Implementation Notes
 
-Messages travel through a shared, circular memory-mapped buffer. Coalesced notifications reduce operating-system calls while keeping blocked subscribers responsive. Blocking readers also retry after five-millisecond waits when notifications are missed. Cross-process wakeups use named semaphores, with POSIX implementations on [Linux](src/Interprocess/Semaphore/Linux/Interop.cs) and [macOS](src/Interprocess/Semaphore/MacOS/Interop.cs).
+Messages travel through a shared, circular memory-mapped buffer. Coalesced notifications reduce operating-system calls while keeping blocked subscribers responsive. Blocking readers also retry after five-millisecond waits when notifications are missed. Cross-process wakeups use named semaphores, with POSIX implementations on [Linux](src/dotnet/Interprocess/Semaphore/Linux/Interop.cs) and [macOS](src/dotnet/Interprocess/Semaphore/MacOS/Interop.cs).
 
 Positions advance monotonically while the physical buffer wraps. Before the queue reaches `long.MaxValue` bytes reserved or `int.MaxValue` participant registrations over its lifetime, drain it and move all participants to a fresh queue.
 

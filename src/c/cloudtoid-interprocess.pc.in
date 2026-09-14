@@ -1,0 +1,9 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: cloudtoid-interprocess
+Description: Cloudtoid protocol v3 shared-memory byte queues
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -lcloudtoid_interprocess
+Cflags: -I${includedir}

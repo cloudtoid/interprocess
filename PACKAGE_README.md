@@ -45,4 +45,4 @@ The queue is transient IPC storage. Recovery after a process exits can discard q
 
 For dependency injection, register the queue services with `services.AddInterprocessQueue()` and resolve `IQueueFactory`.
 
-[Publisher and subscriber samples](https://github.com/cloudtoid/interprocess/tree/main/src/Sample) · [Documentation](https://github.com/cloudtoid/interprocess) · [Report an issue](https://github.com/cloudtoid/interprocess/issues) · [MIT license](https://github.com/cloudtoid/interprocess/blob/main/LICENSE)
+[Publisher and subscriber samples](https://github.com/cloudtoid/interprocess/tree/main/src/dotnet/Sample) · [Documentation](https://github.com/cloudtoid/interprocess) · [Report an issue](https://github.com/cloudtoid/interprocess/issues) · [MIT license](https://github.com/cloudtoid/interprocess/blob/main/LICENSE)

@@ -9,6 +9,6 @@
   <ItemGroup>
     <Compile Include="../VersionBenchmarks.cs" />
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
-    <ProjectReference Include="../../../../src/Interprocess/Interprocess.csproj" />
+    <ProjectReference Include="../../../../src/dotnet/Interprocess/Interprocess.csproj" />
   </ItemGroup>
 </Project>

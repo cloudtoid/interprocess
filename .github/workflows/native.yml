@@ -1,0 +1,24 @@
+name: Native core
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  rust:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --all --check
+      - run: cargo clippy -p cloudtoid-interprocess --all-targets -- -D warnings
+      - run: cargo test --release --locked -p cloudtoid-interprocess
+      - run: cargo build --release --locked -p cloudtoid-interprocess-ffi

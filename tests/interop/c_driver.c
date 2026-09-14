@@ -1,0 +1,39 @@
+#include <interprocess.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+static void check(int status) { if (status < 0) { fprintf(stderr, "%s\n", cip_last_error()); exit(1); } }
+static size_t message(unsigned i, unsigned char *data) {
+    size_t length = 8 + i % 251;
+    for (unsigned j = 0; j < 8; j++) data[j] = (uint8_t)((uint64_t)i >> (8*j));
+    for (size_t j = 8; j < length; j++) data[j] = (i+j)%251;
+    return length;
+}
+int main(int argc, char **argv) {
+    if (argc != 5) return 2;
+    unsigned count = (unsigned)strtoul(argv[4], NULL, 10);
+    unsigned char expected[259];
+    if (strcmp(argv[1], "publish") == 0) {
+        cip_publisher *p = NULL;
+        check(cip_publisher_open(argv[2], argv[3], 4096, &p));
+        for (unsigned i = 0; i < count; i++) {
+            size_t length = message(i, expected);
+            int status;
+            do { status = cip_try_send(p, expected, length); check(status); } while (!status);
+        }
+        cip_publisher_close(p);
+    } else {
+        cip_subscriber *s = NULL;
+        check(cip_subscriber_open(argv[2], argv[3], 4096, &s));
+        puts("READY"); fflush(stdout);
+        for (unsigned i = 0; i < count; i++) {
+            size_t length = message(i, expected);
+            cip_buffer actual;
+            int status = cip_receive(s, 30000, &actual); check(status);
+            if (!status || actual.length != length || memcmp(actual.data, expected, length)) return 3;
+            cip_buffer_free(actual);
+        }
+        cip_subscriber_close(s);
+    }
+    return 0;
+}

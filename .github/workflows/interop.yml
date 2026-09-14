@@ -1,0 +1,54 @@
+name: Language interoperability
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  interop:
+    name: Six languages on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: src/go/go.mod
+          cache: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - if: runner.os == 'Windows'
+        id: msys
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-pkgconf
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: '"${{ steps.msys.outputs.msys2-location }}\ucrt64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append'
+      - if: runner.os == 'macOS'
+        run: brew install pkgconf
+      - name: Build packages and test every language pair
+        run: python tests/interop/build.py
+      - uses: actions/upload-artifact@v6
+        with:
+          name: packages-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            target/wheels/*.whl
+            target/sdk/
+            src/node/*.node
