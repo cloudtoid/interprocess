@@ -7,14 +7,14 @@ Exchange byte messages between processes on the same machine using a shared-memo
 Requires .NET 10 or later and a 64-bit process.
 
 ```sh
-dotnet add package Cloudtoid.Interprocess --prerelease
+dotnet add package Cloudtoid.Interprocess
 ```
 
-## Faster with v3 alpha
+## Faster with v3
 
-Version 3 coalesces notifications to reduce operating-system calls and speed up message delivery. Try the alpha for your workload; see the [version comparison and benchmarks](https://github.com/cloudtoid/interprocess#performance).
+Version 3 coalesces notifications to reduce operating-system calls and speed up message delivery. See the [version comparison and benchmarks](https://github.com/cloudtoid/interprocess#performance).
 
-Alpha APIs and the shared-memory protocol may change. Drain the queue, stop all participants, and upgrade them together using a fresh queue.
+Version 3 uses a new shared-memory format. Drain the queue, stop all participants, and upgrade them together using a fresh queue.
 
 ## Example
 

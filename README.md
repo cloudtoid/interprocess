@@ -10,13 +10,13 @@
 **Cloudtoid Interprocess** is a cross-platform shared memory queue for fast communication between processes ([Interprocess Communication or IPC][IPCWiki]). It uses a shared memory-mapped file for extremely fast and efficient communication between processes and it is used internally by Microsoft.
 
 - [**Fast**](#performance): It is *extremely* fast.
-- **Cross-platform**: It supports Windows, Linux, and [macOS][macOSWiki].
+- **Cross-platform**: It supports Windows, Linux (glibc), and [macOS][macOSWiki].
 - [**API**](#usage): Provides a simple and intuitive API to enqueue/send and dequeue/receive messages.
 - **Multiple publishers and subscribers**: It supports multiple publishers and subscribers to a shared queue.
 - [**Efficient**](#performance): Sending and receiving messages is almost heap memory allocation free reducing garbage collections.
 - [**Developer**](#author): Developed by a guy at Microsoft.
 
-## Faster with v3 alpha
+## Faster with v3
 
 **11.7× faster round trips and 3.2× the concurrent throughput of v2** in our native Mac benchmarks. Version 3 coalesces notifications, avoiding repeated operating-system calls while readers are active.
 
@@ -24,22 +24,21 @@
 | --- | ---: | ---: |
 | Latest v1 (`1.0.175`) | — | — |
 | Latest v2 (`2.1.204`) | 208.3 ns | 1.02 million messages/s |
-| v3 alpha | **17.77 ns** | **3.26 million messages/s** |
+| v3 | **17.77 ns** | **3.26 million messages/s** |
 
 Measured on the same Mac with .NET 10. See [benchmark details](#on-macos). Windows ARM64 VM benchmarks also measured **49× faster round trips and 9.9× the throughput of v2**; see the [Windows results](#on-windows).
 
-**Upgrade to v3 alpha and try it with your workload:**
+**Upgrade to v3 and try it with your workload:**
 
 ```sh
-dotnet add package Cloudtoid.Interprocess --prerelease
+dotnet add package Cloudtoid.Interprocess
 ```
 
-Alpha APIs and the shared-memory protocol may change. Drain the queue, stop all participants, and upgrade them together using a fresh queue.
+Version 3 uses a new shared-memory format. Drain the queue, stop all participants, and upgrade them together using a fresh queue.
 
 ## NuGet Package
 
-The NuGet package for this library is published [here][NuGet]. Version 3 packages use `3.0.0-alpha.<build number>`
-and require opting into prerelease versions.
+The NuGet package for this library is published [here][NuGet]. Version 3 packages use `3.0.<build number>`.
 
 > Note: To improve performance, this library only supports 64-bit CLR with 64-bit processor architectures. Attempting to use this library on 32-bit processors, 32-bit operating systems, or on [WOW64][Wow64Wiki] may throw a `NotSupportedException`.
 
@@ -113,6 +112,7 @@ subscriber.TryDequeue(messageBuffer, out var message);
 
 - Use the same name, capacity, and storage path in every participant. Queue names must be unique even across different paths; Windows uses the name and ignores the path.
 - Each queue supports **2,048 connected publisher objects**. Slots are reused after disposal or confirmed process exit. The publisher table adds **256 KiB** plus 128 bytes of header/alignment storage; `Capacity` is the message-buffer size.
+- On Windows, use the same user session for all participants. Cross-account connections are not supported.
 - Queue resources remain available while any publisher or subscriber is connected. Dispose participants when finished.
 - A paused live participant keeps ownership. Recovery can reclaim abandoned work after a process exits, but may discard queued messages, including completed messages behind an unfinished reservation. This is an IPC queue, not durable storage.
 - Supply a destination buffer large enough for the message. A smaller buffer consumes the message and returns only the bytes that fit.
