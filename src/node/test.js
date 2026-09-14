@@ -3,6 +3,12 @@ const assert = require('node:assert/strict');
 const { stat } = require('node:fs/promises');
 const { Publisher, Subscriber } = require('./');
 
+test('CommonJS and ES module imports expose the same public classes', async () => {
+  const esm = await import('./index.js');
+  assert.equal(esm.Publisher, Publisher);
+  assert.equal(esm.Subscriber, Subscriber);
+});
+
 test('bytes, batch prefix, deadlines, and close', async () => {
   const name = `n${process.pid}`;
   const p = new Publisher(name, 64), s = new Subscriber(name, 64);

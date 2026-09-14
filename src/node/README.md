@@ -16,6 +16,8 @@ try {
 }
 ```
 
+ES modules can use `import { Publisher, Subscriber } from '@cloudtoid/interprocess'`. CommonJS `require` and TypeScript declarations expose the same classes.
+
 `trySend` returns false when full or recovering. `trySendBatch` returns the accepted prefix length. `tryReceive` returns a Buffer or null; an empty Buffer is a real message.
 
 `await subscriber.receive()` waits for a message. Pass `{ signal }` to cancel, or use `subscriber.receive({ signal: AbortSignal.timeout(1000) })` for a one-second deadline. Cancellation rejects with the signal's reason. `close()` releases the endpoint and makes pending receives reject.

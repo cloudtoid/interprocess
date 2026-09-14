@@ -43,4 +43,5 @@ class Subscriber {
   }
 }
 
-module.exports = { Publisher: native.Publisher, Subscriber };
+exports.Publisher = native.Publisher;
+exports.Subscriber = Subscriber;

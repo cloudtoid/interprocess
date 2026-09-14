@@ -24,6 +24,19 @@ fn protocol_layout() {
 }
 
 #[test]
+fn io_errors_preserve_their_source() {
+    use std::error::Error as _;
+    let error = Error::from(std::io::Error::from(std::io::ErrorKind::PermissionDenied));
+    let source = error
+        .source()
+        .unwrap()
+        .downcast_ref::<std::io::Error>()
+        .unwrap();
+    assert_eq!(source.kind(), std::io::ErrorKind::PermissionDenied);
+    assert!(Error::CapacityMismatch.source().is_none());
+}
+
+#[test]
 fn boundaries_and_wrap() {
     let options = options(64);
     let publisher = Publisher::open(options.clone()).unwrap();
