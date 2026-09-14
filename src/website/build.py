@@ -1,4 +1,4 @@
-"""Build the static site for Sites, without runtime dependencies."""
+"""Build the static site without runtime dependencies."""
 from pathlib import Path
 import shutil
 root = Path(__file__).resolve().parent
