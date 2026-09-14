@@ -39,4 +39,4 @@ If a registry job fails after publishing some packages, rerun the workflow at th
 
 Binary targets: Linux x64 and ARM64 (glibc 2.34+), macOS ARM64 and x64, Windows x64. The x64 Mac release is cross-built; it does not add a permanent Intel Mac CI runner. Rust/C source builds support the core's platform/architecture restrictions. Python includes a source distribution. Go links the installed C SDK; its module does not silently download binaries.
 
-The Website workflow publishes the static website from main to GitHub Pages. The public website at cloudtoid.com uses Sites hosting with the same source. Advertise actual package availability and measured performance; do not label in-process microbenchmarks as application-to-application latency.
+The Website workflow validates the static build. Publish the public website at cloudtoid.com through its existing Sites hosting project. Advertise actual package availability and measured performance; do not label in-process microbenchmarks as application-to-application latency.
