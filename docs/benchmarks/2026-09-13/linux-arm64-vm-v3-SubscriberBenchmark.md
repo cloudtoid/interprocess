@@ -1,7 +1,7 @@
 ```
 
 BenchmarkDotNet v0.15.8, Linux Ubuntu 24.04.4 LTS (Noble Numbat)
--
+-, 4 physical cores
 .NET SDK 10.0.401
   [Host]   : .NET 10.0.12 (10.0.12, 10.0.1226.42308), Arm64 RyuJIT armv8.0-a
   ShortRun : .NET 10.0.12 (10.0.12, 10.0.1226.42308), Arm64 RyuJIT armv8.0-a
@@ -12,5 +12,5 @@ LaunchCount=2  WarmupCount=3
 ```
 | Method                   | SubscriberCount | Mean     | Error    | StdDev   |
 |------------------------- |---------------- |---------:|---------:|---------:|
-| **ReceiveConcurrentlyAsync** | **1**               | **111.0 ns** |  **0.70 ns** |  **0.68 ns** |
-| **ReceiveConcurrentlyAsync** | **4**               | **175.1 ns** | **17.94 ns** | **17.62 ns** |
+| **ReceiveConcurrentlyAsync** | **1**               | **107.7 ns** |  **1.76 ns** |  **1.73 ns** |
+| **ReceiveConcurrentlyAsync** | **4**               | **161.0 ns** | **13.57 ns** | **13.33 ns** |

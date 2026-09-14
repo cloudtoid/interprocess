@@ -1,7 +1,7 @@
 ```
 
 BenchmarkDotNet v0.15.8, Linux Ubuntu 24.04.4 LTS (Noble Numbat)
--
+-, 4 physical cores
 .NET SDK 10.0.401
   [Host]    : .NET 10.0.12 (10.0.12, 10.0.1226.42308), Arm64 RyuJIT armv8.0-a
   .NET 10.0 : .NET 10.0.12 (10.0.12, 10.0.1226.42308), Arm64 RyuJIT armv8.0-a
@@ -11,7 +11,7 @@ IterationCount=8  IterationTime=250ms  LaunchCount=2
 WarmupCount=20
 
 ```
-| Method                                            | Mean     | Error   | StdDev  | Gen0   | Allocated |
-|-------------------------------------------------- |---------:|--------:|--------:|-------:|----------:|
-| &#39;Message enqueue and dequeue - no message buffer&#39; | 154.5 ns | 3.94 ns | 3.68 ns | 0.0150 |      32 B |
-| &#39;Message enqueue and dequeue&#39;                     | 155.4 ns | 2.02 ns | 1.89 ns |      - |         - |
+| Method                                            | Mean     | Error    | StdDev   | Gen0   | Allocated |
+|-------------------------------------------------- |---------:|---------:|---------:|-------:|----------:|
+| &#39;Message enqueue and dequeue - no message buffer&#39; | 21.15 ns | 0.285 ns | 0.267 ns | 0.0149 |      32 B |
+| &#39;Message enqueue and dequeue&#39;                     | 17.97 ns | 0.491 ns | 0.482 ns |      - |         - |

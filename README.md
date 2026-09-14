@@ -161,17 +161,17 @@ Same in-process workloads and allocation conventions as the Mac suite. Two launc
 
 ### On Linux
 
-Measured September 13, 2026, on an **Apple M5 Max**, Ubuntu 24.04 ARM64 VM (Lima/Apple Virtualization, 4 vCPUs, 8 GiB RAM), .NET 10.0.12, Release build. V3 source: [`9fc6b15`](https://github.com/cloudtoid/interprocess/commit/9fc6b15).
+Measured September 13, 2026, on an **Apple M5 Max**, Ubuntu 24.04 ARM64 VM (Lima/QEMU, 4 vCPUs, 8 GiB RAM), Linux 6.12.94 with 16 KiB pages, .NET 10.0.12, Release build. V3 source: [`9fc6b15`](https://github.com/cloudtoid/interprocess/commit/9fc6b15).
 
 | Workload | Mean (ns) | StdDev (ns) | Allocated |
 | --- | ---: | ---: | ---: |
-| Enqueue, 3 bytes | 5.03 | 0.07 | 0 B |
-| Enqueue + dequeue, 3 bytes, reused buffer | 155.40 | 1.89 | 0 B |
-| Enqueue + dequeue, 3 bytes, new result array | 154.50 | 3.68 | 32 B |
-| Enqueue + dequeue, 50 bytes, reused buffer | 176.50 | 1.79 | 0 B |
-| Enqueue + dequeue, 50 bytes, ring-wrap workload | 179.20 | 0.77 | 0 B |
-| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 111.00 | 0.68 | — |
-| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 175.10 | 17.62 | — |
+| Enqueue, 3 bytes | 5.05 | 0.07 | 0 B |
+| Enqueue + dequeue, 3 bytes, reused buffer | 17.97 | 0.48 | 0 B |
+| Enqueue + dequeue, 3 bytes, new result array | 21.15 | 0.27 | 32 B |
+| Enqueue + dequeue, 50 bytes, reused buffer | 18.20 | 0.16 | 0 B |
+| Enqueue + dequeue, 50 bytes, ring-wrap workload | 21.65 | 0.46 | 0 B |
+| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 107.70 | 1.73 | — |
+| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 161.00 | 13.33 | — |
 
 Same in-process workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (200 for enqueue-only), while concurrent runs used all four vCPUs and three warmups. [Benchmark source and reports](docs/benchmarks/2026-09-13/).
 
