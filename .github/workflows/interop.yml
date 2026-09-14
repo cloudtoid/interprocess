@@ -20,15 +20,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
-      - uses: actions/setup-node@v6
+          python-version: '3.14'
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
-          go-version-file: src/go/go.mod
+          go-version: '1.27.x'
           cache: false
       - uses: actions/setup-dotnet@v6
         with:
@@ -46,7 +46,7 @@ jobs:
         run: brew install pkgconf
       - name: Build packages and test every language pair
         run: python tests/interop/build.py
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: packages-${{ runner.os }}-${{ runner.arch }}
           path: |
@@ -65,16 +65,17 @@ jobs:
           - {python: '3.9', node: '18'}
           - {python: '3.12', node: '20'}
           - {python: '3.14', node: '24'}
+          - {python: '3.14', node: '26'}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: packages-Linux-X64
           path: .
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
       - run: pip install target/wheels/*.whl
@@ -85,3 +86,8 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/interprocess-types" --ignore-scripts --no-audit --no-fund typescript@5.2.2 @types/node@18.16.19
           node "$RUNNER_TEMP/interprocess-types/node_modules/typescript/bin/tsc" --strict --noEmit --target es2022 --module node16 --typeRoots "$RUNNER_TEMP/interprocess-types/node_modules/@types" tests/interop/typescript.ts
+      - name: Check the current TypeScript and Node types
+        if: matrix.node == '26'
+        run: |
+          npm install --prefix "$RUNNER_TEMP/interprocess-current-types" --ignore-scripts --no-audit --no-fund typescript@7.0.2 @types/node@26.5.1
+          node "$RUNNER_TEMP/interprocess-current-types/node_modules/typescript/bin/tsc" --strict --noEmit --target es2022 --module node16 --types node --typeRoots "$RUNNER_TEMP/interprocess-current-types/node_modules/@types" tests/interop/typescript.ts
