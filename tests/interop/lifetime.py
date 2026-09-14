@@ -9,6 +9,7 @@ with tempfile.TemporaryDirectory(prefix='cip-lifetime-') as path:
     for creator in ('rust', 'dotnet'):
         for last in ('native', 'creator'):
             name = f'life{os.getpid()}{creator[0]}{last[0]}'
+            if os.name != 'nt': name += '\\x'  # Existing .NET Unix queue names remain interoperable.
             with tempfile.TemporaryFile(mode='w+') as errors:
                 child = subprocess.Popen(COMMANDS[creator] + ['hold-subscriber', name, path, '0'],
                                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errors, text=True)

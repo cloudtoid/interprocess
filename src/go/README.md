@@ -35,6 +35,6 @@ Use `errors.Is` with `ErrCapacityMismatch`, `ErrPublisherLimit`, `ErrInvalidArgu
 
 The queue is transient: it stays alive while at least one publisher or subscriber is connected. Once all endpoints are closed or their processes exit, unread messages are lost. Opening the same name again creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits; a surviving publisher also keeps the queue alive.
 
-Queue names must be nonempty and contain no slash, backslash, or NUL. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.
+Queue names must be nonempty and contain no slash or NUL. Windows also rejects backslashes; Unix permits them for compatibility. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.
 
 Each pending `Receive` has its own timer and native checks while idle. Prefer one receive loop per subscriber and distribute work after receiving when practical. Backoff limits this idle CPU cost without holding OS threads in cgo.

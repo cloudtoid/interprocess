@@ -43,6 +43,6 @@ while let Err(error) = publisher.try_send(b"hello") {
 
 `recv` and `recv_timeout` block the calling thread. In an async runtime, use a blocking worker (for example Tokio's `spawn_blocking`) with bounded waits so it can shut down. Open endpoints after `fork()`; inherited endpoints must not be used in the child. Dropping an inherited endpoint does not release the parent's registration.
 
-Queue names must be nonempty and contain no slash, backslash, or NUL. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.
+Queue names must be nonempty and contain no slash or NUL. Windows also rejects backslashes; Unix permits them for compatibility. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.
 
 Batch sends return the committed prefix length. A short count, including zero, can mean a full queue, recovery, or a mid-batch error. Retry the unsent suffix to observe a persistent error; errors before any commit are raised immediately.

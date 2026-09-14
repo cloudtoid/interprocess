@@ -10,7 +10,6 @@ public sealed class QueueResourceTests(UniquePathFixture fixture) : IClassFixtur
     [InlineData(".")]
     [InlineData("..")]
     [InlineData("a/b")]
-    [InlineData("a\\b")]
     [InlineData("a\0b")]
     public void InvalidQueueNamesAreRejectedBeforeCreatingResources(string name)
     {
@@ -28,6 +27,26 @@ public sealed class QueueResourceTests(UniquePathFixture fixture) : IClassFixtur
         var name = new string('é', (limit / 2) + 1);
         Action create = () => _ = new QueueOptions(name, fixture.Path, 1024);
         create.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void BackslashQueueNamesRetainUnixCompatibility()
+    {
+        var name = "legacy\\" + Guid.NewGuid().ToStringInvariant("N")[..8];
+        if (OperatingSystem.IsWindows())
+        {
+            Action create = () => _ = new QueueOptions(name, fixture.Path, 1024);
+            create.Should().Throw<ArgumentException>();
+            return;
+        }
+
+        var options = new QueueOptions(name, fixture.Path, 1024);
+        var factory = new QueueFactory();
+        using var publisher = factory.CreatePublisher(options);
+        using var subscriber = factory.CreateSubscriber(options);
+        publisher.TryEnqueue("legacy"u8).Should().BeTrue();
+        subscriber.TryDequeue(out var message).Should().BeTrue();
+        message.ToArray().Should().Equal("legacy"u8.ToArray());
     }
 
     [Theory]

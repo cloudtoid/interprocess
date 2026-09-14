@@ -62,7 +62,8 @@ impl Options {
             ));
         }
         if self.name.is_empty()
-            || self.name.contains(['\0', '/', '\\'])
+            || self.name.contains(['\0', '/'])
+            || (cfg!(windows) && self.name.contains('\\'))
             || self.name == "."
             || self.name == ".."
         {

@@ -160,4 +160,4 @@ Ports must test every publisher/subscriber direction, small capacities and repea
 
 Resource cleanup must happen only after all calls using that endpoint have stopped. Rust borrowing provides that lifetime rule. C callers must obey it explicitly. Other bindings enforce their documented close behavior. A queue protocol does not make use-after-close of a language handle valid.
 
-Queue names are limited to 24 UTF-8 bytes on macOS and 245 on Linux, without slashes, backslashes, or NUL. Use at most 24 bytes when sharing configuration across platforms. A corrupt record length is rejected without advancing the reader or clearing storage; callers must stop the participants and start a fresh queue rather than retrying indefinitely.
+Queue names are limited to 24 UTF-8 bytes on macOS and 245 on Linux, without slashes or NUL. Backslashes are rejected on Windows and permitted on Unix for compatibility. Use at most 24 bytes when sharing configuration across platforms. A corrupt record length is rejected without advancing the reader or clearing storage; callers must stop the participants and start a fresh queue rather than retrying indefinitely.

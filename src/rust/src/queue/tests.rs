@@ -374,7 +374,7 @@ fn golden_record_and_corrupt_lengths() {
 
 #[test]
 fn invalid_names_do_not_create_resources() {
-    for name in ["", ".", "..", "a/b", "a\\b", "a\0b"] {
+    for name in ["", ".", "..", "a/b", "a\0b"] {
         assert!(matches!(
             Publisher::open(&Options::new(name, 64)),
             Err(Error::Invalid(_))
@@ -541,4 +541,18 @@ fn concurrent_publishers_keep_their_own_message_order() {
         expected[id] += 1;
     }
     assert_eq!(expected, [100; 4]);
+}
+
+#[test]
+fn backslash_names_follow_platform_rules() {
+    let mut options = options(64);
+    options.name.push_str("\\x");
+    if cfg!(windows) {
+        assert!(matches!(Publisher::open(&options), Err(Error::Invalid(_))));
+    } else {
+        let publisher = Publisher::open(&options).unwrap();
+        let subscriber = Subscriber::open(&options).unwrap();
+        publisher.try_send(b"legacy").unwrap();
+        assert_eq!(subscriber.try_recv().unwrap().unwrap(), b"legacy");
+    }
 }
