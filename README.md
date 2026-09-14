@@ -154,17 +154,17 @@ dotnet run --project src/Interprocess.Benchmark -c Release -- --filter '*Subscri
 
 ### On Windows
 
-Measured September 13, 2026, on an **Apple M5 Max**, Windows 11 Pro 25H2 ARM64 VM (UTM, 4 vCPUs, 12 GiB RAM), .NET 10.0.12, Release build. V3 source: [`9fc6b15`](https://github.com/cloudtoid/interprocess/commit/9fc6b15).
+Measured September 13, 2026, on an **Apple M5 Max**, Windows 11 Pro 25H2 ARM64 VM (UTM, 4 vCPUs, 12 GiB RAM), .NET 10.0.12, Release build. V3 source: [`f990ba3`](https://github.com/cloudtoid/interprocess/commit/f990ba3).
 
 | Workload | Mean (ns) | StdDev (ns) | Allocated |
 | --- | ---: | ---: | ---: |
-| Enqueue, 3 bytes | 4.92 | 0.08 | 0 B |
-| Enqueue + dequeue, 3 bytes, reused buffer | 18.47 | 0.43 | 0 B |
-| Enqueue + dequeue, 3 bytes, new result array | 19.61 | 0.42 | 32 B |
-| Enqueue + dequeue, 50 bytes, reused buffer | 18.10 | 0.49 | 0 B |
-| Enqueue + dequeue, 50 bytes, ring-wrap workload | 22.16 | 0.24 | 0 B |
-| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 94.91 | 0.73 | — |
-| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 95.08 | 14.96 | — |
+| Enqueue, 3 bytes | 6.26 | 0.26 | 0 B |
+| Enqueue + dequeue, 3 bytes, reused buffer | 17.96 | 0.43 | 0 B |
+| Enqueue + dequeue, 3 bytes, new result array | 19.78 | 0.38 | 32 B |
+| Enqueue + dequeue, 50 bytes, reused buffer | 17.98 | 0.28 | 0 B |
+| Enqueue + dequeue, 50 bytes, ring-wrap workload | 21.81 | 0.30 | 0 B |
+| Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 101.30 | 1.68 | — |
+| Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 85.62 | 12.50 | — |
 
 Same in-process workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (200 for enqueue-only), while concurrent runs used all four vCPUs and three warmups. [Benchmark source and reports](docs/benchmarks/2026-09-13/).
 
