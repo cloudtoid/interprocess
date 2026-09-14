@@ -1,5 +1,6 @@
 """Check rendered page metadata, structured data, local links, and fragment targets."""
 from html.parser import HTMLParser
+from hashlib import sha256
 import json
 from pathlib import Path
 from urllib.parse import urljoin, urlparse, unquote
@@ -79,6 +80,9 @@ for path, page in pages.items():
         if local.is_dir():
             local /= 'index.html'
         assert local.is_file(), f'{path}: broken local link {link}'
+        if local.suffix in ('.css', '.js'):
+            digest = sha256(local.read_bytes()).hexdigest()[:12]
+            assert f'.{digest}{local.suffix}' in local.name, f'{path}: unversioned asset {link}'
         if target.fragment and local in pages:
             assert unquote(target.fragment) in pages[local].ids, f'{path}: missing anchor {link}'
 

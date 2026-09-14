@@ -1,5 +1,6 @@
 """Build the static marketing site and developer reference, without dependencies."""
 from html import escape
+from hashlib import sha256
 import json
 from pathlib import Path
 import re
@@ -91,4 +92,20 @@ urls = [base + '/'] + [base + page_path(page) for page in pages]
     + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     + '\n'.join(f'<url><loc>{url}</loc></url>' for url in urls) + '\n</urlset>\n')
 (output / 'robots.txt').write_text('User-agent: *\nAllow: /\n\nSitemap: ' + base + '/sitemap.xml\n')
+# Content-addressed assets prevent browsers reusing scripts/styles from an older deploy.
+assets = {}
+for page in output.rglob('*.html'):
+    def fingerprint(match):
+        url = match[2]
+        if "://" in url or url.startswith("//"):
+            return match[0]
+        source = output / url.lstrip('/')
+        if url not in assets:
+            digest = sha256(source.read_bytes()).hexdigest()[:12]
+            target = source.with_name(f'{source.stem}.{digest}{source.suffix}')
+            shutil.copyfile(source, target)
+            assets[url] = '/' + target.relative_to(output).as_posix()
+        return f'{match[1]}="{assets[url]}"'
+    page.write_text(re.sub(r'(src|href)="([^"?]+\.(?:css|js))"', fingerprint, page.read_text()))
+
 print(f'Built {output}: homepage and {len(pages)} documentation pages')

@@ -20,3 +20,5 @@ The header and footer use the official blue wordmarks from [cloudtoid/assets](ht
 Run `python3 src/website/validate.py` after building to check local links, anchors, metadata, and sitemap coverage. CI runs this check. All reference text and navigation work without JavaScript; `docs.js` enhances code blocks with highlighting and copy buttons. The homepage's language guide links point to these pages.
 
 The social preview uses `assets/social-card.png`; its editable SVG source is alongside it. SEO metadata uses `https://cloudtoid.com` as the canonical origin. Publishing makes the sitemap available at `/sitemap.xml`; search-engine indexing happens independently of deployment.
+
+CSS and JavaScript URLs include a content hash at build time, so browsers fetch changed assets after each deployment. Cloudflare build-watch includes must use `src/website/*` (a single wildcard also matches nested paths); GitHub Actions uses its own `src/website/**` glob.
