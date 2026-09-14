@@ -17,3 +17,7 @@ Use context managers or `close()` to release registrations promptly. Finish call
 Every participant must agree on name, capacity, and Unix path. Pass `path="/shared/directory"` when different runtimes have different temp directories. Capacity is bytes, excludes metadata, exceeds 16, and is divisible by 8.
 
 Build from this repository with `maturin develop --release` in this directory. See [protocol v3](https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md) for layout, memory ordering, resource lifetime, and crash recovery.
+
+## Queue lifetime
+
+The queue is transient: it stays alive while at least one publisher or subscriber is connected. Once all endpoints are closed or their processes exit, unread messages are lost. Opening the same name again creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits; a surviving publisher also keeps the queue alive.

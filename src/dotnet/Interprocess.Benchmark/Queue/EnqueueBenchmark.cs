@@ -24,6 +24,7 @@ public class EnqueueBenchmark
         subscriber = queueFactory.CreateSubscriber(new QueueOptions("qn", Path.GetTempPath(), MessageCount * 16));
     }
 
+    // Retain the transient queue throughout measurement; close only after all timed work.
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -42,7 +43,7 @@ public class EnqueueBenchmark
     }
 
     // Expecting that there are NO managed heap allocations.
-    [Benchmark(Description = "Message enqueue", OperationsPerInvoke = MessageCount)]
+    [Benchmark(Description = "Send", OperationsPerInvoke = MessageCount)]
     public void Enqueue()
     {
         for (var i = 0; i < MessageCount; i++)

@@ -28,3 +28,7 @@ if sent, err := publisher.TrySend([]byte("hello")); err != nil {
 Always close endpoints; do not copy them. Concurrent calls are supported. A per-handle read/write mutex makes Close wait for the current native call; outstanding blocking receives then return `ErrClosed`; it does not serialize publishers across processes. Native errors are copied before leaving cgo so goroutine migration cannot mix up thread-local error messages.
 
 All participants must agree on name, capacity, and Unix path. This is volatile IPC with process crash recovery, not durable storage or broadcast. See [protocol v3](https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md).
+
+## Queue lifetime
+
+The queue is transient: it stays alive while at least one publisher or subscriber is connected. Once all endpoints are closed or their processes exit, unread messages are lost. Opening the same name again creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits; a surviving publisher also keeps the queue alive.

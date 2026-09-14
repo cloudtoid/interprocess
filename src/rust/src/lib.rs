@@ -2,6 +2,8 @@
 //!
 //! Publishers reserve concurrently. Readers serialize consumption. A paused live
 //! participant retains ownership; recovery only reclaims proven-abandoned work.
+//! The queue is transient: after the last endpoint closes or exits, unread
+//! messages are lost. Reopening the same name creates a fresh, empty queue.
 
 #[cfg(not(all(
     target_pointer_width = "64",

@@ -23,7 +23,8 @@ typedef struct cip_buffer { uint8_t *data; size_t length; } cip_buffer;
  * no thread may use a closed handle. Close(NULL) is safe.
  * All pointers must remain valid for the call. Null buffers require size zero.
  * An error after reservation can leave a committed message: do not retry errors
- * blindly when duplicate delivery matters. Queues are not durable storage.
+ * blindly when duplicate delivery matters. Queues are transient: the last
+ * endpoint closing or exiting loses unread messages. Reopening starts empty.
  */
 CIP_API const char *cip_last_error(void);
 CIP_API int32_t cip_publisher_open(const char *name, const char *path, size_t capacity, cip_publisher **output);

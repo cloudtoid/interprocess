@@ -12,8 +12,12 @@ assert_eq!(subscriber.try_receive()?.unwrap(), b"hello");
 # Ok::<(), cloudtoid_interprocess::Error>(())
 ```
 
-Reuse receive storage with `try_receive_into`; it truncates and consumes oversized messages, matching .NET. `try_send_batch` amortizes admission across a prefix of messages. Use `receive_timeout(duration)` for a bounded wait (`None` means timeout), or `receive()` to wait indefinitely and return a message. Dropping the last endpoint releases queue resources; process crashes do not destroy queues with surviving participants.
+Reuse receive storage with `try_receive_into`; it truncates and consumes oversized messages, matching .NET. `try_send_batch` amortizes admission across a prefix of messages. Use `receive_timeout(duration)` for a bounded wait (`None` means timeout), or `receive()` to wait indefinitely and return a message. Process crashes do not destroy queues with surviving participants.
 
 Publishers reserve with native 64-bit atomics. Readers serialize consumption. A paused live participant retains ownership; abandoned work is recovered only after checking process liveness. Queues are volatile and messages can be discarded during crash recovery. See the [v3 protocol specification](https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md) for the complete contract.
 
 Supports little-endian 64-bit Linux, macOS, and Windows. Use an explicit shared path on Unix if runtime temp directories differ. Every participant must use the same name and capacity. Capacity is bytes, excludes metadata, exceeds 16, and is divisible by 8.
+
+## Queue lifetime
+
+The queue is transient: it stays alive while at least one publisher or subscriber is connected. Once all endpoints are closed or their processes exit, unread messages are lost. Opening the same name again creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits; a surviving publisher also keeps the queue alive.

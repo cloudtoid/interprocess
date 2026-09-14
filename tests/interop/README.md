@@ -16,3 +16,5 @@ After building, `run.py` can rerun the matrix. Set the C SDK loader path and use
 
 
 `mixed.py` adds a shared queue with six concurrent publishers and six competing subscribers, one of each language. It checks 24,000 unique IDs and complete payloads across two traffic phases, while killing an extra registered publisher and subscriber. The killed endpoints do not own in-flight messages; the Rust fault-injection suite covers unfinished publisher reservations and reader ownership. Set `INTEROP_MIXED_COUNT` to change each publisher's per-phase count. The full build and CI run both scenarios.
+
+Queues are transient. The pair runner waits until the subscriber has opened the queue before starting its publisher, so endpoint lifetimes overlap. The mixed runner likewise keeps its subscribers attached throughout both publishing phases. Sending and exiting before any other endpoint connects would discard the messages.

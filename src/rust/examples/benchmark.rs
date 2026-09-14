@@ -1,4 +1,5 @@
-//! Repeatable in-process round-trip microbenchmark. Not cross-process latency.
+//! Repeatable in-process send + receive microbenchmark. Not cross-process latency.
+//! Endpoints stay open throughout each workload; creation and cleanup are not timed.
 use cloudtoid_interprocess::{Options, Publisher, Subscriber};
 use std::{hint::black_box, time::Instant};
 fn main() {

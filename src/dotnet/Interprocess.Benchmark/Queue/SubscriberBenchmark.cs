@@ -22,6 +22,7 @@ public class SubscriberBenchmark
         subscribers = Enumerable.Range(0, SubscriberCount).Select(_ => factory.CreateSubscriber(options)).ToArray();
     }
 
+    // Retain the transient queue throughout measurement; close only after all timed work.
     [GlobalCleanup]
     public void Cleanup()
     {

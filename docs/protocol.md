@@ -14,6 +14,8 @@ Supported participants must run on a little-endian, 64-bit architecture with nat
 
 ## Identity and storage lifetime
 
+A queue is transient and exists only while at least one publisher or subscriber remains attached. After the last endpoint closes or its process exits, its messages cannot be resumed. Reopening the same name creates a fresh, empty queue. Keep participant lifetimes overlapping across process handoffs; either a publisher or a subscriber is sufficient to retain the queue.
+
 Participants must agree on the queue name, logical capacity, and, on Unix, the same backing directory. Use an explicit absolute directory for cross-language applications: runtime defaults for the temporary directory can differ. The name must fit platform object-name limits; short ASCII names without slashes or NUL work on all platforms. A distinct Unix path does **not** create a distinct semaphore name: use names unique across paths.
 
 Capacity `C` is the size of the circular message buffer only. It must exceed 16 and be divisible by 8. Total mapped bytes are `262400 + C`. All additions must be checked against the implementation's addressable range.

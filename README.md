@@ -22,7 +22,7 @@
 
 **12.0× faster round trips and 2.3× the concurrent throughput of v2** in our native Mac benchmarks. Version 3 coalesces notifications, avoiding repeated operating-system calls while readers are active.
 
-| Version | 8-byte enqueue + dequeue | 4 publishers / 4 subscribers |
+| Version | 8-byte send + receive | 4 publishers / 4 subscribers |
 | --- | ---: | ---: |
 | Latest v1 (`1.0.175`) | — | — |
 | Latest v2 (`2.1.204`) | 214.6 ns | 1.04 million messages/s |
@@ -130,7 +130,7 @@ Use the same v3 queue from multiple languages. The native packages are currently
 - Use the same name, capacity, and storage path in every participant. Queue names must be unique even across different paths; Windows uses the name and ignores the path.
 - Each queue supports **2,048 connected publisher objects**. Slots are reused after disposal or confirmed process exit. The publisher table adds **256 KiB** plus 256 bytes of header/alignment storage; `Capacity` is the message-buffer size.
 - On Windows, use the same user session for all participants. Cross-account connections are not supported.
-- Queue resources remain available while any publisher or subscriber is connected. Dispose participants when finished.
+- The queue is transient and remains available while any publisher or subscriber is connected. Once all are gone, unread messages are lost. Reopening the same name creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits. Dispose participants when finished.
 - A paused live participant keeps ownership. Recovery can reclaim abandoned work after a process exits, but may discard queued messages, including completed messages behind an unfinished reservation. This is an IPC queue, not durable storage.
 - Supply a destination buffer large enough for the message. A smaller buffer consumes the message and returns only the bytes that fit.
 
@@ -145,21 +145,23 @@ Please note that you can start multiple publishers and subscribers sending and r
 
 ## Performance
 
+Send means enqueue; receive means dequeue. All benchmarks keep publishers and subscribers connected throughout measurement, with queue creation and cleanup outside the timed work.
+
 ### On macOS
 
 Measured September 13, 2026, on an **Apple M5 Max**, macOS 26.6.2, .NET 10.0.12, Release build. V3 source: [`f990ba3`](https://github.com/cloudtoid/interprocess/commit/f990ba3).
 
 | Workload | Mean (ns) | StdDev (ns) | Allocated |
 | --- | ---: | ---: | ---: |
-| Enqueue, 3 bytes | 5.74 | 0.13 | 0 B |
-| Enqueue + dequeue, 3 bytes, reused buffer | 17.37 | 0.43 | 0 B |
-| Enqueue + dequeue, 3 bytes, new result array | 20.00 | 0.15 | 32 B |
-| Enqueue + dequeue, 50 bytes, reused buffer | 18.81 | 0.23 | 0 B |
-| Enqueue + dequeue, 50 bytes, ring-wrap workload | 21.35 | 0.08 | 0 B |
+| Send, 3 bytes | 5.74 | 0.13 | 0 B |
+| Send + receive, 3 bytes, reused buffer | 17.37 | 0.43 | 0 B |
+| Send + receive, 3 bytes, new result array | 20.00 | 0.15 | 32 B |
+| Send + receive, 50 bytes, reused buffer | 18.81 | 0.23 | 0 B |
+| Send + receive, 50 bytes, ring-wrap workload | 21.35 | 0.08 | 0 B |
 | Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 113.40 | 0.95 | — |
 | Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 155.30 | 11.19 | — |
 
-In-process microbenchmarks, not latency between applications. Concurrent rows show amortized time per message, including worker startup and completion; their allocations were not measured. Enqueue drains outside the timed batch. [BenchmarkDotNet][BenchmarkOrg]: two launches, eight measured iterations, 20 warmups (200 for enqueue-only; three for concurrent delivery).
+In-process microbenchmarks, not latency between applications. Concurrent rows show amortized time per message, including worker startup and completion; their allocations were not measured. Send-only drains outside the timed batch. [BenchmarkDotNet][BenchmarkOrg]: two launches, eight measured iterations, 20 warmups (200 for send-only; three for concurrent delivery).
 
 [Benchmark source and reports](docs/benchmarks/2026-09-13/). Run the Mac suite from the repository root:
 
@@ -175,11 +177,11 @@ Measured September 13, 2026, on an **Apple M5 Max**, Windows 11 Pro 25H2 ARM64 V
 
 | Workload | Mean (ns) | StdDev (ns) | Allocated |
 | --- | ---: | ---: | ---: |
-| Enqueue, 3 bytes | 6.26 | 0.26 | 0 B |
-| Enqueue + dequeue, 3 bytes, reused buffer | 17.96 | 0.43 | 0 B |
-| Enqueue + dequeue, 3 bytes, new result array | 19.78 | 0.38 | 32 B |
-| Enqueue + dequeue, 50 bytes, reused buffer | 17.98 | 0.28 | 0 B |
-| Enqueue + dequeue, 50 bytes, ring-wrap workload | 21.81 | 0.30 | 0 B |
+| Send, 3 bytes | 6.26 | 0.26 | 0 B |
+| Send + receive, 3 bytes, reused buffer | 17.96 | 0.43 | 0 B |
+| Send + receive, 3 bytes, new result array | 19.78 | 0.38 | 32 B |
+| Send + receive, 50 bytes, reused buffer | 17.98 | 0.28 | 0 B |
+| Send + receive, 50 bytes, ring-wrap workload | 21.81 | 0.30 | 0 B |
 | Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 101.30 | 1.68 | — |
 | Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 85.62 | 12.50 | — |
 
@@ -191,11 +193,11 @@ Measured September 13, 2026, on an **Apple M5 Max**, Ubuntu 24.04 ARM64 VM (Lima
 
 | Workload | Mean (ns) | StdDev (ns) | Allocated |
 | --- | ---: | ---: | ---: |
-| Enqueue, 3 bytes | 6.00 | 0.07 | 0 B |
-| Enqueue + dequeue, 3 bytes, reused buffer | 16.68 | 0.18 | 0 B |
-| Enqueue + dequeue, 3 bytes, new result array | 19.78 | 0.20 | 32 B |
-| Enqueue + dequeue, 50 bytes, reused buffer | 17.64 | 0.21 | 0 B |
-| Enqueue + dequeue, 50 bytes, ring-wrap workload | 20.82 | 0.11 | 0 B |
+| Send, 3 bytes | 6.00 | 0.07 | 0 B |
+| Send + receive, 3 bytes, reused buffer | 16.68 | 0.18 | 0 B |
+| Send + receive, 3 bytes, new result array | 19.78 | 0.20 | 32 B |
+| Send + receive, 50 bytes, reused buffer | 17.64 | 0.21 | 0 B |
+| Send + receive, 50 bytes, ring-wrap workload | 20.82 | 0.11 | 0 B |
 | Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 112.90 | 1.10 | — |
 | Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 158.60 | 13.64 | — |
 

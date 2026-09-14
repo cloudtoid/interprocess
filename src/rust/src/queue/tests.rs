@@ -77,7 +77,12 @@ fn capacity_and_lifetime() {
     let reader = Subscriber::open(options.clone()).unwrap();
     assert_eq!(reader.try_receive().unwrap().unwrap(), b"still here");
     drop(reader);
+    assert!(other.try_send(b"discard on last close").unwrap());
     drop(other);
+    {
+        let reopened = Subscriber::open(options.clone()).unwrap();
+        assert_eq!(reopened.try_receive().unwrap(), None);
+    }
     let fresh = Subscriber::open(Options {
         capacity: 128,
         ..options

@@ -23,6 +23,7 @@ public class QueueBenchmark
         subscriber = queueFactory.CreateSubscriber(new QueueOptions("qn", Path.GetTempPath(), 128));
     }
 
+    // Retain the transient queue throughout measurement; close only after all timed work.
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -30,7 +31,7 @@ public class QueueBenchmark
         publisher.Dispose();
     }
 
-    [Benchmark(Description = "Message enqueue and dequeue - no message buffer")]
+    [Benchmark(Description = "Send + receive - new result array")]
     public ReadOnlyMemory<byte> EnqueueDequeue_WithResultArrayAllocation()
     {
         if (!publisher.TryEnqueue(Message))
@@ -40,7 +41,7 @@ public class QueueBenchmark
     }
 
     // Expecting that there are NO managed heap allocations.
-    [Benchmark(Description = "Message enqueue and dequeue")]
+    [Benchmark(Description = "Send + receive - reused buffer")]
     public ReadOnlyMemory<byte> EnqueueAndDequeue_WithPooledResultArray()
     {
         if (!publisher.TryEnqueue(Message))

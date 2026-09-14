@@ -27,3 +27,7 @@ Ready messages use the nonblocking path immediately. Empty queues retry on a one
 Every participant must agree on name, capacity, and Unix path (optional third constructor argument). Capacity is bytes, excludes metadata, exceeds 16, and is divisible by 8. Subscribers compete for messages. Queues are volatile, with recovery for crashed participants; they do not provide durable delivery.
 
 Build from this monorepo with `node build.js`. See the [protocol specification](https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md).
+
+## Queue lifetime
+
+The queue is transient: it stays alive while at least one publisher or subscriber is connected. Once all endpoints are closed or their processes exit, unread messages are lost. Opening the same name again creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits; a surviving publisher also keeps the queue alive.

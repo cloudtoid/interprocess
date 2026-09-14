@@ -21,6 +21,7 @@ public class QueueExtendedBenchmark
     [GlobalSetup(Target = nameof(EnqueueDequeue_WrappedMessages))]
     public void SetupWrapped() => SetupQueue(120);
 
+    // Retain the transient queue throughout measurement; close only after all timed work.
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -28,7 +29,7 @@ public class QueueExtendedBenchmark
         publisher.Dispose();
     }
 
-    [Benchmark(Description = "Message enqueue and dequeue - long message")]
+    [Benchmark(Description = "Send + receive - long message")]
     public ReadOnlyMemory<byte> EnqueueDequeue_LongMessage()
     {
         if (!publisher.TryEnqueue(Message))
@@ -39,7 +40,7 @@ public class QueueExtendedBenchmark
 
     // A padded message occupies 64 bytes. A 120-byte ring makes message bodies cross
     // the end of the buffer; a 128-byte ring only cycles between aligned slots.
-    [Benchmark(Description = "Message enqueue and dequeue - ring-wrap workload", OperationsPerInvoke = 2)]
+    [Benchmark(Description = "Send + receive - ring-wrap workload", OperationsPerInvoke = 2)]
     public ReadOnlyMemory<byte> EnqueueDequeue_WrappedMessages()
     {
         if (!publisher.TryEnqueue(Message))
