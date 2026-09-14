@@ -90,13 +90,24 @@ impl Subscriber {
         })
     }
     #[napi]
-    pub fn try_receive(&self) -> Result<Option<Buffer>, String> {
-        self.inner
+    pub fn try_receive(&self, env: Env) -> Result<Option<BufferSlice<'_>>, String> {
+        let message = self
+            .inner
             .as_ref()
             .ok_or_else(closed)?
             .try_recv()
-            .map(|m| m.map(Buffer::from))
-            .map_err(error)
+            .map_err(error)?;
+        message
+            .map(|message| {
+                // On Windows, V8's concurrent sweeping of external buffers can
+                // signal a closing libuv handle at shutdown. Keep ownership in Node.
+                #[cfg(windows)]
+                let buffer = BufferSlice::copy_from(&env, message);
+                #[cfg(not(windows))]
+                let buffer = BufferSlice::from_data(&env, message);
+                buffer.map_err(|e| Error::new("ERR_IO".to_owned(), e.to_string()))
+            })
+            .transpose()
     }
     #[napi]
     pub fn close(&mut self) {
