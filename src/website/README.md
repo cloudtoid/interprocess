@@ -22,3 +22,5 @@ Run `python3 src/website/validate.py` after building to check local links, ancho
 The social preview uses `assets/social-card.png`; its editable SVG source is alongside it. SEO metadata uses `https://cloudtoid.com` as the canonical origin. Publishing makes the sitemap available at `/sitemap.xml`; search-engine indexing happens independently of deployment.
 
 CSS and JavaScript URLs include a content hash at build time, so browsers fetch changed assets after each deployment. Cloudflare build-watch includes must use `src/website/*` (a single wildcard also matches nested paths); GitHub Actions uses its own `src/website/**` glob.
+
+The complete protocol specification lives in `docs/protocol.html` at `/docs/protocol/`. Its interactive illustration uses `protocol.js` to show reservation order, unfinished publications, capacity, and physical wraparound; the specification below remains the authoritative contract.

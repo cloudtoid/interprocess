@@ -2,7 +2,7 @@
 
 # Interprocess
 
-[Website](https://cloudtoid.com) · [Documentation](https://cloudtoid.com/docs/) · [Languages and packages](#languages) · [Quick start](#quick-start) · [Performance](#performance) · [Protocol v3](docs/protocol.md)
+[Website](https://cloudtoid.com) · [Documentation](https://cloudtoid.com/docs/) · [Languages and packages](#languages) · [Quick start](#quick-start) · [Performance](#performance) · [Protocol v3](https://cloudtoid.com/docs/protocol/)
 
 [![NuGet](https://img.shields.io/nuget/v/Cloudtoid.Interprocess?label=NuGet)](https://www.nuget.org/packages/Cloudtoid.Interprocess)
 [![Rust](https://img.shields.io/crates/v/cloudtoid-interprocess?label=Rust)](https://crates.io/crates/cloudtoid-interprocess)
@@ -124,7 +124,7 @@ Measured September 13, 2026, on an **Apple M5 Max**, Ubuntu 24.04 ARM64 VM (Lima
 
 Same .NET workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (200 for send-only), while concurrent runs used all four vCPUs and three warmups. [.NET benchmark source](src/dotnet/Interprocess.Benchmark/) · [Original reports](https://github.com/cloudtoid/interprocess/tree/95c512672d580dd836ba2554cd1f78c0c3826f6c/docs/benchmarks/2026-09-13).
 
-[Protocol v3](docs/protocol.md) documents the complete shared-memory format and synchronization rules. [Interoperability tests](tests/interop/README.md) exercise every publisher/subscriber language pair and mixed-language concurrent delivery across participant crashes.
+[Protocol v3](https://cloudtoid.com/docs/protocol/) documents the complete shared-memory format and synchronization rules. [Interoperability tests](tests/interop/README.md) exercise every publisher/subscriber language pair and mixed-language concurrent delivery across participant crashes.
 
 ## How to Contribute
 

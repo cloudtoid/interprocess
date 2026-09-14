@@ -45,7 +45,7 @@ software = {
 }
 home = home.replace('</head>', '<script type="application/ld+json">' + json.dumps(software) + '</script>\n</head>')
 (output / 'index.html').write_text(home)
-for name in ('style.css', 'site.js', 'theme.js', 'docs.css', 'docs.js'):
+for name in ('style.css', 'site.js', 'theme.js', 'docs.css', 'docs.js', 'protocol.js'):
     shutil.copyfile(root / name, output / name)
 for name in ('assets', 'benchmarks', 'vendor'):
     shutil.copytree(root / name, output / name, dirs_exist_ok=True)

@@ -1,0 +1,291 @@
+<p class="doc-lead">One circular buffer. Concurrent publishers reserve space; subscribers consume messages in reservation order.</p>
+<h2 id="explore-the-queue">Explore the queue</h2>
+<p>Publish a few messages, receive them, then publish again to see the buffer wrap. Pause a publication to see why a later ready message cannot overtake it.</p>
+<div id="queue-demo" class="queue-demo" hidden>
+  <div class="queue-options">
+    <label>Payload <select id="queue-size"><option value="8">8 bytes</option><option value="16">16 bytes</option><option value="24">24 bytes</option></select></label>
+    <label><input type="checkbox" id="queue-pause"> Pause before marking ready</label>
+  </div>
+  <div class="queue-actions">
+    <button type="button" data-publish="A">Publish A</button><button type="button" data-publish="B">Publish B</button>
+    <button type="button" id="queue-finish">Finish paused publish</button><button type="button" id="queue-receive">Receive next</button><button type="button" id="queue-reset">Reset</button>
+  </div>
+  <div id="queue-cells" class="queue-cells" aria-label="64-byte circular message buffer"></div>
+  <p class="queue-legend">Each cell is 8 bytes. H = record header; P = payload. Hatched records are unfinished; solid records are ready. After byte 63, storage wraps back to byte 0.</p>
+  <dl class="queue-counters"><div><dt>ReadOffset</dt><dd id="queue-read">0</dd></div><div><dt>WriteOffset</dt><dd id="queue-write">0</dd></div><div><dt>Used / capacity</dt><dd id="queue-used">0 / 64 B</dd></div></dl>
+  <p id="queue-status" role="status" aria-live="polite">Empty queue. Publish a message to reserve space.</p>
+</div>
+<noscript><p class="doc-note">Enable JavaScript to explore the queue. The complete specification below is available without it.</p></noscript>
+<p class="doc-source">Illustration with a 64-byte message buffer and two connected publishers. Each action steps through a simplified operation; actual reader claims, atomic retries, notifications, and recovery are specified below. Read and write positions keep increasing while physical positions wrap modulo capacity.</p>
+<script defer src="/protocol.js"></script>
+
+<p>This document specifies the shared-memory protocol used by the .NET implementation and the Rust core behind the C, Python, Node.js, and Go packages. Package API versions and the protocol namespace are separate: an API release can remain compatible with v3.</p>
+<h2 id="scope-and-guarantees">Scope and guarantees</h2>
+<p>A queue connects processes on one machine. Publishers reserve space concurrently. Subscribers compete for messages; one shared reader owner serializes consumption. Delivery follows reservation order, even if a later reservation becomes ready first. Concurrent calls from one publisher have no defined relative order. Successful sequential calls preserve order. An accepted batch is a prefix of the input, not a transaction; other publishers can interleave reservations.</p>
+<p>Ordinary operation delivers each message to one subscriber. This is volatile IPC, not durable storage, broadcast, or an acknowledged work queue. A reader can die after copying a message but before advancing the queue. Recovery can discard an abandoned reservation and completed messages behind it. Applications that need durable processing or exactly-once effects must implement those guarantees separately.</p>
+<p>The enqueue reservation path uses native atomics, without a per-message OS mutex. The entire queue is not formally lock-free: consumption has a reader ownership word, an indefinitely paused live reader can block readers, and recovery waits for admitted live writers. Resource creation and destruction use OS locks. A blocking receive also uses an OS semaphore. Language wrappers may synchronize their own handle lifetime.</p>
+<p>Supported participants must run on a little-endian, 64-bit architecture with naturally aligned, process-shared 32-bit and 64-bit atomics (x86-64 or ARM64). No 128-bit compare/exchange or <code>CMPXCHG16B</code> is required. Files containing this layout cannot be treated as durable queues across reboot, copied between machines as live queues, or shared with v1/v2 participants.</p>
+<h2 id="identity-and-storage-lifetime">Identity and storage lifetime</h2>
+<p>A queue is transient and exists only while at least one publisher or subscriber remains attached. After the last endpoint closes or its process exits, its messages cannot be resumed. Reopening the same name creates a fresh, empty queue. Keep participant lifetimes overlapping across process handoffs; either a publisher or a subscriber is sufficient to retain the queue.</p>
+<p>Participants must agree on the queue name, logical capacity, and, on Unix, the same backing directory. Use an explicit absolute directory for cross-language applications: runtime defaults for the temporary directory can differ. The name must fit platform object-name limits; short ASCII names without slashes or NUL work on all platforms. A distinct Unix path does <strong>not</strong> create a distinct semaphore name: use names unique across paths.</p>
+<p>Capacity <code>C</code> is the size of the circular message buffer only. It must exceed 16 and be divisible by 8. Total mapped bytes are <code>262400 + C</code>. All additions must be checked against the implementation's addressable range.</p>
+<h3 id="linux-and-macos">Linux and macOS</h3>
+<p>For base directory <code>P</code> and name <code>N</code>:</p>
+<div class="doc-table"><table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Backing file</td>
+<td><code>P/.cloudtoid/interprocess/v3/mmf/N.qu</code></td>
+</tr>
+<tr>
+<td>Coordination lock</td>
+<td><code>flock</code> on the <code>P/.cloudtoid/interprocess/v3/mmf</code> directory inode</td>
+</tr>
+<tr>
+<td>Participant lease</td>
+<td><code>P/.cloudtoid/interprocess/v3/readers/N/ID</code></td>
+</tr>
+<tr>
+<td>Named semaphore</td>
+<td><code>/ct3ip.N</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Opening and closing coordinate under an exclusive directory <code>flock</code>. Every attached endpoint retains a shared <code>flock</code> on the backing file. A new opener tries an exclusive nonblocking backing-file lock. Success proves there are no attached participants: unlink any old named semaphore, remove stale lease files, truncate the backing file to zero, and resize it to the total mapped length. Otherwise the existing file length must match. Convert to a shared lock before releasing coordination.</p>
+<p>Close the semaphore and unmap before releasing the participant's backing-file lifetime lock. While holding coordination, try to convert that shared lock to an exclusive nonblocking lock. Only success permits unlinking the semaphore, lease directory, and backing file. Otherwise retain the queue for remaining participants. A process crash releases its OS locks. After the last participant crashes, stale names can remain until the next opener performs cleanup; they must never be interpreted as a durable saved queue.</p>
+<p>A participant lease is an open file with an exclusive <code>flock</code>, held throughout all uses of its registration. Liveness probes open that file and try an exclusive nonblocking lock: contention means alive; acquisition or a missing file means dead. Delete stale lease files after acquiring their lock. Permission and other inspection failures mean <strong>unknown/alive</strong>, never proof of death. Participant IDs are never reused in a live queue, so a stale probe cannot target a later owner of that ID.</p>
+<p>POSIX semaphores are created with initial count zero and requested mode <code>0777</code>, subject to the process umask. macOS requires the platform's real variadic <code>sem_open</code> ABI. The implementations use <code>sem_timedwait</code> on Linux and bounded <code>sem_trywait</code> retries on macOS.</p>
+<h3 id="windows">Windows</h3>
+<div class="doc-table"><table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Page-file-backed mapping</td>
+<td><code>CT3_IP_N</code></td>
+</tr>
+<tr>
+<td>Initialization mutex</td>
+<td><code>CT3_INIT_N</code></td>
+</tr>
+<tr>
+<td>Participant lease mapping</td>
+<td><code>CT3_READER_N.ID</code></td>
+</tr>
+<tr>
+<td>Semaphore</td>
+<td><code>Global\CT3.IP.N</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Mapping and lease names are session-local; participants must share the Windows session and have compatible object permissions. The semaphore uses the existing global namespace. The path option has no effect on Windows.</p>
+<p>Acquire the initialization mutex before opening the mapping. An abandoned mutex still grants ownership. Create/open the total mapped length, then inspect the signed 64-bit logical capacity at offset 32 through a 40-byte view. Zero means this mapping needs initialization; write <code>C</code>. Any other value must equal <code>C</code>. Release the initialization mutex only after this is complete. No participant opens the mapping before owning that mutex, so a creator that crashes before initialization cannot leave an uninitialized mapping held by a waiting joiner.</p>
+<p>Windows retains mapping and semaphore objects while handles/views remain. Close all handles/views for an endpoint after its calls stop; other publishers and subscribers retain their own handles. Never destroy a queue because one reader crashed.</p>
+<p>A lease is a separate 16-byte mapping, created before its ID becomes visible as a queue owner:</p>
+<div class="doc-table"><table>
+<thead>
+<tr>
+<th>Offset</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>signed 32-bit integer</td>
+<td>Process ID</td>
+</tr>
+<tr>
+<td>4</td>
+<td>4 bytes</td>
+<td>Zero padding</td>
+</tr>
+<tr>
+<td>8</td>
+<td>signed 64-bit integer</td>
+<td>Process creation time, UTC .NET ticks since 0001-01-01</td>
+</tr>
+</tbody>
+</table></div>
+<p>Read both fields to probe liveness. The PID must identify a running process whose creation time matches exactly, avoiding PID reuse. Convert Windows FILETIME to .NET ticks by adding <code>504911232000000000</code>; both count 100 ns intervals, with different epochs. Missing mappings, a nonexistent/exited process, or a creation-time mismatch mean dead. Inspection/access failures mean unknown/alive. Do not retain the probe mapping longer than the probe itself.</p>
+<h2 id="shared-memory-layout">Shared memory layout</h2>
+<p>All offsets are bytes from the mapping's first byte. All integers are little-endian. Initial memory is zero. Fields identified as atomic must always be accessed atomically at their natural alignment while shared. Padding remains reserved and zero; a port must not repurpose it without a protocol change.</p>
+<div class="doc-table"><table>
+<thead>
+<tr>
+<th>Offset</th>
+<th style="text-align: right;">Size</th>
+<th>Field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td style="text-align: right;">8</td>
+<td>Atomic signed <code>ReadOffset</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td style="text-align: right;">8</td>
+<td>Atomic signed <code>WriteOffset</code></td>
+</tr>
+<tr>
+<td>16</td>
+<td style="text-align: right;">8</td>
+<td>Atomic signed <code>ReadLockOwner</code>; 0 means unowned</td>
+</tr>
+<tr>
+<td>24</td>
+<td style="text-align: right;">4</td>
+<td>Atomic signed <code>NotificationPending</code>; 0 or 1</td>
+</tr>
+<tr>
+<td>28</td>
+<td style="text-align: right;">4</td>
+<td>Atomic signed <code>LastParticipantId</code></td>
+</tr>
+<tr>
+<td>32</td>
+<td style="text-align: right;">8</td>
+<td>Windows logical capacity; initialization mutex protects it; unused on Unix</td>
+</tr>
+<tr>
+<td>40–127</td>
+<td style="text-align: right;">88</td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td>128</td>
+<td style="text-align: right;">4</td>
+<td>Atomic signed recovery admission gate; 0 open, 1 closed</td>
+</tr>
+<tr>
+<td>132–255</td>
+<td style="text-align: right;">124</td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td>256</td>
+<td style="text-align: right;">262144</td>
+<td>2048 publisher slots, each 128 bytes</td>
+</tr>
+<tr>
+<td>262400</td>
+<td style="text-align: right;"><code>C</code></td>
+<td>Circular message buffer</td>
+</tr>
+</tbody>
+</table></div>
+<p>Each publisher slot contains:</p>
+<div class="doc-table"><table>
+<thead>
+<tr>
+<th>Relative offset</th>
+<th style="text-align: right;">Size</th>
+<th>Field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td style="text-align: right;">8</td>
+<td>Atomic signed participant ID; 0 means unused</td>
+</tr>
+<tr>
+<td>8</td>
+<td style="text-align: right;">4</td>
+<td>Atomic signed number of admitted/in-flight enqueue calls</td>
+</tr>
+<tr>
+<td>12–127</td>
+<td style="text-align: right;">116</td>
+<td>Reserved</td>
+</tr>
+</tbody>
+</table></div>
+<p>Allocate participant IDs with a checked atomic increment of <code>LastParticipantId</code>, starting at 1. Publishers and subscribers share this allocator. Establish the liveness lease before installing the ID in a reader owner word or publisher slot. IDs never wrap: fail registration at <code>INT32_MAX</code> and use a fresh queue after its participants finish.</p>
+<p>A publisher claims an empty slot with compare/exchange, then resets its active count to zero before admitting calls. If all slots are occupied, it may reclaim a slot whose owner is proven dead, again with compare/exchange against the observed ID. Reject a 2049th live publisher. After all calls stop, release the slot only if it still contains the publisher's ID; release its lease afterward.</p>
+<h2 id="circular-records-and-position-arithmetic">Circular records and position arithmetic</h2>
+<p><code>ReadOffset</code> and <code>WriteOffset</code> are monotonic signed 64-bit byte positions. Physical position is <code>262400 + (position % C)</code>. Logical positions never wrap, although the physical buffer wraps continually. Require checked arithmetic and reject reservation beyond <code>INT64_MAX</code>. Do not silently reset counters in a live queue. At 1 GiB/s of reserved bytes, exhaustion takes about 272 years; it is still an explicit error, not an assumption about runtime length.</p>
+<p>A record consists of:</p>
+<div class="doc-table"><table>
+<thead>
+<tr>
+<th>Relative offset</th>
+<th style="text-align: right;">Size</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td style="text-align: right;">4</td>
+<td>Atomic state: 0 unfinished/free, 1 reader claimed, 2 ready</td>
+</tr>
+<tr>
+<td>4</td>
+<td style="text-align: right;">4</td>
+<td>Signed nonnegative payload byte length <code>L</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td style="text-align: right;"><code>L</code></td>
+<td>Opaque payload bytes</td>
+</tr>
+<tr>
+<td><code>8 + L</code></td>
+<td style="text-align: right;">0–7</td>
+<td>Alignment padding</td>
+</tr>
+</tbody>
+</table></div>
+<p>The reserved record length is <code>(L + 15) &amp; ~7</code>, using checked/wide arithmetic. Empty payloads are valid and reserve 8 bytes. Every record starts at an 8-byte boundary; because capacity also divides by 8, its header never straddles the physical end. Payload and padding can straddle, requiring at most two copies. The complete cleared record, including padding, must be zero before its space becomes reusable.</p>
+<h2 id="memory-ordering-and-publication">Memory ordering and publication</h2>
+<p>Acquire loads, release stores, and sequentially consistent read/modify/write operations describe the ordering used by the Rust implementation. .NET <code>Volatile</code> and <code>Interlocked</code> provide the corresponding ordering. A port must use real process-shared native atomics, not an implementation that substitutes process-private locks.</p>
+<p>For each enqueue (or admitted batch):</p>
+<ol>
+<li>Atomically increment the publisher slot's active count with a full-fence operation <strong>before</strong> observing the recovery gate. If the gate is closed, decrement and report no admission.</li>
+<li>Load <code>ReadOffset</code> with acquire ordering, then <code>WriteOffset</code> with acquire ordering. Compute <code>used = write - read</code>. If the proposed padded length exceeds <code>C - used</code>, return full. A stale read position is conservative. Keep this order of loads.</li>
+<li>Checked-add the record length to <code>write</code>; compare/exchange <code>WriteOffset</code> from that exact <code>write</code> to the new value. Retry the capacity calculation after a failed CAS. A successful CAS reserves one exclusive physical range. Never split the capacity check and reservation into unrelated atomic updates.</li>
+<li>Copy the payload and store its length. Publish state 2 with release ordering <strong>last</strong>. Readers must acquire this state before accessing the length or payload.</li>
+<li>Notify as described below. Decrement the active count in all exits, after writes and notification complete.</li>
+</ol>
+<p>Keeping one admission across a batch is allowed, provided the active count remains nonzero throughout, each message reserves independently, and recovery can observe the entire batch as active. No batch may continue writing after decrementing its active count.</p>
+<p>The active increment and gate closure/scan need the full-fence ordering: either a writer observes the closed gate and does not write, or the recovery scan observes its active count. Recovery never clears memory while a live admitted writer might still touch it.</p>
+<h2 id="consumption-and-crash-recovery">Consumption and crash recovery</h2>
+<p>A subscriber owns one unique participant ID and lease. Each receive attempt:</p>
+<ol>
+<li>Inspect <code>ReadLockOwner</code> before checking whether the queue is empty. If a different owner is present, periodically probe its lease. A live owner is never expired, however long it pauses.</li>
+<li>For a proven-dead owner, CAS that exact ID to the repairing subscriber's own ID. Only the successful repairer can reopen a stranded recovery gate, then release ownership. Do not first clear ownership and later open the gate: a delayed repair could corrupt a newer recovery attempt.</li>
+<li>If empty, return no message. Otherwise CAS owner 0 to the subscriber's own ID; fail without waiting if another reader owns it. Recheck emptiness under ownership.</li>
+<li>CAS the head record state from ready (2) to claimed (1), with acquire/full-fence ordering. After success, validate/read its length, copy the payload, clear the entire padded record, then atomically advance <code>ReadOffset</code>. Releasing the read position only after clearing prevents a writer from reusing uncleared bytes.</li>
+<li>Release ownership before returning, including unsuccessful attempts. Compare/exchange only the caller's own ID back to zero.</li>
+</ol>
+<p>For an unfinished or abandoned claimed head, retain a local observation containing the current read position, the then-current write tail, and a monotonic timestamp. A changed head starts a new observation. After at least ten seconds at the same blocked head:</p>
+<ol>
+<li>While holding reader ownership, atomically close the admission gate.</li>
+<li>Scan every publisher slot. If any slot has a nonzero active count and an owner that is alive or cannot be proven dead, reopen admission and postpone recovery. Keep the originally captured tail.</li>
+<li>Otherwise clear the range from the blocked head to the captured tail, then advance <code>ReadOffset</code> to that tail. Validate that this range is between zero and <code>C</code>. New reservations beyond the captured tail remain intact.</li>
+<li>Reopen admission and release reader ownership.</li>
+</ol>
+<p>This waits out a slow live publisher and recovers from a killed publisher without erasing the whole queue. It may discard completed messages behind an abandoned head within the captured range. Dead-reader repair occurs even when <code>read == write</code>, because a reader can die after advancing the position but before reopening the gate. The ten-second observation interval is a recovery delay, not permission to expire a live process.</p>
+<h2 id="notifications-and-blocking-receives">Notifications and blocking receives</h2>
+<p>The semaphore is a wakeup hint, not a message count. On publication, atomically exchange <code>NotificationPending</code> to 1. Only a previous value of 0 posts a semaphore permit. A full semaphore is already signaled and does not turn a committed publication into an error.</p>
+<p>A blocking receiver attempts to read before sleeping. Only after actually consuming a semaphore permit may it clear <code>NotificationPending</code> to 0. If that receiver exits while data remains after consuming a permit, it relays notification using the same exchange/post sequence. An empty check must not clear another receiver's pending notification.</p>
+<p>Wait/retry in bounded intervals of at most 5 ms (subject to OS scheduling). This retains progress if a publisher crashes after setting the pending flag but before posting, or another receiver consumes a permit and then exits. Language-level timeout/cancellation affects the wait, not the shared protocol. Nonblocking receive does not require cancellation or a semaphore wait.</p>
+<h2 id="interoperability-and-implementation-obligations">Interoperability and implementation obligations</h2>
+<p>Use raw bytes across language boundaries. Managed objects, native pointers, language string layouts, and Arrow C Data pointers are not cross-process payload formats. Agree separately on encoding/schema when needed. Receive buffers belong to the caller; no wrapper should expose borrowed queue memory after advancing <code>ReadOffset</code>.</p>
+<p>Ports must test every publisher/subscriber direction, small capacities and repeated wraparound, empty payloads, full queues, concurrent participants, capacity mismatch, last-participant cleanup, process death, and paused live owners. <code>tests/interop/run.py</code> runs the six-language pair matrix. Rust tests pin the binary offsets and exercise the native implementation; .NET retains its own regression tests.</p>
+<p>Resource cleanup must happen only after all calls using that endpoint have stopped. Rust borrowing provides that lifetime rule. C callers must obey it explicitly. Other bindings enforce their documented close behavior. A queue protocol does not make use-after-close of a language handle valid.</p>
+<p>Queue names are limited to 24 UTF-8 bytes on macOS and 245 on Linux, without slashes or NUL. Backslashes are rejected on Windows and permitted on Unix for compatibility. Use at most 24 bytes when sharing configuration across platforms. A corrupt record length is rejected without advancing the reader or clearing storage; callers must stop the participants and start a fresh queue rather than retrying indefinitely.</p>
