@@ -2,6 +2,16 @@
 
 Exchange bytes directly with Rust, C, Python, Go, and .NET processes through fast shared-memory queues.
 
+## Install
+
+Run in your Node.js project. Requires Node.js 18 or later; platform binaries install automatically.
+
+```sh
+npm install @cloudtoid/interprocess
+```
+
+## Example
+
 ```js
 const { Publisher, Subscriber } = require('@cloudtoid/interprocess');
 const subscriber = new Subscriber('example', 65536);

@@ -47,6 +47,12 @@ These examples send and receive in one process so both endpoints remain connecte
 <details open>
 <summary>Rust</summary>
 
+Run in your Cargo project. Requires Rust 1.87 or later.
+
+```sh
+cargo add cloudtoid-interprocess
+```
+
 ```rust
 use cloudtoid_interprocess::{Options, Publisher, Subscriber};
 
@@ -64,6 +70,17 @@ Endpoints close when dropped. Use `recv()` to wait indefinitely or `recv_timeout
 
 <details>
 <summary>C / C++</summary>
+
+macOS Apple Silicon example, using the GitHub CLI. For other platforms, choose darwin-x64, linux-arm64, linux-x64, or win32-x64 in both archive names. See the C guide for Windows setup.
+
+```sh
+gh release download native-v3.0.1 --repo cloudtoid/interprocess --pattern "*-darwin-arm64.tar.gz"
+mkdir -p cloudtoid-sdk
+tar -xzf cloudtoid-interprocess-3.0.1-darwin-arm64.tar.gz -C cloudtoid-sdk --strip-components=1
+export PKG_CONFIG_PATH="$PWD/cloudtoid-sdk/lib/pkgconfig:$PKG_CONFIG_PATH"
+```
+
+[Complete C SDK setup](src/c/README.md).
 
 ```c
 #include <interprocess.h>
@@ -95,6 +112,12 @@ Timeouts are milliseconds; free returned buffers with `cip_buffer_free`.
 <details>
 <summary>Python</summary>
 
+PyPI publishing is pending. Run in an activated Python 3.9+ virtual environment with Git, Rust, and a native linker installed.
+
+```sh
+python -m pip install "git+https://github.com/cloudtoid/interprocess.git@native-v3.0.1#subdirectory=src/python"
+```
+
 ```python
 from cloudtoid_interprocess import Publisher, Subscriber
 
@@ -109,6 +132,12 @@ Context managers close endpoints. Timeouts are seconds; `receive()` waits indefi
 
 <details>
 <summary>Node.js / TypeScript</summary>
+
+Run in your Node.js project. Requires Node.js 18 or later; platform binaries install automatically.
+
+```sh
+npm install @cloudtoid/interprocess
+```
 
 ```js
 import { Publisher, Subscriber } from '@cloudtoid/interprocess';
@@ -134,6 +163,12 @@ CommonJS `require` is also supported. Async receive accepts an optional `AbortSi
 
 <details>
 <summary>Go</summary>
+
+Install the C SDK first ([C guide](src/c/README.md)), then run in your Go module. Requires Go 1.24+, cgo enabled, a C compiler, and pkg-config.
+
+```sh
+go get github.com/cloudtoid/interprocess/src/go/v3@latest
+```
 
 ```go
 package main
