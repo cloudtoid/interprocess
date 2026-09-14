@@ -36,12 +36,19 @@ for artifact, (platform, arch) in platforms.items():
     (package / 'package.json').write_text(json.dumps(manifest, indent=2)+'\n')
     wheels = output / 'python'
     wheels.mkdir(exist_ok=True)
-    for wheel in (source / 'target/wheels').glob('*.whl'): shutil.copyfile(wheel, wheels / wheel.name)
+    platform_wheels = list((source / 'target/wheels').glob('*.whl'))
+    if len(platform_wheels) != 1: raise SystemExit(f'Expected one Python wheel in {source}')
+    for wheel in platform_wheels: shutil.copyfile(wheel, wheels / wheel.name)
     sdk = source / 'target/sdk'
+    library = {'win32': 'cloudtoid_interprocess.dll', 'darwin': 'libcloudtoid_interprocess.dylib', 'linux': 'libcloudtoid_interprocess.so'}[platform]
+    for required in (sdk / 'include/interprocess.h', sdk / 'lib' / library, sdk / 'lib/pkgconfig/cloudtoid-interprocess.pc'):
+        if not required.is_file(): raise SystemExit(f'Missing C SDK file: {required}')
     with tarfile.open(output / f'cloudtoid-interprocess-{version}-{platform}-{arch}.tar.gz', 'w:gz') as archive:
         archive.add(sdk, arcname=f'cloudtoid-interprocess-{version}')
 main = output / 'npm/main'
 main.mkdir(parents=True, exist_ok=True)
-for name in ('package.json', 'index.js', 'index.d.ts', 'README.md', 'LICENSE'):
+base.pop('scripts', None)
+(main / 'package.json').write_text(json.dumps(base, indent=2)+'\n')
+for name in ('index.js', 'index.d.ts', 'README.md', 'LICENSE'):
     shutil.copyfile(ROOT / 'src/node' / name, main / name)
 print(f'Assembled version {version} in {output}')

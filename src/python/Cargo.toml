@@ -8,6 +8,8 @@ publish = false
 description = "Python bindings for Cloudtoid Interprocess"
 
 [lib]
+test = false
+doctest = false
 name = "_native"
 crate-type = ["cdylib"]
 

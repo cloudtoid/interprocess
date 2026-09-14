@@ -21,10 +21,19 @@ jobs:
       - id: version
         run: |
           python - <<'PY'
-          import json, os, tomllib
+          import json, os, re, tomllib
+          from pathlib import Path
           v = tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version']
-          assert json.load(open('src/node/package.json'))['version'] == v
+          node = json.load(open('src/node/package.json'))
+          assert node['version'] == v
+          assert all(value == v for value in node['optionalDependencies'].values())
           assert tomllib.load(open('src/python/pyproject.toml','rb'))['project']['version'] == v
+          assert f'__version__ = "{v}"' in Path('src/python/python/cloudtoid_interprocess/__init__.py').read_text()
+          assert f'VERSION {v} LANGUAGES' in Path('src/c/CMakeLists.txt').read_text()
+          for name in ('c', 'python', 'node'):
+              manifest = tomllib.load(open(f'src/{name}/Cargo.toml', 'rb'))
+              assert manifest['dependencies']['core-queue']['version'] == v
+          assert re.fullmatch(r'\d+\.\d+\.\d+', v), 'Native releases use stable versions'
           with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('version='+v+'\n')
           PY
   packages:
@@ -84,7 +93,7 @@ jobs:
         run: |
           mkdir -p target/release-packages/tarballs
           for package in target/release-packages/npm/*; do
-            npm pack "$package" --pack-destination target/release-packages/tarballs
+            npm pack "./$package" --pack-destination target/release-packages/tarballs
           done
       - uses: actions/upload-artifact@v6
         with:
@@ -100,9 +109,16 @@ jobs:
       - name: Publish the Rust core and C ABI crate
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION: ${{ needs.source.outputs.version }}
         run: |
-          cargo publish --locked -p cloudtoid-interprocess
-          cargo publish --locked -p cloudtoid-interprocess-ffi
+          for package in cloudtoid-interprocess cloudtoid-interprocess-ffi; do
+            status=$(curl --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://crates.io/api/v1/crates/$package/$VERSION")
+            case "$status" in
+              200) echo "$package $VERSION is already published" ;;
+              404) cargo publish --locked -p "$package" ;;
+              *) echo "Cannot check $package: HTTP $status"; exit 1 ;;
+            esac
+          done
   python:
     needs: [source, assemble]
     runs-on: ubuntu-latest
@@ -138,13 +154,25 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          publish_package() {
+            (
+              cd "$1"
+              name=$(node -p 'require("./package.json").name')
+              version=$(node -p 'require("./package.json").version')
+              status=$(curl --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://registry.npmjs.org/$name/$version")
+              case "$status" in
+                200) echo "$name $version is already published" ;;
+                404) npm publish --access public --provenance ;;
+                *) echo "Cannot check $name: HTTP $status"; exit 1 ;;
+              esac
+            )
+          }
           for package in release-packages/npm/*; do
             if [ "$(basename "$package")" != main ]; then
-              (cd "$package" && npm publish --access public --provenance)
+              publish_package "$package"
             fi
           done
-          cd release-packages/npm/main
-          npm publish --access public --provenance
+          publish_package release-packages/npm/main
   release:
     needs: [source, assemble, rust, python, node]
     runs-on: ubuntu-latest
@@ -161,6 +189,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.source.outputs.version }}
         run: |
-          git tag "src/go/v$VERSION"
-          git push origin "src/go/v$VERSION"
-          gh release create "native-v$VERSION" release-packages/*.tar.gz --target "$GITHUB_SHA" --title "Native libraries $VERSION" --notes "Rust, C, Python, Node.js, and Go packages for the shared v3 protocol. See each language README and docs/protocol.md for installation and behavior."
+          git fetch origin 'refs/tags/*:refs/tags/*'
+          for tag in "src/go/v$VERSION" "native-v$VERSION"; do
+            if git rev-parse --verify "refs/tags/$tag" >/dev/null 2>&1; then
+              test "$(git rev-parse "$tag^{commit}")" = "$GITHUB_SHA"
+            else
+              git tag "$tag" "$GITHUB_SHA"
+              git push origin "$tag"
+            fi
+          done
+          if ! gh release view "native-v$VERSION" >/dev/null 2>&1; then
+            gh release create "native-v$VERSION" --verify-tag --title "Native libraries $VERSION" --notes "Rust, C, Python, Node.js, and Go packages for the shared v3 protocol. See each language README and docs/protocol.md for installation and behavior."
+          fi
+          gh release upload "native-v$VERSION" release-packages/*.tar.gz --clobber

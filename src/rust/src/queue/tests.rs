@@ -161,33 +161,6 @@ fn counters_do_not_wrap() {
 }
 
 #[test]
-fn live_writer_blocks_recovery_and_dead_writer_does_not() {
-    let options = options(64);
-    let publisher = Publisher::open(options.clone()).unwrap();
-    let subscriber = Subscriber::open(options).unwrap();
-    let shared = &subscriber.shared;
-    shared.header().write.store(16, SeqCst);
-    // A live writer may pause indefinitely after reserving: never clear its bytes.
-    shared.active(publisher.slot).store(1, SeqCst);
-    unsafe {
-        *subscriber.pending.get() = Some(Pending {
-            started: 0,
-            read: 0,
-            tail: 16,
-        });
-    }
-    // Exercise the same recovery branch without adding ten-second sleeps to tests.
-    shared.gate().swap(1, SeqCst);
-    assert!(shared.any_active());
-    shared.gate().swap(0, SeqCst);
-    shared.active(publisher.slot).store(0, SeqCst);
-    drop(publisher);
-    shared.gate().swap(1, SeqCst);
-    assert!(!shared.any_active());
-    shared.gate().swap(0, SeqCst);
-}
-
-#[test]
 #[ignore = "subprocess fault-injection helper"]
 fn crash_child() {
     let Ok(name) = std::env::var("CIP_CRASH_NAME") else {
@@ -276,4 +249,48 @@ fn live_reader_is_retained_then_dead_empty_reader_reopens_gate() {
     assert_eq!(subscriber.shared.header().reader.load(Acquire), 0);
     assert!(publisher.try_send(b"reopened").unwrap());
     assert_eq!(subscriber.try_receive().unwrap().unwrap(), b"reopened");
+}
+
+#[test]
+fn a_paused_live_publisher_must_not_be_reclaimed() {
+    let options = options(64);
+    let subscriber = Subscriber::open(options.clone()).unwrap();
+    let mut child = crashed_participant(&options, "publisher");
+    assert!(subscriber.try_receive().unwrap().is_none());
+    let publisher = Publisher::open(options).unwrap();
+    assert!(publisher.try_send(b"preserved").unwrap());
+    let stalled = subscriber.receive(Some(Duration::from_secs(11))).unwrap();
+    let read = subscriber.shared.header().read.load(Acquire);
+    child.kill().unwrap();
+    child.wait().unwrap();
+    assert!(stalled.is_none());
+    assert_eq!(read, 0, "a live writer's reservation was reclaimed");
+    assert_eq!(
+        subscriber
+            .receive(Some(Duration::from_secs(20)))
+            .unwrap()
+            .unwrap(),
+        b"preserved"
+    );
+}
+
+#[test]
+fn missed_notification_does_not_stall_a_blocking_receiver() {
+    let options = options(64);
+    let subscriber = Subscriber::open(options.clone()).unwrap();
+    let publisher = Publisher::open(options).unwrap();
+    subscriber.shared.header().notification.store(1, SeqCst);
+    std::thread::scope(|scope| {
+        scope.spawn(|| {
+            std::thread::sleep(Duration::from_millis(15));
+            assert!(publisher.try_send(b"no permit").unwrap());
+        });
+        assert_eq!(
+            subscriber
+                .receive(Some(Duration::from_secs(1)))
+                .unwrap()
+                .unwrap(),
+            b"no permit"
+        );
+    });
 }
