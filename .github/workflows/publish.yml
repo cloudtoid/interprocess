@@ -143,7 +143,7 @@ jobs:
           VERSION: ${{ needs.source.outputs.version }}
         run: |
           for package in cloudtoid-interprocess cloudtoid-interprocess-ffi; do
-            status=$(curl --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://crates.io/api/v1/crates/$package/$VERSION")
+            status=$(curl --user-agent 'cloudtoid-interprocess (https://github.com/cloudtoid/interprocess)' --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://crates.io/api/v1/crates/$package/$VERSION")
             case "$status" in
               200) echo "$package $VERSION is already published" ;;
               404) cargo publish --locked -p "$package" ;;
@@ -200,6 +200,7 @@ jobs:
             )
           done
   release:
+    name: Publish C SDK and Go
     needs: [source, assemble]
     runs-on: ubuntu-latest
     permissions:
