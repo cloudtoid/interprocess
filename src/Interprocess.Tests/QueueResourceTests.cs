@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.IO.MemoryMappedFiles;
 using NSubstitute;
 
 namespace Cloudtoid.Interprocess.Tests;
@@ -75,6 +77,44 @@ public sealed class QueueResourceTests(UniquePathFixture fixture) : IClassFixtur
         }
     }
 
+    [Fact(Platforms = Platform.Windows)]
+    public async Task KilledInitializerDoesNotLeaveAnUnknownCapacityAsync()
+    {
+        var options = new QueueOptions(Guid.NewGuid().ToStringInvariant("N")[..16], fixture.Path, 2048);
+        var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet")
+        {
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+        var arguments = new[] { typeof(Program).Assembly.Location, options.Path, options.QueueName, "queue-init" };
+        foreach (var argument in arguments)
+            start.ArgumentList.Add(argument);
+
+        using var child = Process.Start(start)!;
+        try
+        {
+            var ready = await child.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(10));
+            ready.Should().Be("initializing");
+            var factory = new QueueFactory();
+            var join = Task.Run(() => factory.CreatePublisher(options));
+            child.Kill();
+            await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
+            using var publisher = await join.WaitAsync(TimeSpan.FromSeconds(10));
+            using var subscriber = factory.CreateSubscriber(options);
+            var payload = new byte[1800];
+            publisher.TryEnqueue(payload).Should().BeTrue();
+            subscriber.TryDequeue(out var message).Should().BeTrue();
+            message.ToArray().Should().Equal(payload);
+        }
+        finally
+        {
+            if (!child.HasExited)
+                child.Kill();
+        }
+    }
+
     [Fact]
     public void InvalidCapacityFailsBeforeOpeningQueueResources()
     {
@@ -82,5 +122,25 @@ public sealed class QueueResourceTests(UniquePathFixture fixture) : IClassFixtur
         unaligned.Should().Throw<ArgumentException>().WithParameterName("capacity");
         Action overflow = () => _ = new QueueOptions("invalid", long.MaxValue - 7);
         overflow.Should().Throw<OverflowException>();
+    }
+
+    internal static void RunInitializer(QueueOptions options)
+    {
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException();
+
+        using var coordination = new Mutex(false, "CT3_INIT_" + options.QueueName);
+        coordination.WaitOne();
+        try
+        {
+            using var mapping = MemoryMappedFile.CreateOrOpen(
+                "CT3_IP_" + options.QueueName, options.GetQueueStorageSize());
+            Console.WriteLine("initializing");
+            Console.ReadLine();
+        }
+        finally
+        {
+            coordination.ReleaseMutex();
+        }
     }
 }

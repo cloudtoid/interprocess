@@ -3,9 +3,17 @@ name: publish
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Stable package version (for example, 3.0.0)'
+        required: true
+        default: '3.0.0'
+        type: string
   
 jobs:
   build:
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
       id-token: write
@@ -22,14 +30,31 @@ jobs:
           dotnet-version: |
             10.0.x
 
+      - name: Select package version
+        id: version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            [[ "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+            version="$REQUESTED_VERSION"
+          else
+            version="3.0.0-alpha.$GITHUB_RUN_NUMBER"
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
       - name: Test - Debug
         run: dotnet test src/Interprocess.sln
 
-      - name: Build - Release
-        run: dotnet build -c Release src/Interprocess.sln
+      - name: Test - Release
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.value }}
+        run: dotnet test -c Release src/Interprocess.sln -p:Version="$PACKAGE_VERSION"
 
       - name: Pack
-        run: dotnet pack -c Release --no-build --output . --version-suffix ${{github.run_number}} src/Interprocess/Interprocess.csproj 
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.value }}
+        run: dotnet pack -c Release --no-build --output artifacts -p:Version="$PACKAGE_VERSION" src/Interprocess/Interprocess.csproj
 
       - name: NuGet login
         uses: NuGet/login@v1
@@ -38,4 +63,7 @@ jobs:
           user: pedramr
 
       - name: Push
-        run: dotnet nuget push Cloudtoid.Interprocess.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.value }}
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push "artifacts/Cloudtoid.Interprocess.$PACKAGE_VERSION.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY"
