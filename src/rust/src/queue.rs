@@ -159,16 +159,11 @@ impl Shared {
         );
     }
 
-    unsafe fn read(&self, offset: i64, target: &mut [u8]) {
-        let right = target
-            .len()
-            .min(self.options.capacity - offset as usize % self.options.capacity);
-        ptr::copy_nonoverlapping(self.pointer(offset), target.as_mut_ptr(), right);
-        ptr::copy_nonoverlapping(
-            self.pointer(0),
-            target.as_mut_ptr().add(right),
-            target.len() - right,
-        );
+    // `target` must be writable for `length` bytes and must not overlap the mapping.
+    unsafe fn read(&self, offset: i64, target: *mut u8, length: usize) {
+        let right = length.min(self.options.capacity - offset as usize % self.options.capacity);
+        ptr::copy_nonoverlapping(self.pointer(offset), target, right);
+        ptr::copy_nonoverlapping(self.pointer(0), target.add(right), length - right);
     }
 
     unsafe fn clear(&self, offset: i64, length: usize) {
@@ -382,9 +377,12 @@ impl Subscriber {
     /// Copies and consumes a ready message, allocating a result vector.
     pub fn try_recv(&self) -> Result<Option<Vec<u8>>> {
         self.receive_with(|shared, offset, length| {
-            let mut message = vec![0; length];
+            let mut message = Vec::with_capacity(length);
             unsafe {
-                shared.read(offset, &mut message);
+                // The reader lock protects the source. Initialize every byte before
+                // exposing the vector's length, avoiding a redundant zero-fill.
+                shared.read(offset, message.as_mut_ptr(), length);
+                message.set_len(length);
             }
             message
         })
@@ -396,7 +394,7 @@ impl Subscriber {
         self.receive_with(|shared, offset, length| {
             let length = length.min(buffer.len());
             unsafe {
-                shared.read(offset, &mut buffer[..length]);
+                shared.read(offset, buffer.as_mut_ptr(), length);
             }
             length
         })
