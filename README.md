@@ -8,7 +8,7 @@
 [![Rust](https://img.shields.io/crates/v/cloudtoid-interprocess?label=Rust)](https://crates.io/crates/cloudtoid-interprocess)
 [![C FFI](https://img.shields.io/crates/v/cloudtoid-interprocess-ffi?label=C%20FFI)](https://crates.io/crates/cloudtoid-interprocess-ffi)
 [![npm](https://img.shields.io/npm/v/@cloudtoid/interprocess?label=npm)](https://www.npmjs.com/package/@cloudtoid/interprocess)
-[![Go](https://img.shields.io/github/v/tag/cloudtoid/interprocess?filter=src%2Fgo%2Fv*&label=Go)](https://pkg.go.dev/github.com/cloudtoid/interprocess/src/go/v3)
+[![Go](https://img.shields.io/github/v/tag/cloudtoid/interprocess?filter=src%2Fgo%2Fv*&label=Go&color=blue)](https://pkg.go.dev/github.com/cloudtoid/interprocess/src/go/v3)
 [![C SDK](https://img.shields.io/github/v/release/cloudtoid/interprocess?filter=native-v*&label=C%20SDK)](https://github.com/cloudtoid/interprocess/releases/latest)
 
 [![Native core](https://github.com/cloudtoid/interprocess/actions/workflows/native.yml/badge.svg)](https://github.com/cloudtoid/interprocess/actions/workflows/native.yml)
