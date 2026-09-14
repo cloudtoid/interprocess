@@ -12,13 +12,15 @@ with Subscriber("work", 65536) as subscriber:
     with Publisher("work", 65536) as publisher:
         if publisher.try_send(b"hello"):
             message = subscriber.receive(timeout=1.0)`],
-  'Node.js': ['node', `const { Publisher, Subscriber } =
-  require('@cloudtoid/interprocess');
+  'Node.js': ['node', `import queue from '@cloudtoid/interprocess';
+const { Publisher, Subscriber } = queue;
 const subscriber = new Subscriber('work', 65536);
 const publisher = new Publisher('work', 65536);
 try {
   if (publisher.trySend(Buffer.from('hello'))) {
-    const message = await subscriber.receive(1000);
+    const message = await subscriber.receive({
+      signal: AbortSignal.timeout(1000)
+    });
   }
 } finally { publisher.close(); subscriber.close(); }`],
   Go: ['go', `options := queue.Options{Name: "work", Capacity: 65536}
@@ -63,7 +65,7 @@ function select(tab, focus = false) {
   code.innerHTML = hljs.highlight(source, { language: grammar }).value;
   document.querySelector('#example').setAttribute('aria-label', `${language} example`);
   const link = document.querySelector('#language-docs');
-  link.href = `https://github.com/cloudtoid/interprocess/tree/171bfbdb3c1b31343fafefaf28bc67a477e75abb/src/${folder}`;
+  link.href = `https://github.com/cloudtoid/interprocess/tree/aa44640ef0941d0349322c6c57a496245b8a0b79/src/${folder}`;
   link.textContent = `Read the ${language} guide →`;
   document.querySelector('#copy-status').textContent = '';
   if (focus) tab.focus();
