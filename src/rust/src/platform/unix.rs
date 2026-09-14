@@ -94,7 +94,7 @@ impl Mapping {
             if first {
                 let _ = fs::remove_file(&pathname);
             }
-            return Err(error);
+            return Err(error.into());
         }
         let pointer = unsafe {
             libc::mmap(
