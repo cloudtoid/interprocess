@@ -108,3 +108,38 @@ test('typed arrays, error codes, and disposal', () => {
   assert.throws(() => p.trySend(new Uint8Array()), {code: 'ERR_CLOSED'});
   assert.throws(() => s.tryReceive(), {code: 'ERR_CLOSED'});
 });
+
+test('native endpoints survive repeated process and worker teardown', async () => {
+  const { spawnSync } = require('node:child_process');
+  const { Worker } = require('node:worker_threads');
+  const modulePath = __dirname;
+  const script = `
+    const {Publisher, Subscriber} = require(${JSON.stringify(modulePath)});
+    const p = new Publisher('exit'+process.pid, 64), s = new Subscriber('exit'+process.pid, 64);
+    for (let i=0; i<5000; i++) {
+      if (!p.trySend(new Uint8Array([1,2,3])) || s.tryReceive().length !== 3) throw Error('delivery');
+    }
+    // Leave endpoints for environment cleanup, as an exiting application may.
+  `;
+  for (let i = 0; i < 12; i++) {
+    const child = spawnSync(process.execPath, ['-e', script], {encoding: 'utf8', timeout: 10000});
+    assert.equal(child.status, 0, child.stderr || String(child.error));
+  }
+  const name = `worker${process.pid}`, subscriber = new Subscriber(name, 64);
+  try {
+    const workers = Array.from({length: 4}, (_, id) => new Worker(`
+      const {workerData} = require('node:worker_threads');
+      const {Publisher} = require(workerData.modulePath);
+      const publisher = new Publisher(workerData.name, 64);
+      if (!publisher.trySend(new Uint8Array([workerData.id]))) throw Error('send');
+    `, {eval: true, workerData: {name, id, modulePath}}));
+    const exits = workers.map(worker => new Promise((resolve, reject) => {
+      worker.once('error', reject);
+      worker.once('exit', code => code === 0 ? resolve() : reject(Error(`worker exit ${code}`)));
+    }));
+    const messages = [];
+    for (let i = 0; i < 4; i++) messages.push((await subscriber.receive({signal: AbortSignal.timeout(10000)}))[0]);
+    await Promise.all(exits);
+    assert.deepEqual(messages.sort(), [0,1,2,3]);
+  } finally { subscriber.close(); }
+});
