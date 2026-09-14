@@ -55,6 +55,9 @@ pub extern "C" fn cip_last_error() -> *const c_char {
     ERROR.with(|e| e.borrow().as_ptr())
 }
 
+/// # Safety
+/// name/path must be readable NUL-terminated strings and output must be writable.
+/// A successful handle must be closed exactly once after its calls finish.
 #[no_mangle]
 pub unsafe extern "C" fn cip_publisher_open(
     name: *const c_char,
@@ -73,6 +76,9 @@ pub unsafe extern "C" fn cip_publisher_open(
         Ok(1)
     })
 }
+/// # Safety
+/// name/path must be readable NUL-terminated strings and output must be writable.
+/// A successful handle must be closed exactly once after its calls finish.
 #[no_mangle]
 pub unsafe extern "C" fn cip_subscriber_open(
     name: *const c_char,
@@ -91,18 +97,27 @@ pub unsafe extern "C" fn cip_subscriber_open(
         Ok(1)
     })
 }
+/// # Safety
+/// A nonnull handle must be an unclosed publisher returned by cip_publisher_open.
+/// All calls must have finished and no subsequent call may use the handle.
 #[no_mangle]
 pub unsafe extern "C" fn cip_publisher_close(handle: *mut Publisher) {
     if !handle.is_null() {
         drop(Box::from_raw(handle));
     }
 }
+/// # Safety
+/// A nonnull handle must be an unclosed subscriber returned by cip_subscriber_open.
+/// All calls must have finished and no subsequent call may use the handle.
 #[no_mangle]
 pub unsafe extern "C" fn cip_subscriber_close(handle: *mut Subscriber) {
     if !handle.is_null() {
         drop(Box::from_raw(handle));
     }
 }
+/// # Safety
+/// The handle must remain live and data must be readable and unchanged for length
+/// bytes throughout this call. A null data pointer is allowed only for length zero.
 #[no_mangle]
 pub unsafe extern "C" fn cip_try_send(
     handle: *const Publisher,
@@ -125,6 +140,9 @@ pub struct Buffer {
     pub data: *mut u8,
     pub length: usize,
 }
+/// # Safety
+/// The handle must remain live. output must be writable and must not alias queue
+/// memory. Free a successful output exactly once with cip_buffer_free.
 #[no_mangle]
 pub unsafe extern "C" fn cip_receive(
     handle: *const Subscriber,
@@ -157,6 +175,9 @@ pub unsafe extern "C" fn cip_receive(
         }
     })
 }
+/// # Safety
+/// A nonnull buffer must be an unchanged, not-yet-freed successful cip_receive
+/// result. No access to its bytes may occur after this call.
 #[no_mangle]
 pub unsafe extern "C" fn cip_buffer_free(buffer: Buffer) {
     if !buffer.data.is_null() {
@@ -166,6 +187,9 @@ pub unsafe extern "C" fn cip_buffer_free(buffer: Buffer) {
         )));
     }
 }
+/// # Safety
+/// The handle must remain live. data must be exclusively writable for capacity
+/// bytes, and copied must be writable and must not overlap data or the handle.
 #[no_mangle]
 pub unsafe extern "C" fn cip_try_receive_into(
     handle: *const Subscriber,

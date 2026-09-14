@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cloudtoid Interprocess — Bytes at the speed of shared memory</title>
+<meta name="description" content="Fast shared-memory queues for Rust, C, Python, Node.js, Go, and .NET. One open protocol. No broker to run.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><a class="brand" href="#">cloudtoid<span> / interprocess</span></a><nav aria-label="Main"><a href="#languages">Languages</a><a href="https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md">Protocol ↗</a><a href="https://github.com/cloudtoid/interprocess">GitHub ↗</a></nav></header>
+<main>
+<section class="hero">
+<p class="eyebrow"><span class="dot"></span> SHARED MEMORY. SHARED LANGUAGE.</p>
+<h1>Your processes.<br>Closer than ever.</h1>
+<p class="intro">Move bytes between applications through a fast circular buffer. Pick your language. Keep your throughput. Skip the broker.</p>
+<div class="actions"><a class="button" href="#languages">Start building <span>↗</span></a><a class="secondary" href="https://github.com/cloudtoid/interprocess">Explore the code →</a></div>
+<div class="flow" aria-label="Publishers in Rust, Python and Go send through one shared circular buffer to subscribers in Node.js, C and .NET">
+<div class="endpoints"><span>Rust</span><span>Python</span><span>Go</span></div><span class="arrow">→</span><div class="ring"><span>ONE QUEUE</span><strong>v3</strong><small>open protocol</small></div><span class="arrow">→</span><div class="endpoints"><span>Node.js</span><span>C / C++</span><span>.NET</span></div>
+</div>
+</section>
+<section class="facts" aria-label="Core capabilities"><div><strong>6</strong><span>languages, one protocol</span></div><div><strong>2,048</strong><span>connected publishers per queue</span></div><div><strong>3</strong><span>operating systems</span></div></section>
+<section class="features"><article><span class="number">01 / SPEED</span><h2>A shorter path<br>between processes.</h2><p>Native atomic reservations, reusable receive buffers, and coalesced wakeups keep the work focused on moving your bytes.</p></article><article><span class="number">02 / CONTROL</span><h2>Your bytes.<br>Your schema.</h2><p>Send binary data in the format your application needs. Mix languages without coupling your processes to a serializer or a server.</p></article><article><span class="number">03 / RESILIENCE</span><h2>A crash shouldn’t<br>erase the queue.</h2><p>Queue resources stay available while participants remain connected. Recovery checks process liveness before reclaiming abandoned work.</p></article></section>
+<section id="languages" class="start"><div><p class="eyebrow">SMALL API. ROOM TO BUILD.</p><h2>Different languages.<br>Same conversation.</h2><p>Use the same queue name, capacity, and shared directory. Subscribers compete for messages; each message goes to one receiver.</p><p class="release">Native packages are in preview. Build from source while the release is being prepared.</p><a id="language-docs" href="https://github.com/cloudtoid/interprocess/tree/main/src/rust">Read the Rust guide →</a></div>
+<div class="code-window"><div class="tabs" role="tablist" aria-label="Example language"><button role="tab" aria-selected="true" data-language="Rust" id="tab-rust" aria-controls="example">Rust</button><button role="tab" aria-selected="false" data-language="Python" tabindex="-1" aria-controls="example">Python</button><button role="tab" aria-selected="false" data-language="Node.js" tabindex="-1" aria-controls="example">Node.js</button><button role="tab" aria-selected="false" data-language="Go" tabindex="-1" aria-controls="example">Go</button><button role="tab" aria-selected="false" data-language="C" tabindex="-1" aria-controls="example">C</button><button role="tab" aria-selected="false" data-language=".NET" tabindex="-1" aria-controls="example">.NET</button></div><pre id="example" role="tabpanel" aria-label="Rust example" tabindex="0"><code></code></pre><div class="code-footer"><span>BYTES IN. BYTES OUT.</span><button id="copy">Copy example</button><span id="copy-status" role="status"></span></div></div></section>
+<section class="open"><p class="eyebrow">NOTHING BEHIND THE CURTAIN.</p><h2>The protocol is yours to inspect.</h2><p>Memory layout, atomic ordering, circular records, participant lifetime, and crash recovery — documented in full. MIT licensed, with interoperability tests across every language pair.</p><a class="button light" href="https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md">Read protocol v3 ↗</a><p class="note">Designed for volatile IPC on one machine. Recovery may discard abandoned work and messages behind it. Use application-level acknowledgements and persistence when you need durable processing.</p></section>
+</main>
+<footer><a class="brand" href="https://github.com/cloudtoid">cloudtoid</a><span>Linux · macOS · Windows</span><a href="https://github.com/cloudtoid/interprocess/blob/main/LICENSE">Open source. MIT licensed.</a></footer>
+<script src="site.js"></script>
+</body></html>

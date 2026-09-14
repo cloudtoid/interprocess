@@ -1,0 +1,166 @@
+name: Release native packages
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: native-release
+  cancel-in-progress: false
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Require merged main
+        run: test "$GITHUB_REF" = refs/heads/main
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - id: version
+        run: |
+          python - <<'PY'
+          import json, os, tomllib
+          v = tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version']
+          assert json.load(open('src/node/package.json'))['version'] == v
+          assert tomllib.load(open('src/python/pyproject.toml','rb'))['project']['version'] == v
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('version='+v+'\n')
+          PY
+  packages:
+    needs: source
+    uses: ./.github/workflows/interop.yml
+  mac-intel:
+    needs: source
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install 'maturin>=1.9,<2'
+      - name: Cross-build Intel binaries on Apple Silicon
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
+        run: |
+          cargo build --release --locked --target x86_64-apple-darwin -p cloudtoid-interprocess-ffi -p cloudtoid-interprocess-node
+          maturin build --release --locked --target x86_64-apple-darwin --manifest-path src/python/Cargo.toml --out target/wheels
+          cp target/x86_64-apple-darwin/release/libcloudtoid_interprocess_node.dylib src/node/interprocess.darwin-x64.node
+          mkdir -p target/sdk/lib/pkgconfig target/sdk/include target/sdk/share/cloudtoid-interprocess
+          cp target/x86_64-apple-darwin/release/libcloudtoid_interprocess.dylib target/sdk/lib/
+          cp src/c/include/interprocess.h target/sdk/include/
+          cp LICENSE target/sdk/share/cloudtoid-interprocess/
+          sed -e 's|@CMAKE_INSTALL_LIBDIR@|lib|g' -e 's|@CMAKE_INSTALL_INCLUDEDIR@|include|g' -e 's|@PROJECT_VERSION@|${{ needs.source.outputs.version }}|g' src/c/cloudtoid-interprocess.pc.in > target/sdk/lib/pkgconfig/cloudtoid-interprocess.pc
+      - uses: actions/upload-artifact@v6
+        with:
+          name: packages-macOS-X64
+          path: |
+            target/wheels/*.whl
+            target/sdk/
+            src/node/interprocess.darwin-x64.node
+  assemble:
+    needs: [source, packages, mac-intel]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: packages-*
+          path: target/artifacts
+      - run: python scripts/package-native.py target/artifacts target/release-packages
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pip install 'maturin>=1.9,<2'
+      - run: maturin sdist --manifest-path src/python/Cargo.toml --out target/release-packages/python
+      - name: Pack npm tarballs
+        run: |
+          mkdir -p target/release-packages/tarballs
+          for package in target/release-packages/npm/*; do
+            npm pack "$package" --pack-destination target/release-packages/tarballs
+          done
+      - uses: actions/upload-artifact@v6
+        with:
+          name: release-packages
+          path: target/release-packages/
+  rust:
+    needs: [source, assemble]
+    runs-on: ubuntu-latest
+    environment: crates-io
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Publish the Rust core and C ABI crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          cargo publish --locked -p cloudtoid-interprocess
+          cargo publish --locked -p cloudtoid-interprocess-ffi
+  python:
+    needs: [source, assemble]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: release-packages
+          path: release-packages
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: release-packages/python/
+          skip-existing: true
+  node:
+    needs: [source, assemble]
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v7
+        with:
+          name: release-packages
+          path: release-packages
+      - name: Publish native packages before the main package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for package in release-packages/npm/*; do
+            if [ "$(basename "$package")" != main ]; then
+              (cd "$package" && npm publish --access public --provenance)
+            fi
+          done
+          cd release-packages/npm/main
+          npm publish --access public --provenance
+  release:
+    needs: [source, assemble, rust, python, node]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          name: release-packages
+          path: release-packages
+      - name: Publish C SDK assets and Go module tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.source.outputs.version }}
+        run: |
+          git tag "src/go/v$VERSION"
+          git push origin "src/go/v$VERSION"
+          gh release create "native-v$VERSION" release-packages/*.tar.gz --target "$GITHUB_SHA" --title "Native libraries $VERSION" --notes "Rust, C, Python, Node.js, and Go packages for the shared v3 protocol. See each language README and docs/protocol.md for installation and behavior."

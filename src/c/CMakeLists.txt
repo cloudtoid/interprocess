@@ -17,3 +17,5 @@ endif()
 install(FILES include/interprocess.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 configure_file(cloudtoid-interprocess.pc.in cloudtoid-interprocess.pc @ONLY)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/cloudtoid-interprocess.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+install(FILES "${REPO_ROOT}/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/cloudtoid-interprocess)

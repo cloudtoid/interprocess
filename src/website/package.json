@@ -1,0 +1,1 @@
+{"name":"cloudtoid-interprocess-website","private":true,"scripts":{"build":"python3 build.py"}}

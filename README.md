@@ -108,6 +108,21 @@ using var subscriber = factory.CreateSubscriber(options);
 subscriber.TryDequeue(messageBuffer, out var message);
 ```
 
+## Languages
+
+Use the same v3 queue from multiple languages. The native packages are currently in preview on [PR #57](https://github.com/cloudtoid/interprocess/pull/57).
+
+| Language | Implementation and build guide |
+| --- | --- |
+| .NET | [Managed library](src/dotnet/Interprocess/) |
+| Rust | [Native core](src/rust/README.md) |
+| C / C++ | [C ABI and SDK](src/c/README.md) |
+| Python | [Python package](src/python/README.md) |
+| Node.js | [Node package](src/node/README.md) |
+| Go | [Go package](src/go/README.md) |
+
+[Protocol v3](docs/protocol.md) documents the complete shared-memory format and synchronization rules. [Interoperability tests](tests/interop/README.md) exercise every publisher/subscriber language pair on Linux, Windows, and macOS.
+
 ## Queue behavior
 
 - Use the same name, capacity, and storage path in every participant. Queue names must be unique even across different paths; Windows uses the name and ignores the path.

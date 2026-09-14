@@ -12,4 +12,3 @@ authors = ["Cloudtoid"]
 [profile.release]
 lto = "thin"
 codegen-units = 1
-

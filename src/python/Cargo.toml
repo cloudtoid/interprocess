@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 publish = false
+description = "Python bindings for Cloudtoid Interprocess"
 
 [lib]
 name = "_native"
