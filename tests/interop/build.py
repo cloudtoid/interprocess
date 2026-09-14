@@ -43,3 +43,4 @@ run('go', 'build', '-o', ROOT / f'target/interop/go-driver{EXE}', './internal/in
 run(sys.executable, 'tests/interop/run.py')
 run(sys.executable, 'tests/interop/mixed.py')
 run(sys.executable, 'tests/interop/lifetime.py')
+run(sys.executable, 'tests/interop/recovery.py')

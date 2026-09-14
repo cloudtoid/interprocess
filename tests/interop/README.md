@@ -20,3 +20,5 @@ After building, `run.py` can rerun the matrix. Use the Python environment contai
 Queues are transient. The pair runner waits until the subscriber has opened the queue before starting its publisher, so endpoint lifetimes overlap. The mixed runner likewise keeps its subscribers attached throughout both publishing phases. Sending and exiting before any other endpoint connects would discard the messages.
 
 `lifetime.py` verifies every binding rejects a capacity mismatch against Rust-created and .NET-created queues, then checks final cleanup by each implementation before reopening with a different capacity.
+
+`recovery.py` creates a claimed-record crash state under a real reader lease while all participants are paused, kills that reader, and starts the other implementation. It checks Rust can repair a dead .NET reader and .NET can repair a dead Rust reader, then verifies delivery of the next message. The test uses the normal recovery interval and bounded process deadlines.
