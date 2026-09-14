@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<rect width="1200" height="630" fill="#eeedf7"/>
+<rect x="64" y="68" width="8" height="40" rx="4" fill="#5753c6"/>
+<text x="92" y="98" font-family="Arial,sans-serif" font-size="29" fill="#5753c6">CLOUDTOID</text>
+<text x="64" y="242" font-family="Arial,sans-serif" font-weight="700" font-size="94" letter-spacing="-5" fill="#1c2024">Interprocess</text>
+<text x="68" y="325" font-family="Arial,sans-serif" font-size="36" fill="#1c2024">Fast, lightweight queues</text>
+<text x="68" y="374" font-family="Arial,sans-serif" font-size="36" fill="#1c2024">across processes and languages.</text>
+<path d="M68 446H1132" stroke="#d9d9e0"/>
+<text x="68" y="505" font-family="Arial,sans-serif" font-size="25" fill="#60646c">Rust · Node.js · Go · C · Python · .NET</text>
+<text x="68" y="562" font-family="Arial,sans-serif" font-size="22" fill="#5753c6">cloudtoid.com</text>
+</svg>

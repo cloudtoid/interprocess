@@ -17,4 +17,8 @@ jobs:
         with:
           python-version: '3.14'
       - run: python src/website/build.py
-      - run: node --check src/website/site.js
+      - run: python src/website/validate.py
+      - run: |
+          node --check src/website/site.js
+          node --check src/website/theme.js
+          node --check src/website/docs.js

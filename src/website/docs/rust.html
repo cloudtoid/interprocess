@@ -1,0 +1,46 @@
+<p class="doc-lead">Use the native Rust core directly: send byte slices, receive owned vectors, or reuse your own storage.</p>
+<p class="doc-source"><a href="https://docs.rs/cloudtoid-interprocess/latest/cloudtoid_interprocess/">Generated crate documentation ↗</a> · <a href="https://github.com/cloudtoid/interprocess/tree/main/src/rust/src">API source ↗</a></p>
+<h2 id="install">Install</h2>
+<p>Requires Rust 1.87 or later on a supported little-endian 64-bit platform.</p>
+<pre><code class="language-bash">cargo add cloudtoid-interprocess</code></pre>
+<h2 id="example">Send and receive</h2>
+<p>This complete example keeps both endpoints alive. Separate processes use the same options; on Unix, add <code>.with_path("/absolute/shared/directory")</code> when their temporary directories differ.</p>
+<pre><code class="language-rust">use cloudtoid_interprocess::{Options, Publisher, Subscriber};
+
+fn main() -> cloudtoid_interprocess::Result&lt;()&gt; {
+    let options = Options::new("example", 65536);
+    let subscriber = Subscriber::open(&amp;options)?;
+    let publisher = Publisher::open(&amp;options)?;
+    publisher.try_send(b"hello")?;
+    let message = subscriber.try_recv()?.expect("message is ready");
+    assert_eq!(message, b"hello");
+    Ok(())
+}</code></pre>
+<h2 id="options">Options</h2>
+<h3 id="options-new"><code>Options::new(name: impl Into&lt;String&gt;, capacity: usize) -&gt; Self</code></h3>
+<p>Creates configuration using the OS temporary directory. Validation happens when opening an endpoint. Public fields are <code>name: String</code>, <code>path: PathBuf</code>, and <code>capacity: usize</code>. The struct is non-exhaustive; use the constructor rather than a struct literal.</p>
+<h3 id="with-path"><code>with_path(self, path: impl Into&lt;PathBuf&gt;) -&gt; Self</code></h3>
+<p>Sets the Unix backing directory. Windows ignores this option. Capacity is bytes, greater than 16 and divisible by 8; see <a href="/docs/concepts/#identity">identity rules</a>.</p>
+<h2 id="publisher">Publisher</h2>
+<h3 id="publisher-open"><code>Publisher::open(options: &amp;Options) -&gt; Result&lt;Self&gt;</code></h3>
+<p>Creates or joins the queue and registers a publisher. <code>MAX_PUBLISHERS</code> is <code>2048</code>.</p>
+<h3 id="try-send"><code>try_send(&amp;self, message: &amp;[u8]) -&gt; Result&lt;()&gt;</code></h3>
+<p>Copies a message into the queue without waiting for space. <code>Ok(())</code> means committed; <code>Error::Full</code> means full or temporarily recovering. Other errors must be handled separately.</p>
+<h3 id="try-send-batch"><code>try_send_batch(&amp;self, messages: &amp;[&amp;[u8]]) -&gt; Result&lt;usize&gt;</code></h3>
+<p>Returns the committed prefix length. A short count, including zero, can indicate full capacity, recovery, or a mid-batch error. Retry only the unsent suffix to observe persistent errors. Errors before any commit are returned immediately. Batches can interleave with other publishers.</p>
+<h2 id="subscriber">Subscriber</h2>
+<h3 id="subscriber-open"><code>Subscriber::open(options: &amp;Options) -&gt; Result&lt;Self&gt;</code></h3>
+<p>Creates or joins the queue as a competing subscriber.</p>
+<h3 id="try-recv"><code>try_recv(&amp;self) -&gt; Result&lt;Option&lt;Vec&lt;u8&gt;&gt;&gt;</code></h3>
+<p>Copies and consumes one ready message into an owned vector. <code>None</code> means no message is ready; <code>Some(vec![])</code> is a valid empty message.</p>
+<h3 id="try-recv-into"><code>try_recv_into(&amp;self, buffer: &amp;mut [u8]) -&gt; Result&lt;Option&lt;usize&gt;&gt;</code></h3>
+<p>Copies into your buffer and returns the byte count. <code>Some(0)</code> still means a message was consumed. Oversized messages are truncated and consumed.</p>
+<h3 id="recv"><code>recv(&amp;self) -&gt; Result&lt;Vec&lt;u8&gt;&gt;</code></h3>
+<p>Blocks the calling thread until a message is received or an error occurs.</p>
+<h3 id="recv-timeout"><code>recv_timeout(&amp;self, timeout: Duration) -&gt; Result&lt;Option&lt;Vec&lt;u8&gt;&gt;&gt;</code></h3>
+<p>Blocks for up to the timeout, subject to scheduling and operation overhead. <code>None</code> means timeout. A zero duration attempts once. Received vectors belong to the caller.</p>
+<h2 id="errors">Errors</h2>
+<p><code>Result&lt;T&gt;</code> aliases <code>std::result::Result&lt;T, Error&gt;</code>. <code>Error</code> is non-exhaustive and implements <code>Display</code> and <code>std::error::Error</code>. Use <code>error.is_full()</code> for retryable admission failures.</p>
+<dl class="api-list"><dt><code>Full</code></dt><dd>No space or recovery admission unavailable.</dd><dt><code>Invalid(&amp;'static str)</code></dt><dd>Invalid options or message length.</dd><dt><code>CapacityMismatch</code></dt><dd>Existing queue capacity differs.</dd><dt><code>PublisherLimit</code></dt><dd>All publisher registrations are occupied.</dd><dt><code>Exhausted</code></dt><dd>A lifetime counter cannot advance; use a fresh queue.</dd><dt><code>Corrupt</code></dt><dd>Invalid shared queue state.</dd><dt><code>Io(std::io::Error)</code></dt><dd>An OS operation failed; available through the error source.</dd></dl>
+<h2 id="lifetime">Waiting and cleanup</h2>
+<p>Endpoints release registrations on <code>Drop</code>. Keep at least one endpoint alive to retain the queue. Open endpoints after <code>fork()</code>. Blocking receives have no async-runtime integration: use a blocking worker with bounded timeouts if you need controlled shutdown from an async application. Aborting an async task does not cancel a Rust blocking receive already running on a worker.</p>

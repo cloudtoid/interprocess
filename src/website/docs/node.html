@@ -1,0 +1,47 @@
+<p class="doc-lead">Send typed byte arrays and receive Node Buffers, with promises and AbortSignal for waiting.</p>
+<p class="doc-source"><a href="https://www.npmjs.com/package/@cloudtoid/interprocess">npm package ↗</a> · <a href="https://github.com/cloudtoid/interprocess/blob/main/src/node/index.d.ts">TypeScript declarations ↗</a> · <a href="https://github.com/cloudtoid/interprocess/blob/main/src/node/index.js">JavaScript API source ↗</a></p>
+<h2 id="install">Install</h2>
+<p>Requires Node.js 18 or later. Platform binaries install as optional packages; do not omit optional dependencies. TypeScript users need TypeScript 5.2 or later for the <code>Symbol.dispose</code> declarations. Linux prebuilt binaries require glibc 2.34 or later.</p>
+<pre><code class="language-bash">npm install @cloudtoid/interprocess</code></pre>
+<h2 id="example">Send and receive</h2>
+<p>Save as <code>example.mjs</code> and run with <code>node example.mjs</code>. CommonJS can instead use <code>require('@cloudtoid/interprocess')</code>.</p>
+<pre><code class="language-javascript">import { Publisher, Subscriber } from '@cloudtoid/interprocess';
+
+const subscriber = new Subscriber('example', 65536);
+const publisher = new Publisher('example', 65536);
+try {
+  if (!publisher.trySend(Buffer.from('hello'))) {
+    throw new Error('Queue is full or recovering');
+  }
+  const message = await subscriber.receive({
+    signal: AbortSignal.timeout(1000)
+  });
+  console.log(message.toString('utf8'));
+} finally {
+  publisher.close();
+  subscriber.close();
+}</code></pre>
+<h2 id="publisher">Publisher</h2>
+<h3 id="publisher-constructor"><code>new Publisher(name: string, capacity: number, path?: string)</code></h3>
+<p>Creates or joins a queue. The optional Unix directory defaults to the OS temporary directory and is ignored on Windows. All participants must use matching identity and capacity.</p>
+<h3 id="try-send"><code>trySend(data: Uint8Array): boolean</code></h3>
+<p>Accepts <code>Uint8Array</code>, including <code>Buffer</code>. Returns <code>true</code> after committing the message, or <code>false</code> when full or recovering. Other failures throw.</p>
+<h3 id="try-send-batch"><code>trySendBatch(messages: Uint8Array[]): number</code></h3>
+<p>Returns the committed prefix length. A short count can mean full capacity, recovery, or a mid-batch error. Retry the unsent suffix to surface a persistent error. An error before any commit throws immediately. The batch is not atomic.</p>
+<h3 id="publisher-close"><code>close(): void</code> / <code>[Symbol.dispose](): void</code></h3>
+<p>Releases the publisher. Repeated close is safe; operations after close throw <code>ERR_CLOSED</code>.</p>
+<h2 id="subscriber">Subscriber</h2>
+<h3 id="subscriber-constructor"><code>new Subscriber(name: string, capacity: number, path?: string)</code></h3>
+<p>Opens a competing subscriber with the same configuration rules as Publisher.</p>
+<h3 id="try-receive"><code>tryReceive(): Buffer | null</code></h3>
+<p>Consumes a ready message and returns an owned Buffer. <code>null</code> means no message is ready. An empty Buffer is a real message.</p>
+<h3 id="receive"><code>receive(options?: { signal?: AbortSignal }): Promise&lt;Buffer&gt;</code></h3>
+<p>Checks immediately, then waits until a message arrives, the signal aborts, the endpoint closes, or an error occurs. Cancellation rejects with <code>signal.reason</code>. Use <code>AbortSignal.timeout(milliseconds)</code> for a deadline.</p>
+<h3 id="subscriber-close"><code>close(): void</code> / <code>[Symbol.dispose](): void</code></h3>
+<p>Releases the endpoint. Pending receives reject when they next observe closure. Repeated close is safe.</p>
+<h2 id="errors">Errors</h2>
+<p>Queue failures expose an <code>error.code</code>: <code>ERR_INVALID_ARGUMENT</code>, <code>ERR_CAPACITY_MISMATCH</code>, <code>ERR_PUBLISHER_LIMIT</code>, <code>ERR_EXHAUSTED</code>, <code>ERR_CORRUPT</code>, <code>ERR_IO</code>, or <code>ERR_CLOSED</code>. Binding-level type errors can also occur for invalid JavaScript arguments.</p>
+<p><code>ERR_NATIVE_UNAVAILABLE</code> means the native addon could not load. Check the platform package, optional dependencies, and Linux glibc requirement, or build from source. Cancellation uses the signal's reason rather than a queue error code.</p>
+<h2 id="waiting">Scheduling and cleanup</h2>
+<p>Idle receives use timer backoff of 1, 2, 4, 8, then 10 ms, without occupying libuv workers. A new receive starts with an immediate check. Scheduling can delay timers and cancellation beyond those intervals. Prefer one receive loop per subscriber instead of many pending receives.</p>
+<p>Always close both endpoints in a <code>finally</code> block or use explicit resource management where your runtime supports it. No public receive-into API is exposed by this binding. See <a href="/docs/concepts/#lifetime">transient queue lifetime</a> before splitting publishers and subscribers into separate processes.</p>

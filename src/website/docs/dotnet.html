@@ -1,0 +1,50 @@
+<p class="doc-lead">Send ReadOnlySpan&lt;byte&gt; messages and receive into reusable memory. Use CancellationToken when waiting for work.</p>
+<p class="doc-source"><a href="https://www.nuget.org/packages/Cloudtoid.Interprocess">NuGet package ↗</a> · <a href="https://github.com/cloudtoid/interprocess/tree/main/src/dotnet/Interprocess/Contracts">Public contracts ↗</a></p>
+<h2 id="install">Install</h2>
+<p>Requires .NET 10 or later and a 64-bit process on a supported platform.</p>
+<pre><code class="language-bash">dotnet add package Cloudtoid.Interprocess</code></pre>
+<h2 id="example">Send and receive</h2>
+<pre><code class="language-csharp">using Cloudtoid.Interprocess;
+
+var options = new QueueOptions("example", capacity: 65536);
+var factory = new QueueFactory();
+using var subscriber = factory.CreateSubscriber(options);
+using var publisher = factory.CreatePublisher(options);
+
+if (!publisher.TryEnqueue("hello"u8))
+    throw new InvalidOperationException("Queue is full or recovering");
+
+byte[] buffer = new byte[256];
+using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+ReadOnlyMemory&lt;byte&gt; message = subscriber.Dequeue(buffer, cancellation.Token);
+Console.WriteLine(System.Text.Encoding.UTF8.GetString(message.Span));</code></pre>
+<h2 id="options">QueueOptions</h2>
+<h3 id="options-constructor"><code>QueueOptions(string queueName, long capacity)</code></h3>
+<h3 id="options-path"><code>QueueOptions(string queueName, string path, long capacity)</code></h3>
+<p>Immutable queue configuration. The first overload uses <code>Path.GetTempPath()</code>. Windows ignores the backing path. Capacity is message-buffer bytes, greater than 16 and divisible by 8. Read-only properties are <code>string QueueName</code>, <code>string Path</code>, and <code>long Capacity</code>.</p>
+<h2 id="factory">QueueFactory and IQueueFactory</h2>
+<h3 id="factory-constructor"><code>QueueFactory()</code> / <code>QueueFactory(ILoggerFactory loggerFactory)</code></h3>
+<p>Constructs the factory with default logging or your own logger factory.</p>
+<h3 id="create-publisher"><code>IPublisher CreatePublisher(QueueOptions options)</code></h3>
+<h3 id="create-subscriber"><code>ISubscriber CreateSubscriber(QueueOptions options)</code></h3>
+<p>Create or join the transient queue as a publisher or subscriber. Both returned interfaces implement <code>IDisposable</code>. At most 2,048 publisher objects may be connected to a queue.</p>
+<h3 id="dependency-injection"><code>IServiceCollection AddInterprocessQueue(this IServiceCollection services)</code></h3>
+<p>Registers <code>IQueueFactory</code> with the service collection. Call <code>services.AddInterprocessQueue()</code> and resolve <code>IQueueFactory</code> through dependency injection.</p>
+<h2 id="publisher">IPublisher</h2>
+<h3 id="try-enqueue"><code>bool TryEnqueue(ReadOnlySpan&lt;byte&gt; message)</code></h3>
+<p>Copies the bytes into shared memory without waiting for space. Returns false when the message does not fit or recovery temporarily closes admission; true means the message was committed. A notification semaphore reaching its limit does not fail an already committed send.</p>
+<h2 id="subscriber">ISubscriber</h2>
+<h3 id="try-dequeue"><code>bool TryDequeue(out ReadOnlyMemory&lt;byte&gt; message)</code></h3>
+<p>Tries once, allocating a byte array for a received message. False means no ready message, an active reader owns consumption, or the next message is unfinished.</p>
+<h3 id="try-dequeue-buffer"><code>bool TryDequeue(Memory&lt;byte&gt; buffer, out ReadOnlyMemory&lt;byte&gt; message)</code></h3>
+<p>Copies into your buffer. On success the returned memory references the filled part of that buffer; consume it before reusing or modifying the buffer. An undersized buffer truncates and consumes the message. A true result with zero length is a real empty message.</p>
+<h3 id="dequeue"><code>ReadOnlyMemory&lt;byte&gt; Dequeue(CancellationToken cancellation)</code></h3>
+<p>Blocks until a message arrives, cancellation is requested, disposal is observed, or a failure occurs. Allocates a result array. Use <code>CancellationToken.None</code> to wait without application cancellation.</p>
+<h3 id="dequeue-buffer"><code>ReadOnlyMemory&lt;byte&gt; Dequeue(Memory&lt;byte&gt; buffer, CancellationToken cancellation)</code></h3>
+<p>Blocking receive into caller-owned storage, with the same truncation and buffer-lifetime rules as TryDequeue with a buffer.</p>
+<h2 id="errors">Failures and cancellation</h2>
+<p>Cancellation and subscriber disposal throw <code>OperationCanceledException</code> from receive operations. Sending through a disposed publisher throws <code>ObjectDisposedException</code>. Invalid options are rejected by argument validation. A publisher-limit failure throws <code>InvalidOperationException</code>; counter exhaustion throws <code>OverflowException</code>. Queue opening and access can also fail because of capacity mismatch, permissions, I/O, or invalid shared state.</p>
+<p>False from TryEnqueue/TryDequeue is not an exception. Apply a bounded retry policy if the application needs to wait. TryDequeue has no cancellation token because it does not wait for a message.</p>
+<h2 id="cleanup">Cleanup and concurrency</h2>
+<p>Use <code>using</code> for each endpoint. Disposal stops new calls and waits for admitted calls to finish before releasing resources; waiting readers observe disposal on retry. Consumption is serialized across subscribers. A stalled live participant is not treated as crashed simply because a deadline passes.</p>
+<p>The API is synchronous; there is no DequeueAsync or batch-enqueue API. Reusing receive buffers avoids per-message result-array allocation. See <a href="/docs/concepts/#lifetime">queue lifetime</a> before handing off between processes.</p>
