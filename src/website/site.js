@@ -63,7 +63,7 @@ function select(tab, focus = false) {
   code.innerHTML = hljs.highlight(source, { language: grammar }).value;
   document.querySelector('#example').setAttribute('aria-label', `${language} example`);
   const link = document.querySelector('#language-docs');
-  link.href = `https://github.com/cloudtoid/interprocess/tree/5f895e9e9f103d83352457bffadb583ff25f7235/src/${folder}`;
+  link.href = `https://github.com/cloudtoid/interprocess/tree/fd3bd38fdc51ed3cd157dc87687d1aa2c7a15e2e/src/${folder}`;
   link.textContent = `Read the ${language} guide →`;
   document.querySelector('#copy-status').textContent = '';
   if (focus) tab.focus();
