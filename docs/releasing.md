@@ -1,5 +1,7 @@
 # Building and releasing the language packages
 
+[Documentation website](https://cloudtoid.com/docs/) · [Queue concepts](https://cloudtoid.com/docs/concepts/)
+
 The .NET library stays independent under `src/dotnet`, with its own NuGet publishing job in the shared release workflow. Native packages share one Rust workspace version. Their public APIs wrap the same protocol v3 core; changing a package version does not automatically change the protocol.
 
 ## Build files
@@ -41,4 +43,4 @@ Use the **Registry to publish** selector to retry just one registry after a work
 
 Binary targets: Linux x64 and ARM64 (glibc 2.34+), macOS ARM64 and x64, Windows x64. The x64 Mac release is cross-built; it does not add a permanent Intel Mac CI runner. Rust/C source builds support the core's platform/architecture restrictions. Python includes a source distribution. Go links the installed C SDK; its module does not silently download binaries.
 
-The Website workflow validates the static build. Publish the public website at cloudtoid.com through its existing Sites hosting project. Advertise actual package availability and measured performance; do not label in-process microbenchmarks as application-to-application latency.
+The Website workflow validates the static build. Cloudflare Pages automatically publishes website changes merged into main to cloudtoid.com. See [website build and deployment](../src/website/README.md). Advertise actual package availability and measured performance; do not label in-process microbenchmarks as application-to-application latency.

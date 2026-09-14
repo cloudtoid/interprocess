@@ -1,5 +1,7 @@
 # Cloudtoid.Interprocess
 
+[API guide](https://cloudtoid.com/docs/dotnet/) · [Queue concepts](https://cloudtoid.com/docs/concepts/) · [Website](https://cloudtoid.com)
+
 Exchange byte messages between processes on the same machine using a shared-memory queue. Multiple publishers and subscribers can connect to the same queue on Windows, Linux, or macOS.
 
 ## Install
@@ -39,16 +41,6 @@ if (publisher.TryEnqueue(payload) &&
 
 For separate processes, create the publisher and subscriber in their respective programs using the same queue name, storage path, and capacity. The example uses the default temporary directory. Handle unsuccessful enqueue/dequeue attempts according to your application's retry and cancellation needs.
 
-Each queue supports up to 2,048 connected publisher objects. Its shared publisher table uses 256 KiB in addition to the message capacity and header/alignment storage. Dispose participants when finished; the queue remains available while any participant is connected.
+For dependency injection, register `services.AddInterprocessQueue()` and resolve `IQueueFactory`.
 
-For dependency injection, register the queue services with `services.AddInterprocessQueue()` and resolve `IQueueFactory`.
-
-## Limits
-
-Queue names must be nonempty and contain no slash or NUL. Windows also rejects backslashes; Unix permits them for compatibility. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.
-
-## Queue lifetime
-
-The queue is transient IPC storage. Once all publishers and subscribers are gone, unread messages are lost; reopening the same name creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits. Recovery after a process exits can discard queued messages, including completed messages behind an unfinished reservation. Paused live operations are not reclaimed merely because a timeout passes. Destination buffers must be large enough to avoid truncating a consumed message.
-
-[Publisher and subscriber samples](https://github.com/cloudtoid/interprocess/tree/main/src/dotnet/Sample) · [Documentation](https://github.com/cloudtoid/interprocess) · [Report an issue](https://github.com/cloudtoid/interprocess/issues) · [MIT license](https://github.com/cloudtoid/interprocess/blob/main/LICENSE)
+Queues are transient: once all publishers and subscribers are gone, unread messages are lost. Keep at least one endpoint connected throughout a handoff between processes. See the [API guide](https://cloudtoid.com/docs/dotnet/) for waiting, errors, ownership, and limits.

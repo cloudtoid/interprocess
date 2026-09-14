@@ -1,5 +1,7 @@
 # Cloudtoid Interprocess protocol v3
 
+[Documentation website](https://cloudtoid.com/docs/) · [Queue concepts](https://cloudtoid.com/docs/concepts/)
+
 This document specifies the shared-memory protocol used by the .NET implementation and the Rust core behind the C, Python, Node.js, and Go packages. Package API versions and the protocol namespace are separate: an API release can remain compatible with v3.
 
 ## Scope and guarantees
