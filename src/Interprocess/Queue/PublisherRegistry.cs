@@ -5,8 +5,13 @@ internal sealed unsafe class PublisherRegistry(QueueOptions options, byte* queue
 {
     internal const int MaximumPublishers = 2048;
     internal const int SlotSize = 128;
-    internal const int TableOffset = 128; // Keep counters apart from the 32-byte queue header.
+    internal const int TableOffset = 256; // Header, recovery gate, and counters occupy separate cache lines.
     internal const int BufferOffset = TableOffset + (MaximumPublishers * SlotSize);
+
+    internal bool IsAdmissionClosed => Volatile.Read(ref *(int*)(queue + 128)) != 0;
+
+    internal void CloseAdmission() => Interlocked.Exchange(ref *(int*)(queue + 128), 1);
+    internal void OpenAdmission() => Interlocked.Exchange(ref *(int*)(queue + 128), 0);
 
     internal PublisherLease Register(long id)
     {

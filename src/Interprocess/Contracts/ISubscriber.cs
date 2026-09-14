@@ -30,7 +30,8 @@ public interface ISubscriber : IDisposable
     bool TryDequeue(out ReadOnlyMemory<byte> message);
 
     /// <summary>
-    /// Attempts to dequeue the next message if it is ready. It does not wait for a message. This method populates the <paramref name="buffer"/> that is passed in.
+    /// Attempts to dequeue the next message if it is ready. It does not wait for a message.
+    /// This method populates the <paramref name="buffer"/> that is passed in.
     /// Make sure that the buffer is large enough to receive the entire message, or the message is truncated to fit the buffer.
     /// </summary>
     /// <param name="buffer">The memory buffer that is populated with the message. Make sure

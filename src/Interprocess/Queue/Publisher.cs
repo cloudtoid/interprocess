@@ -37,7 +37,7 @@ internal sealed class Publisher : Queue, IPublisher
             try
             {
                 // Recovery closes admission before inspecting shared in-flight counters.
-                return Volatile.Read(ref Header->ReadLockOwner) >= 0 && TryEnqueueCore(message);
+                return !Publishers.IsAdmissionClosed && TryEnqueueCore(message);
             }
             finally
             {

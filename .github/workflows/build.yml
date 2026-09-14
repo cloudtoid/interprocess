@@ -12,14 +12,13 @@ jobs:
     strategy:
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]
-        configuration: [Debug, Release]
-    name: ${{ matrix.configuration }} on ${{ matrix.os }}
-    
+    name: Release on ${{ matrix.os }}
+
     steps:
 
       - name: Checkout
         uses: actions/checkout@v7
-   
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
@@ -27,4 +26,4 @@ jobs:
             10.0.x
 
       - name: Build and Test
-        run: dotnet test src/Interprocess.sln --configuration ${{ matrix.configuration }}
+        run: dotnet test src/Interprocess.sln --configuration Release

@@ -19,7 +19,6 @@ internal struct QueueHeader
 
     /// <summary>
     /// The unique subscriber registration holding the read lock, or zero.
-    /// The sign bit closes publication admission during recovery.
     /// </summary>
     [FieldOffset(16)]
     internal long ReadLockOwner;

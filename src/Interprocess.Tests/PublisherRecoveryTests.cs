@@ -200,7 +200,7 @@ public sealed class PublisherRecoveryTests(UniquePathFixture fixture) : IClassFi
         internal long Register() => RegisterParticipant();
         internal PublisherLease Lease(long id) => Publishers.Register(id);
         internal bool AnyActive() => Publishers.AnyActive();
-        internal unsafe void CloseAdmission() => Interlocked.Exchange(ref Header->ReadLockOwner, long.MinValue | 1);
-        internal unsafe void OpenAdmission() => Interlocked.Exchange(ref Header->ReadLockOwner, 0);
+        internal void CloseAdmission() => Publishers.CloseAdmission();
+        internal void OpenAdmission() => Publishers.OpenAdmission();
     }
 }

@@ -3,7 +3,7 @@ name: publish
 on:
   push:
     branches: [ main ]
-  
+
 jobs:
   build:
     permissions:
@@ -15,21 +15,18 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v7
-   
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
             10.0.x
 
-      - name: Test - Debug
-        run: dotnet test src/Interprocess.sln
-
       - name: Test - Release
         run: dotnet test -c Release -p:VersionSuffix=${{github.run_number}} src/Interprocess.sln
 
       - name: Pack
-        run: dotnet pack -c Release --no-build --output . --version-suffix ${{github.run_number}} src/Interprocess/Interprocess.csproj 
+        run: dotnet pack -c Release --no-build --output . --version-suffix ${{github.run_number}} src/Interprocess/Interprocess.csproj
 
       - name: NuGet login
         uses: NuGet/login@v1
