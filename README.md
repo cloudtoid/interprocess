@@ -205,7 +205,7 @@ The .NET v3 benchmarks show **12.0× faster round trips and 2.3× the concurrent
 | Latest v2 (`2.1.204`) | 214.6 ns | 1.04 million messages/s |
 | v3 | **17.82 ns** | **2.42 million messages/s** |
 
-Measured with .NET 10. See [benchmark details](#on-macos). The new language libraries start with protocol v3.
+Measured with .NET 10. [Original results and comparison harness](https://github.com/cloudtoid/interprocess/tree/95c512672d580dd836ba2554cd1f78c0c3826f6c/docs/benchmarks/2026-09-13). See [benchmark details](#on-macos). The new language libraries start with protocol v3.
 
 Upgrade existing v1/v2 applications together: drain the queue, stop all participants, and reopen a fresh queue using v3. All participants sharing a queue must use the same protocol.
 
@@ -241,7 +241,7 @@ Measured on an **Apple M5 Max**, macOS 26.6.2, Release builds. Rust: September 1
 
 In-process microbenchmarks, not latency between applications. Rust uses one million operations per sample, four warmups, eight measured samples, a 1 MiB queue, and reused receive storage; allocations were not separately instrumented. The language harnesses differ, so these are not a controlled language comparison. Rust numbers exclude binding overhead for C, Python, Node.js, and Go. Concurrent rows show amortized time per message, including worker startup and completion; their allocations were not measured. Send-only drains outside the timed batch. [BenchmarkDotNet][BenchmarkOrg]: two launches, eight measured iterations, 20 warmups (200 for send-only; three for concurrent delivery).
 
-[.NET benchmark source](src/dotnet/Interprocess.Benchmark/). Run the Mac suites from the repository root:
+[.NET benchmark source](src/dotnet/Interprocess.Benchmark/) · [Original reports](https://github.com/cloudtoid/interprocess/tree/95c512672d580dd836ba2554cd1f78c0c3826f6c/docs/benchmarks/2026-09-13). Run the Mac suites from the repository root:
 
 ```sh
 cargo run --release --locked -p cloudtoid-interprocess --example benchmark
@@ -264,7 +264,7 @@ Measured September 13, 2026, on an **Apple M5 Max**, Windows 11 Pro 25H2 ARM64 V
 | Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 101.30 | 1.68 | — |
 | Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 85.62 | 12.50 | — |
 
-Same .NET workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (200 for send-only), while concurrent runs used all four vCPUs and three warmups. [.NET benchmark source](src/dotnet/Interprocess.Benchmark/).
+Same .NET workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (200 for send-only), while concurrent runs used all four vCPUs and three warmups. [.NET benchmark source](src/dotnet/Interprocess.Benchmark/) · [Original reports](https://github.com/cloudtoid/interprocess/tree/95c512672d580dd836ba2554cd1f78c0c3826f6c/docs/benchmarks/2026-09-13).
 
 ### On Linux
 
@@ -280,7 +280,7 @@ Measured September 13, 2026, on an **Apple M5 Max**, Ubuntu 24.04 ARM64 VM (Lima
 | Concurrent delivery, 8 bytes, 1 publisher / 1 subscriber | 112.90 | 1.10 | — |
 | Concurrent delivery, 8 bytes, 1 publisher / 4 subscribers | 158.60 | 13.64 | — |
 
-Same .NET workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (200 for send-only), while concurrent runs used all four vCPUs and three warmups. [.NET benchmark source](src/dotnet/Interprocess.Benchmark/).
+Same .NET workloads and allocation conventions as the Mac suite. Two launches and eight measured iterations; single-thread runs used one pinned vCPU and 20 warmups (200 for send-only), while concurrent runs used all four vCPUs and three warmups. [.NET benchmark source](src/dotnet/Interprocess.Benchmark/) · [Original reports](https://github.com/cloudtoid/interprocess/tree/95c512672d580dd836ba2554cd1f78c0c3826f6c/docs/benchmarks/2026-09-13).
 
 [Protocol v3](docs/protocol.md) documents the complete shared-memory format and synchronization rules. [Interoperability tests](tests/interop/README.md) exercise every publisher/subscriber language pair and mixed-language concurrent delivery across participant crashes.
 

@@ -26,8 +26,9 @@ public sealed class QueueOptions
     {
         QueueName = CheckNonEmpty(queueName, nameof(queueName));
         CheckParam(
-            queueName is not "." and not ".." && queueName.IndexOfAny(['/', '\0']) < 0
-                && (!OperatingSystem.IsWindows() || !queueName.Contains('\\')),
+            queueName is not "." and not ".."
+                && queueName.IndexOfAny(['/', '\0']) < 0
+                && (!OperatingSystem.IsWindows() || !queueName.Contains('\\', StringComparison.Ordinal)),
             nameof(queueName),
             "Queue name must be a single name without slashes or NUL.");
         if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())

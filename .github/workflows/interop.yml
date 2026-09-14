@@ -57,7 +57,6 @@ jobs:
   runtimes:
     name: Python ${{ matrix.python }} / Node ${{ matrix.node }}
     needs: interop
-    if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

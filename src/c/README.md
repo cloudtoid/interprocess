@@ -34,12 +34,18 @@ cip_subscriber_close(subscriber);
 
 `cip_receive` returns owned bytes; free successful results with `cip_buffer_free`. Finish every call before closing its handle. See [protocol v3](https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md).
 
+## Errors
+
 Use `CIP_OK`, `CIP_UNAVAILABLE`, and `CIP_ERROR` to interpret status results. On error, `cip_last_error_kind()` gives a stable `cip_error_kind`; `cip_last_error()` provides diagnostic text on the same thread. The prebuilt SDK contains shared libraries. Static linking is source-build only (`cargo build --release -p cloudtoid-interprocess-ffi`); define `CIP_STATIC` when using the resulting static library on Windows.
 
+## Waiting and shutdown
+
 Handles must not be closed concurrently with an operation. Use bounded `cip_receive` timeouts when shutdown is needed. Open handles after `fork()`; do not use inherited handles in the child. Closing an inherited handle leaves the parent's registration intact.
+
+## Limits
+
+Queue names must be nonempty and contain no slash or NUL. Windows also rejects backslashes; Unix permits them for compatibility. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.
 
 ## Queue lifetime
 
 The queue is transient: it stays alive while at least one publisher or subscriber is connected. Once all endpoints are closed or their processes exit, unread messages are lost. Opening the same name again creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits; a surviving publisher also keeps the queue alive.
-
-Queue names must be nonempty and contain no slash or NUL. Windows also rejects backslashes; Unix permits them for compatibility. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.

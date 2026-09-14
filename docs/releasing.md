@@ -14,7 +14,7 @@ The .NET library stays independent under `src/dotnet`, with its existing NuGet p
 | Go | `src/go/go.mod` (cgo; installed C SDK required) |
 | Website | `src/website/build.py` |
 
-The Native core workflow checks Rust formatting, linting, crash recovery, and C compilation on all three operating systems. Language interoperability builds actual bindings, tests every ordered pair, and runs six publishers with six competing subscribers across participant crashes. Existing .NET job names remain unchanged for branch protection. Release builds are used throughout; no Debug-only behavior is required.
+The Native core workflow checks Rust formatting, linting, and the C ABI on Linux, macOS, and Windows, plus core tests on the minimum Rust version. Language interoperability runs the stable core crash-recovery tests, builds actual bindings, tests every ordered pair, and runs six publishers with six competing subscribers across participant crashes on Linux x64/ARM64, macOS, and Windows. Existing .NET job names remain unchanged for branch protection. Release builds are used throughout; no Debug-only behavior is required.
 
 ## Initial registry setup
 

@@ -41,10 +41,14 @@ For separate processes, create the publisher and subscriber in their respective 
 
 Each queue supports up to 2,048 connected publisher objects. Its shared publisher table uses 256 KiB in addition to the message capacity and header/alignment storage. Dispose participants when finished; the queue remains available while any participant is connected.
 
-The queue is transient IPC storage. Once all publishers and subscribers are gone, unread messages are lost; reopening the same name creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits. Recovery after a process exits can discard queued messages, including completed messages behind an unfinished reservation. Paused live operations are not reclaimed merely because a timeout passes. Destination buffers must be large enough to avoid truncating a consumed message.
-
 For dependency injection, register the queue services with `services.AddInterprocessQueue()` and resolve `IQueueFactory`.
 
-[Publisher and subscriber samples](https://github.com/cloudtoid/interprocess/tree/main/src/dotnet/Sample) · [Documentation](https://github.com/cloudtoid/interprocess) · [Report an issue](https://github.com/cloudtoid/interprocess/issues) · [MIT license](https://github.com/cloudtoid/interprocess/blob/main/LICENSE)
+## Limits
 
 Queue names must be nonempty and contain no slash or NUL. Windows also rejects backslashes; Unix permits them for compatibility. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.
+
+## Queue lifetime
+
+The queue is transient IPC storage. Once all publishers and subscribers are gone, unread messages are lost; reopening the same name creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits. Recovery after a process exits can discard queued messages, including completed messages behind an unfinished reservation. Paused live operations are not reclaimed merely because a timeout passes. Destination buffers must be large enough to avoid truncating a consumed message.
+
+[Publisher and subscriber samples](https://github.com/cloudtoid/interprocess/tree/main/src/dotnet/Sample) · [Documentation](https://github.com/cloudtoid/interprocess) · [Report an issue](https://github.com/cloudtoid/interprocess/issues) · [MIT license](https://github.com/cloudtoid/interprocess/blob/main/LICENSE)
