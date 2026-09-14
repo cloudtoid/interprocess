@@ -18,13 +18,13 @@ The Native core workflow checks Rust formatting, linting, crash recovery, and C 
 
 ## Initial registry setup
 
-Before the first native release, connect the intended registry owners to these names:
+All packages must use Cloudtoid branding and organization ownership wherever the registry supports it. Personal logins authorize publishing; they do not replace organization ownership. Before the first native release, connect these owners and names:
 
-- crates.io: `cloudtoid-interprocess` and `cloudtoid-interprocess-ffi`. Configure `CARGO_REGISTRY_TOKEN` in the `crates-io` GitHub environment or repository secrets with permission to publish these crates. Trusted publishing can replace that initial token after ownership is established.
-- PyPI: add a pending trusted publisher for `cloudtoid-interprocess`, GitHub owner `cloudtoid`, repository `interprocess`, workflow `release-native.yml`, environment `pypi`. No long-lived PyPI token is required.
+- crates.io: `cloudtoid-interprocess` and `cloudtoid-interprocess-ffi`. crates.io uses global crate names and GitHub team owners. The `cloudtoid/interprocess` GitHub team exists, with `prezaei` as its maintainer. After initial creation, add `github:cloudtoid:interprocess` as an owner of both crates and verify it with `cargo owner --list`. This needs ownership-management authorization, which the initial publish-only token does not grant. Keep the personal account for ownership administration. Configure `CARGO_REGISTRY_TOKEN` in the `crates-io` GitHub environment with permission to publish these crates; trusted publishing can replace it afterward.
+- PyPI: wait for the `cloudtoid` organization request to be approved. Create `cloudtoid-interprocess` through that organization's Projects page, then configure its trusted publisher: GitHub owner `cloudtoid`, repository `interprocess`, workflow `release-native.yml`, environment `pypi`. Do not use a personal-account pending publisher to create the project. Confirm organization ownership before publication; the `Cloudtoid` author field alone is not ownership. No long-lived PyPI token is required.
 - npm: use the `@cloudtoid` scope. Configure `NPM_TOKEN` in the `npm` environment or repository secrets for the first publication. Publish the platform packages and main package under the same scope. They can each use npm trusted publishing once configured.
 - Go: versions come from the repository tag `src/go/v3.0.0`, matching module path `github.com/cloudtoid/interprocess/src/go/v3`. There is no separate account to create.
-- C SDK: GitHub release assets contain the native library, header, pkg-config file, and license.
+- C SDK: GitHub release assets in `cloudtoid/interprocess` contain the native library, header, pkg-config file, and license.
 
 Keep credentials in registry/GitHub settings, never in source files or chat messages. Registry authorization is separate from GitHub push access.
 
