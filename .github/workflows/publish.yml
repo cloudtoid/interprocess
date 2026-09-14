@@ -2,6 +2,11 @@ name: Release packages
 on:
   workflow_dispatch:
     inputs:
+      registry:
+        description: Registry to publish (or all)
+        type: choice
+        default: all
+        options: [all, nuget, rust, npm, python, github]
       publish_python:
         description: Publish Python packages to PyPI
         type: boolean
@@ -42,6 +47,7 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('version='+v+'\n')
           PY
   nuget:
+    if: inputs.registry == 'all' || inputs.registry == 'nuget'
     needs: source
     permissions:
       contents: read
@@ -74,9 +80,11 @@ jobs:
       - name: Push
         run: dotnet nuget push Cloudtoid.Interprocess.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --skip-duplicate
   packages:
+    if: inputs.registry != 'nuget'
     needs: source
     uses: ./.github/workflows/interop.yml
   mac-intel:
+    if: inputs.registry != 'nuget'
     needs: source
     runs-on: macos-latest
     steps:
@@ -131,19 +139,30 @@ jobs:
           name: release-packages
           path: target/release-packages/
   rust:
+    if: inputs.registry == 'all' || inputs.registry == 'rust'
     needs: [source, assemble]
     runs-on: ubuntu-latest
     environment: crates-io
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
+      # The initial publication requires a token; remove that secret after
+      # configuring trusted publishing on both newly created crates.
+      - uses: rust-lang/crates-io-auth-action@v1
+        if: env.CARGO_REGISTRY_TOKEN == ''
+        id: crates-auth
       - name: Publish the Rust core and C ABI crate
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates-auth.outputs.token || env.CARGO_REGISTRY_TOKEN }}
           VERSION: ${{ needs.source.outputs.version }}
         run: |
           for package in cloudtoid-interprocess cloudtoid-interprocess-ffi; do
-            status=$(curl --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://crates.io/api/v1/crates/$package/$VERSION")
+            status=$(curl --user-agent 'cloudtoid-interprocess (https://github.com/cloudtoid/interprocess)' --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://crates.io/api/v1/crates/$package/$VERSION")
             case "$status" in
               200) echo "$package $VERSION is already published" ;;
               404) cargo publish --locked -p "$package" ;;
@@ -151,7 +170,7 @@ jobs:
             esac
           done
   python:
-    if: inputs.publish_python
+    if: inputs.registry == 'python' || (inputs.registry == 'all' && inputs.publish_python)
     needs: [source, assemble]
     runs-on: ubuntu-latest
     environment: pypi
@@ -167,6 +186,7 @@ jobs:
           packages-dir: release-packages/python/
           skip-existing: true
   node:
+    if: inputs.registry == 'all' || inputs.registry == 'npm'
     needs: [source, assemble]
     runs-on: ubuntu-latest
     environment: npm
@@ -184,7 +204,6 @@ jobs:
           path: release-packages
       - name: Publish native packages before the main package
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           VERSION: ${{ needs.source.outputs.version }}
         run: |
           for package in release-packages/npm/*-* release-packages/npm/main; do
@@ -194,12 +213,14 @@ jobs:
               status=$(curl --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://registry.npmjs.org/$name/$VERSION")
               case "$status" in
                 200) echo "$name $VERSION is already published" ;;
-                404) npm publish --access public --provenance ;;
+                404) npm publish --access public ;;
                 *) echo "Cannot check $name: HTTP $status"; exit 1 ;;
               esac
             )
           done
   release:
+    if: inputs.registry == 'all' || inputs.registry == 'github'
+    name: Publish C SDK and Go
     needs: [source, assemble]
     runs-on: ubuntu-latest
     permissions:
