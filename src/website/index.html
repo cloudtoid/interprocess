@@ -2,28 +2,82 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cloudtoid Interprocess — Bytes at the speed of shared memory</title>
-<meta name="description" content="Fast shared-memory queues for Rust, C, Python, Node.js, Go, and .NET. One open protocol. No broker to run.">
+<title>Cloudtoid Interprocess — High-performance shared-memory queues</title>
+<meta name="description" content="Exceptionally fast shared-memory queues for communication between processes. Multiple publishers and subscribers, reusable buffers, and no broker to run. See the benchmarks.">
+<link rel="canonical" href="https://cloudtoid.com/">
+<meta name="color-scheme" content="light dark">
+<script src="theme.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header><a class="brand" href="#">cloudtoid<span> / interprocess</span></a><nav aria-label="Main"><a href="#languages">Languages</a><a href="https://github.com/cloudtoid/interprocess/blob/171bfbdb3c1b31343fafefaf28bc67a477e75abb/docs/protocol.md">Protocol ↗</a><a href="https://github.com/cloudtoid/interprocess">GitHub ↗</a></nav></header>
-<main>
-<section class="hero">
-<p class="eyebrow"><span class="dot"></span> SHARED MEMORY. SHARED LANGUAGE.</p>
-<h1>Your processes.<br>Closer than ever.</h1>
-<p class="intro">Move bytes between applications through a fast circular buffer. Pick your language. Keep your throughput. Skip the broker.</p>
-<div class="actions"><a class="button" href="#languages">Start building <span>↗</span></a><a class="secondary" href="https://github.com/cloudtoid/interprocess">Explore the code →</a></div>
-<div class="flow" aria-label="Publishers in Rust, Python and Go send through one shared circular buffer to subscribers in Node.js, C and .NET">
-<div class="endpoints"><span>Rust</span><span>Python</span><span>Go</span></div><span class="arrow">→</span><div class="ring"><span>ONE QUEUE</span><strong>v3</strong><small>open protocol</small></div><span class="arrow">→</span><div class="endpoints"><span>Node.js</span><span>C / C++</span><span>.NET</span></div>
+<a class="skip" href="#main">Skip to content</a>
+<header class="wrap"><a class="brand" href="#">cloudtoid<span> / interprocess</span></a><nav aria-label="Main"><a href="#performance">Benchmarks</a><a href="#how-it-works">Architecture</a><a href="#languages">API</a><a href="https://github.com/cloudtoid/interprocess">GitHub ↗</a><label class="theme-control"><span class="sr-only">Color theme</span><select id="theme" aria-label="Color theme"><option value="system">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select></label></nav></header>
+<main id="main">
+<section class="hero wrap">
+<div class="hero-copy">
+<p class="eyebrow"><span class="status-dot"></span> A SHARED-MEMORY IPC LIBRARY</p>
+<h1>Interprocess<span class="version">v3</span></h1>
+<p class="intro">Fast, lightweight queues<br>between processes.</p>
+<p class="hero-description">Connect multiple publisher and subscriber processes through a shared circular buffer. Native atomic reservations, reusable memory, and no broker service. Built for high throughput on a single machine.</p>
+<div class="actions"><a class="button" href="#languages">Read the API <span>↗</span></a><a class="text-link" href="#performance">View benchmarks ↓</a></div>
+<p class="availability">Linux · macOS · Windows <span>MIT licensed</span></p>
+</div>
+<div class="speed-panel">
+<div class="panel-heading"><span class="eyebrow">RUST · LOCAL QUEUE BENCHMARK</span><span class="chip">Release</span></div>
+<div class="speed-value">12.98<span>ns</span></div>
+<h2>Send + receive</h2>
+<p>A complete queue round trip,<br>with the receive buffer reused.</p>
+<dl class="payload-results"><div><dt>50-byte message</dt><dd>16.05 ns</dd></div><div><dt>1,024-byte message</dt><dd>56.33 ns</dd></div></dl>
+<div class="measurement-label"><strong>3-byte message · Apple M5 Max</strong><span>In-process microbenchmark · Release build</span></div>
+<a href="#performance" class="panel-link">Explore the measurements <span>↗</span></a>
 </div>
 </section>
-<section class="facts" aria-label="Core capabilities"><div><strong>6</strong><span>languages, one protocol</span></div><div><strong>2,048</strong><span>connected publishers per queue</span></div><div><strong>3</strong><span>operating systems</span></div></section>
-<section class="features"><article><span class="number">01 / SPEED</span><h2>A shorter path<br>between processes.</h2><p>Native atomic reservations, reusable receive buffers, and coalesced wakeups keep the work focused on moving your bytes.</p></article><article><span class="number">02 / CONTROL</span><h2>Your bytes.<br>Your schema.</h2><p>Send binary data in the format your application needs. Mix languages without coupling your processes to a serializer or a server.</p></article><article><span class="number">03 / RESILIENCE</span><h2>A crash shouldn’t<br>erase the queue.</h2><p>Queue resources stay available while participants remain connected. Recovery checks process liveness before reclaiming abandoned work.</p></article></section>
-<section id="languages" class="start"><div><p class="eyebrow">SMALL API. ROOM TO BUILD.</p><h2>Different languages.<br>Same conversation.</h2><p>Use the same queue name, capacity, and shared directory. Subscribers compete for messages; each message goes to one receiver.</p><p class="release">Native packages are in preview. Build from source while the release is being prepared.</p><a id="language-docs" href="https://github.com/cloudtoid/interprocess/tree/171bfbdb3c1b31343fafefaf28bc67a477e75abb/src/rust">Read the Rust guide →</a></div>
-<div class="code-window"><div class="tabs" role="tablist" aria-label="Example language"><button role="tab" aria-selected="true" data-language="Rust" id="tab-rust" aria-controls="example">Rust</button><button role="tab" aria-selected="false" data-language="Python" tabindex="-1" aria-controls="example">Python</button><button role="tab" aria-selected="false" data-language="Node.js" tabindex="-1" aria-controls="example">Node.js</button><button role="tab" aria-selected="false" data-language="Go" tabindex="-1" aria-controls="example">Go</button><button role="tab" aria-selected="false" data-language="C" tabindex="-1" aria-controls="example">C</button><button role="tab" aria-selected="false" data-language=".NET" tabindex="-1" aria-controls="example">.NET</button></div><pre id="example" role="tabpanel" aria-label="Rust example" tabindex="0"><code></code></pre><div class="code-footer"><span>BYTES IN. BYTES OUT.</span><button id="copy">Copy example</button><span id="copy-status" role="status"></span></div></div></section>
-<section class="open"><p class="eyebrow">NOTHING BEHIND THE CURTAIN.</p><h2>The protocol is yours to inspect.</h2><p>Memory layout, atomic ordering, circular records, participant lifetime, and crash recovery — documented in full. MIT licensed, with interoperability tests across every language pair.</p><a class="button light" href="https://github.com/cloudtoid/interprocess/blob/171bfbdb3c1b31343fafefaf28bc67a477e75abb/docs/protocol.md">Read protocol v3 ↗</a><p class="note">Designed for volatile IPC on one machine. Recovery may discard abandoned work and messages behind it. Use application-level acknowledgements and persistence when you need durable processing.</p></section>
+<section class="proof-strip wrap" aria-label="Low overhead by design">
+<div><strong>0 <span>B</span></strong><p>allocated per round trip<small>Measured .NET path with a reused buffer</small></p></div>
+<div><strong>0</strong><p>broker servers to run<small>The queue lives in shared memory</small></p></div>
+<div><strong>2,048</strong><p>publishers per queue<small>With multiple competing subscribers</small></p></div>
+</section>
+<section id="performance" class="performance section wrap">
+<div class="section-heading"><div><p class="eyebrow">BENCHMARKS</p><h2>Queue operations,<br>measured in nanoseconds.</h2></div><p>Actual queue operations, measured in Release builds. These are <strong>in-process microbenchmarks</strong>; latency between separate processes also depends on scheduling and workload.</p></div>
+<div class="benchmark-block mac-bench">
+<div class="benchmark-header"><div><h3>macOS</h3><p>Apple M5 Max · Native execution</p></div><span class="chip">Nanoseconds per operation</span></div>
+<div class="table-scroll"><table><caption class="sr-only">macOS queue performance, Rust and .NET</caption><thead><tr><th scope="col">Implementation</th><th scope="col">Workload</th><th scope="col">Message</th><th scope="col">Mean</th><th scope="col">StdDev</th></tr></thead><tbody>
+<tr class="highlight"><td>Rust</td><td>Send + receive, reused buffer</td><td>3 B</td><td>12.98 ns</td><td>0.18 ns</td></tr>
+<tr><td>Rust</td><td>Send + receive, reused buffer</td><td>50 B</td><td>16.05 ns</td><td>0.32 ns</td></tr>
+<tr><td>Rust</td><td>Send + receive, reused buffer</td><td>1,024 B</td><td>56.33 ns</td><td>0.83 ns</td></tr>
+<tr><td>.NET</td><td>Enqueue</td><td>3 B</td><td>5.74 ns</td><td>0.13 ns</td></tr>
+<tr><td>.NET</td><td>Enqueue + dequeue, reused buffer</td><td>3 B</td><td>17.37 ns</td><td>0.43 ns</td></tr>
+<tr><td>.NET</td><td>Enqueue + dequeue, reused buffer</td><td>50 B</td><td>18.81 ns</td><td>0.23 ns</td></tr>
+</tbody></table></div>
+<p class="table-note">All .NET rows above: <strong>0 B allocated.</strong> Rust uses preallocated send and receive buffers; allocations were not separately instrumented.</p>
+</div>
+<div class="platform-benchmarks">
+<article class="benchmark-block"><div class="benchmark-header"><div><h3>Windows</h3><p>Windows 11 ARM64 · UTM VM · .NET 10</p></div></div><div class="table-scroll"><table><caption class="sr-only">Windows queue performance for 3-byte messages</caption><thead><tr><th scope="col">Workload · 3 B message</th><th scope="col">Mean</th><th scope="col">Allocated</th></tr></thead><tbody><tr><td>Enqueue</td><td>6.26 ns</td><td>0 B</td></tr><tr><td>Enqueue + dequeue, reused buffer</td><td>17.96 ns</td><td>0 B</td></tr></tbody></table></div></article>
+<article class="benchmark-block"><div class="benchmark-header"><div><h3>Linux</h3><p>Ubuntu 24.04 ARM64 · QEMU VM · .NET 10</p></div></div><div class="table-scroll"><table><caption class="sr-only">Linux queue performance for 3-byte messages</caption><thead><tr><th scope="col">Workload · 3 B message</th><th scope="col">Mean</th><th scope="col">Allocated</th></tr></thead><tbody><tr><td>Enqueue</td><td>6.00 ns</td><td>0 B</td></tr><tr><td>Enqueue + dequeue, reused buffer</td><td>16.68 ns</td><td>0 B</td></tr></tbody></table></div></article>
+</div>
+<details class="methodology"><summary>Measurement details &amp; reproducible results <span>+</span></summary><div><p><strong>Rust:</strong> September 14, 2026, Apple M5 Max, Rust 1.98.1. One million send-and-receive operations per sample; four warmup samples and eight measured samples. A 1 MiB queue and reused receive storage. <a href="benchmarks/rust-macos.txt">Download raw results ↗</a> · <a href="https://github.com/cloudtoid/interprocess/blob/67f6785be47c418833e9cc65a91de849f308332a/src/rust/examples/benchmark.rs">Benchmark source ↗</a></p><p><strong>.NET:</strong> September 13, 2026, .NET 10.0.12 and BenchmarkDotNet; two launches and eight measured iterations. macOS 26.6.2 runs natively on the M5 Max. Windows uses a 4-vCPU, 12 GiB UTM VM; Linux uses a 4-vCPU, 8 GiB Lima/QEMU VM on the same Mac. Enqueue-only tests drain outside the timed batch. <a href="https://github.com/cloudtoid/interprocess/tree/main/docs/benchmarks/2026-09-13">Full reports and methodology ↗</a></p><p>Rust and .NET use separate benchmark harnesses. These results show each measured workload; they are not a controlled comparison between languages. Wrapper costs for Python, Node.js, and Go are not included in the Rust numbers.</p></div></details>
+</section>
+<section id="how-it-works" class="architecture section wrap">
+<div class="section-heading"><div><p class="eyebrow">ARCHITECTURE</p><h2>Multiple publishers.<br>Multiple subscribers.</h2></div><p>Publishers put messages into a shared queue. Subscribers take messages out and do the work. They can run in separate processes, in different languages, without a messaging server in the middle.</p></div>
+<div class="queue-diagram" role="img" aria-label="Multiple publisher processes write messages into one shared circular buffer. Multiple subscriber processes consume from it. Each message is consumed by one subscriber, sharing work across workers.">
+<div class="process-group"><h3>Publishers</h3><div class="process"><span class="process-dot"></span>Process A <small>Rust</small></div><div class="process"><span class="process-dot"></span>Process B <small>Python</small></div><div class="process"><span class="process-dot"></span>Process C <small>.NET</small></div><p>Submit work concurrently</p></div>
+<div class="connector" aria-hidden="true"><span>publish</span><b>→</b></div>
+<div class="queue-core"><div class="queue-title"><span class="status-dot"></span> SHARED MEMORY</div><div class="messages" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span><span>05</span><span>06</span></div><div class="reuse" aria-hidden="true">↶ &nbsp; space is reused as messages are consumed</div><strong>One circular buffer</strong><p>No network hop. No broker process.</p></div>
+<div class="connector" aria-hidden="true"><span>consume</span><b>→</b></div>
+<div class="process-group"><h3>Subscribers</h3><div class="process"><span class="process-dot"></span>Worker A <small>Go</small></div><div class="process"><span class="process-dot"></span>Worker B <small>Node.js</small></div><div class="process"><span class="process-dot"></span>Worker C <small>C</small></div><p>Share the work across workers</p></div>
+</div>
+<div class="architecture-note"><strong>Many producers. Many consumers.</strong><p>Each queued message is consumed by one subscriber. Add workers to share the load, connect several producers to the same queue, and keep each process focused on its job.</p></div>
+</section>
+<section class="efficiency">
+<div class="wrap section"><div class="section-heading"><div><p class="eyebrow">EFFICIENCY</p><h2>Low overhead,<br>by design.</h2></div><p>A small library in your application, backed by a bounded shared-memory buffer. No separate broker to provision, monitor, or keep running.</p></div>
+<div class="benefits"><article><span class="feature-index">01</span><h3>Keep allocations out<br>of the hot path.</h3><p>Preallocate queue storage and reuse receive buffers. The measured .NET send-and-receive path allocates <strong>0 bytes per operation</strong>, reducing garbage-collection pressure.</p></article><article><span class="feature-index">02</span><h3>Move bytes with<br>very little work.</h3><p>Native 64-bit atomic reservations and coalesced wakeups keep coordination lean. Send your existing binary format without a required serializer or wire protocol.</p></article><article><span class="feature-index">03</span><h3>Keep the operating<br>cost small.</h3><p>No additional messaging service, broker machine, or per-message license fee. Run your processes on the same host and choose how much memory the queue uses.</p></article></div>
+</div>
+</section>
+<section id="languages" class="start section wrap"><div><p class="eyebrow">LANGUAGE INTERFACES</p><h2>One queue.<br>Six language interfaces.</h2><p>Rust, C, Python, Node.js, Go, and .NET can exchange messages through the same open v3 protocol. Pick the right language for each process.</p><p class="release">.NET v3 is available on NuGet. The new native packages are in preview and can be built from source.</p><a id="language-docs" class="text-link" href="https://github.com/cloudtoid/interprocess/tree/171bfbdb3c1b31343fafefaf28bc67a477e75abb/src/rust">Read the Rust guide →</a></div>
+<div class="code-window"><div class="tabs" role="tablist" aria-label="Example language"><button role="tab" aria-selected="true" data-language="Rust" id="tab-rust" aria-controls="example">Rust</button><button role="tab" aria-selected="false" data-language="Python" tabindex="-1" aria-controls="example">Python</button><button role="tab" aria-selected="false" data-language="Node.js" tabindex="-1" aria-controls="example">Node.js</button><button role="tab" aria-selected="false" data-language="Go" tabindex="-1" aria-controls="example">Go</button><button role="tab" aria-selected="false" data-language="C" tabindex="-1" aria-controls="example">C</button><button role="tab" aria-selected="false" data-language=".NET" tabindex="-1" aria-controls="example">.NET</button></div><pre id="example" role="tabpanel" aria-label="Rust example" tabindex="0"><code></code></pre><div class="code-footer"><span>SHARED MEMORY. SIMPLE API.</span><button id="copy">Copy example</button><span id="copy-status" role="status"></span></div></div></section>
+<section class="open"><div class="wrap open-inner"><div><p class="eyebrow">PROTOCOL V3</p><h2>Open source.<br>Documented in full.</h2></div><div><p>Inspect the memory layout, atomic ordering, resource lifetime, and crash recovery. Build on an MIT-licensed implementation with tests across every publisher/subscriber language pair.</p><p class="protocol-note">Built for volatile queues on one machine. For durable jobs, add application-level acknowledgements and persistence.</p><a class="button" href="https://github.com/cloudtoid/interprocess/blob/171bfbdb3c1b31343fafefaf28bc67a477e75abb/docs/protocol.md">Read the protocol <span>↗</span></a></div></div></section>
 </main>
-<footer><a class="brand" href="https://github.com/cloudtoid">cloudtoid</a><span>Linux · macOS · Windows</span><a href="https://github.com/cloudtoid/interprocess/blob/main/LICENSE">Open source. MIT licensed.</a></footer>
+<footer class="wrap"><a class="brand" href="https://github.com/cloudtoid">cloudtoid</a><span>Cloudtoid Interprocess</span><a href="https://github.com/cloudtoid/interprocess/blob/main/LICENSE">Open source · MIT license ↗</a></footer>
+<script src="vendor/highlight.min.js"></script>
 <script src="site.js"></script>
 </body></html>

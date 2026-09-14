@@ -1,0 +1,11 @@
+Measured: 2026-09-14T08:37:07.610039+00:00
+Commit: 67f6785be47c418833e9cc65a91de849f308332a
+CPU: Apple M5 Max
+rustc 1.98.1 (48a229cea 2026-09-01)
+Command: /Users/pedram/.cargo/bin/cargo run --release --locked -p cloudtoid-interprocess --example benchmark
+
+    Finished `release` profile [optimized] target(s) in 0.17s
+     Running `target/release/examples/benchmark`
+3 bytes: 12.98 ns/roundtrip, stddev 0.18, samples [13.181667, 13.027709, 12.743167, 12.832666, 13.241958, 13.014375, 13.049125, 12.786958]
+50 bytes: 16.05 ns/roundtrip, stddev 0.32, samples [15.829583, 16.348167, 15.645791, 16.228667, 15.984791, 15.633208, 16.258291, 16.469458]
+1024 bytes: 56.33 ns/roundtrip, stddev 0.83, samples [55.915041, 55.764041, 55.241917, 57.504834, 57.444541, 56.790542, 55.834375, 56.163167]

@@ -59,7 +59,8 @@ const code = document.querySelector('#example code');
 function select(tab, focus = false) {
   tabs.forEach(t => { t.setAttribute('aria-selected', String(t === tab)); t.tabIndex = t === tab ? 0 : -1; });
   const language = tab.dataset.language, [folder, source] = examples[language];
-  code.textContent = source;
+  const grammar = { node: 'javascript', dotnet: 'csharp' }[folder] || folder;
+  code.innerHTML = hljs.highlight(source, { language: grammar }).value;
   document.querySelector('#example').setAttribute('aria-label', `${language} example`);
   const link = document.querySelector('#language-docs');
   link.href = `https://github.com/cloudtoid/interprocess/tree/171bfbdb3c1b31343fafefaf28bc67a477e75abb/src/${folder}`;
