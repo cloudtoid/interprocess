@@ -139,10 +139,14 @@ pub(crate) struct Lease {
     _handle: Handle,
 }
 impl Lease {
+    pub fn is_current_process(&self) -> bool {
+        true
+    }
+
     pub fn new(options: &Options, id: i64) -> Result<Self> {
         let handle = create_mapping(&lease_name(options, id), 16)?;
         if unsafe { GetLastError() } == ERROR_ALREADY_EXISTS {
-            return Err(Error::Invalid("participant registration is already in use"));
+            return Err(Error::Corrupt);
         }
         let view = View::new(&handle, 16, FILE_MAP_ALL_ACCESS)?;
         let ticks = started(unsafe { GetCurrentProcess() })?;

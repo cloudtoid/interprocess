@@ -48,6 +48,7 @@ fn clean_leases(options: &Options) -> io::Result<()> {
 }
 
 pub(crate) struct Mapping {
+    process_id: libc::pid_t,
     pub ptr: NonNull<u8>,
     length: usize,
     file: File,
@@ -75,10 +76,16 @@ impl Mapping {
             .open(&pathname)?;
         let length = BUFFER_OFFSET + options.capacity;
         if lock(&file, libc::LOCK_EX | libc::LOCK_NB)? {
-            Signal::unlink(&options.name)?;
-            clean_leases(options)?;
-            file.set_len(0)?;
-            file.set_len(length as u64)?;
+            if let Err(error) = (|| -> Result<()> {
+                Signal::unlink(&options.name)?;
+                clean_leases(options)?;
+                file.set_len(0)?;
+                file.set_len(length as u64)?;
+                Ok(())
+            })() {
+                let _ = fs::remove_file(&pathname);
+                return Err(error);
+            }
         } else if file.metadata()?.len() != length as u64 {
             return Err(Error::CapacityMismatch);
         }
@@ -98,6 +105,7 @@ impl Mapping {
         }
         let ptr = NonNull::new(pointer.cast()).expect("mmap returned address zero");
         Ok(Self {
+            process_id: unsafe { libc::getpid() },
             ptr,
             length,
             file,
@@ -110,6 +118,14 @@ impl Mapping {
 
 impl Drop for Mapping {
     fn drop(&mut self) {
+        // Inherited descriptors share the parent's flock. Only release the child's
+        // mapping/descriptor; never upgrade that lock or unlink the parent's queue.
+        if unsafe { libc::getpid() } != self.process_id {
+            unsafe {
+                libc::munmap(self.ptr.as_ptr().cast(), self.length);
+            }
+            return;
+        }
         let coordination = coordinate(&self.directory);
         unsafe {
             libc::munmap(self.ptr.as_ptr().cast(), self.length);
@@ -125,10 +141,15 @@ impl Drop for Mapping {
 }
 
 pub(crate) struct Lease {
+    process_id: libc::pid_t,
     file: Option<File>,
     pathname: PathBuf,
 }
 impl Lease {
+    pub fn is_current_process(&self) -> bool {
+        unsafe { libc::getpid() == self.process_id }
+    }
+
     pub fn new(options: &Options, id: i64) -> Result<Self> {
         let directory = lease_directory(options);
         fs::create_dir_all(&directory)?;
@@ -140,9 +161,10 @@ impl Lease {
             .truncate(false)
             .open(&pathname)?;
         if !lock(&file, libc::LOCK_EX | libc::LOCK_NB)? {
-            return Err(Error::Invalid("participant registration is already in use"));
+            return Err(Error::Corrupt);
         }
         Ok(Self {
+            process_id: unsafe { libc::getpid() },
             file: Some(file),
             pathname,
         })
@@ -168,7 +190,9 @@ impl Lease {
 impl Drop for Lease {
     fn drop(&mut self) {
         drop(self.file.take());
-        let _ = fs::remove_file(&self.pathname);
+        if self.is_current_process() {
+            let _ = fs::remove_file(&self.pathname);
+        }
     }
 }
 

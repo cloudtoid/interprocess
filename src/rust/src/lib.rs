@@ -42,6 +42,16 @@ impl Options {
     }
 
     fn validate(&self) -> Result<()> {
+        if cfg!(target_os = "macos") && self.name.len() > 24 {
+            return Err(Error::Invalid(
+                "queue name exceeds the macOS limit of 24 UTF-8 bytes",
+            ));
+        }
+        if cfg!(target_os = "linux") && self.name.len() > 245 {
+            return Err(Error::Invalid(
+                "queue name exceeds the Linux limit of 245 UTF-8 bytes",
+            ));
+        }
         if self.name.is_empty()
             || self.name.contains(['\0', '/', '\\'])
             || self.name == "."

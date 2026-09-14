@@ -1,10 +1,10 @@
 /** Protocol v3 byte queues. Participants must agree on name, capacity, and Unix path. */
 export class Publisher {
   constructor(name: string, capacity: number, path?: string);
-  /** False means full or temporarily recovering. Errors may follow a committed send. */
-  trySend(data: Buffer): boolean;
+  /** False means full or temporarily recovering. Wakeup failures do not change a committed result. */
+  trySend(data: Uint8Array): boolean;
   /** Returns the accepted prefix length. A batch is not an atomic transaction. */
-  trySendBatch(messages: Buffer[]): number;
+  trySendBatch(messages: Uint8Array[]): number;
   close(): void;
 }
 export class Subscriber {

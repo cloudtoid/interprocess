@@ -173,11 +173,12 @@ impl Shared {
         ptr::write_bytes(self.pointer(0), 0, length - right);
     }
 
-    fn notify(&self) -> Result<()> {
+    fn notify(&self) {
         if self.header().notification.swap(1, SeqCst) == 0 {
-            self.signal.post()?;
+            // Notification is a hint: readers retry even if an OS post fails.
+            // A wakeup failure must never hide a committed send or consumed message.
+            let _ = self.signal.post();
         }
-        Ok(())
     }
 
     fn empty(&self) -> bool {
@@ -281,7 +282,7 @@ impl Publisher {
                     .write(message.len() as i32);
             }
             self.shared.state(write).store(2, Release);
-            self.shared.notify()?;
+            self.shared.notify();
             return Ok(true);
         }
     }
@@ -289,6 +290,10 @@ impl Publisher {
 
 impl Drop for Publisher {
     fn drop(&mut self) {
+        // A forked child must not release its parent's shared registration.
+        if !self._lease.is_current_process() {
+            return;
+        }
         // Safe Rust cannot drop an endpoint while a call still borrows it.
         let _ = self
             .shared
@@ -405,7 +410,7 @@ impl Subscriber {
             }
         })();
         if relay && !self.shared.empty() {
-            self.shared.notify()?;
+            self.shared.notify();
         }
         result
     }
@@ -432,10 +437,11 @@ impl Subscriber {
             owner: &header.reader,
             id: self.id,
         };
-        if shared.empty() {
+        let read = header.read.load(Acquire);
+        let write = header.write.load(Acquire);
+        if read == write {
             return Ok(None);
         }
-        let read = header.read.load(Acquire);
         if read < 0 {
             return Err(Error::Corrupt);
         }
@@ -486,7 +492,13 @@ impl Subscriber {
             return Err(Error::Corrupt);
         }
         let length = (body as usize + 15) & !7;
-        let next = read.checked_add(length as i64).ok_or(Error::Exhausted)?;
+        let Some(next) = read
+            .checked_add(length as i64)
+            .filter(|next| *next <= write)
+        else {
+            shared.state(read).store(2, Release);
+            return Err(Error::Corrupt);
+        };
         let result = copy(shared, read + 8, body as usize);
         unsafe {
             shared.clear(read, length);

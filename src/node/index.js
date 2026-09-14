@@ -4,7 +4,12 @@ const { join } = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
 const target = `${process.platform}-${process.arch}`;
 const local = join(__dirname, `interprocess.${target}.node`);
-const native = existsSync(local) ? require(local) : require(`@cloudtoid/interprocess-${target}`);
+let native;
+try {
+  native = existsSync(local) ? require(local) : require(`@cloudtoid/interprocess-${target}`);
+} catch (cause) {
+  throw Object.assign(new Error(`Cannot load Cloudtoid Interprocess for ${target}. Install its optional platform package or build from source; Linux binaries require glibc 2.34+.`, { cause }), { code: 'ERR_NATIVE_UNAVAILABLE' });
+}
 
 class Subscriber {
   #inner;
@@ -15,7 +20,7 @@ class Subscriber {
   }
 
   tryReceive() {
-    if (this.#closed) throw new Error('subscriber is closed');
+    if (this.#closed) throw Object.assign(new Error('subscriber is closed'), { code: 'ERR_CLOSED' });
     return this.#inner.tryReceive();
   }
 
@@ -43,5 +48,8 @@ class Subscriber {
   }
 }
 
+const dispose = Symbol.dispose ?? Symbol.for('nodejs.dispose');
+native.Publisher.prototype[dispose] = native.Publisher.prototype.close;
+Subscriber.prototype[dispose] = Subscriber.prototype.close;
 exports.Publisher = native.Publisher;
 exports.Subscriber = Subscriber;

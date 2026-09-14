@@ -1,5 +1,5 @@
 //! C ABI. Handles and buffers must satisfy the ownership rules in interprocess.h.
-use core_queue::{Options, Publisher, Subscriber};
+use core_queue::{Error, Options, Publisher, Subscriber};
 use std::{
     cell::RefCell,
     ffi::{c_char, CStr, CString},
@@ -8,31 +8,46 @@ use std::{
     time::Duration,
 };
 
-thread_local! { static ERROR: RefCell<CString> = RefCell::new(CString::new("").unwrap()); }
-fn fail(message: impl std::fmt::Display) -> i32 {
+thread_local! { static ERROR: RefCell<(i32, CString)> = RefCell::new((0, CString::new("").unwrap())); }
+fn fail(kind: i32, message: impl std::fmt::Display) -> i32 {
     ERROR.with(|slot| {
-        *slot.borrow_mut() = CString::new(message.to_string().replace('\0', " ")).unwrap()
+        *slot.borrow_mut() = (
+            kind,
+            CString::new(message.to_string().replace('\0', " ")).unwrap(),
+        )
     });
     -1
 }
-fn call(work: impl FnOnce() -> Result<i32, String>) -> i32 {
+fn call(work: impl FnOnce() -> Result<i32, Error>) -> i32 {
     match catch_unwind(AssertUnwindSafe(work)) {
         Ok(Ok(status)) => status,
-        Ok(Err(error)) => fail(error),
-        Err(_) => fail("native queue panicked"),
+        Ok(Err(error)) => {
+            let kind = match error {
+                Error::Invalid(_) => 1,
+                Error::CapacityMismatch => 2,
+                Error::PublisherLimit => 3,
+                Error::Exhausted => 4,
+                Error::Corrupt => 5,
+                Error::Io(_) => 6,
+            };
+            fail(kind, error)
+        }
+        Err(_) => fail(7, "native queue panicked"),
     }
 }
-unsafe fn text<'a>(value: *const c_char) -> Result<&'a str, String> {
+unsafe fn text<'a>(value: *const c_char) -> Result<&'a str, Error> {
     if value.is_null() {
-        return Err("null string".into());
+        return Err(Error::Invalid("null string"));
     }
-    CStr::from_ptr(value).to_str().map_err(|e| e.to_string())
+    CStr::from_ptr(value)
+        .to_str()
+        .map_err(|_| Error::Invalid("string must be UTF-8"))
 }
 unsafe fn options(
     name: *const c_char,
     path: *const c_char,
     capacity: usize,
-) -> Result<Options, String> {
+) -> Result<Options, Error> {
     let options = Options::new(text(name)?, capacity);
     Ok(if path.is_null() {
         options
@@ -40,19 +55,25 @@ unsafe fn options(
         options.with_path(text(path)?)
     })
 }
-unsafe fn bytes<'a>(data: *const u8, length: usize) -> Result<&'a [u8], String> {
+unsafe fn bytes<'a>(data: *const u8, length: usize) -> Result<&'a [u8], Error> {
     if length == 0 {
         return Ok(&[]);
     }
     if data.is_null() || length > isize::MAX as usize {
-        return Err("invalid buffer".into());
+        return Err(Error::Invalid("invalid buffer"));
     }
     Ok(slice::from_raw_parts(data, length))
 }
 
+/// Machine-readable kind of the last error on the calling thread (see the C header).
+#[no_mangle]
+pub extern "C" fn cip_last_error_kind() -> i32 {
+    ERROR.with(|e| e.borrow().0)
+}
+
 #[no_mangle]
 pub extern "C" fn cip_last_error() -> *const c_char {
-    ERROR.with(|e| e.borrow().as_ptr())
+    ERROR.with(|e| e.borrow().1.as_ptr())
 }
 
 /// # Safety
@@ -67,11 +88,10 @@ pub unsafe extern "C" fn cip_publisher_open(
 ) -> i32 {
     call(|| {
         if output.is_null() {
-            return Err("null output".into());
+            return Err(Error::Invalid("null output"));
         }
         *output = ptr::null_mut();
-        let publisher =
-            Publisher::open(options(name, path, capacity)?).map_err(|e| e.to_string())?;
+        let publisher = Publisher::open(options(name, path, capacity)?)?;
         *output = Box::into_raw(Box::new(publisher));
         Ok(1)
     })
@@ -88,11 +108,10 @@ pub unsafe extern "C" fn cip_subscriber_open(
 ) -> i32 {
     call(|| {
         if output.is_null() {
-            return Err("null output".into());
+            return Err(Error::Invalid("null output"));
         }
         *output = ptr::null_mut();
-        let subscriber =
-            Subscriber::open(options(name, path, capacity)?).map_err(|e| e.to_string())?;
+        let subscriber = Subscriber::open(options(name, path, capacity)?)?;
         *output = Box::into_raw(Box::new(subscriber));
         Ok(1)
     })
@@ -127,10 +146,9 @@ pub unsafe extern "C" fn cip_try_send(
     call(|| {
         handle
             .as_ref()
-            .ok_or("null publisher")?
+            .ok_or(Error::Invalid("null publisher"))?
             .try_send(bytes(data, length)?)
             .map(i32::from)
-            .map_err(|e| e.to_string())
     })
 }
 
@@ -150,21 +168,21 @@ pub unsafe extern "C" fn cip_receive(
     output: *mut Buffer,
 ) -> i32 {
     call(|| {
-        let output = output.as_mut().ok_or("null output")?;
+        let output = output.as_mut().ok_or(Error::Invalid("null output"))?;
         *output = Buffer {
             data: ptr::null_mut(),
             length: 0,
         };
         if timeout_ms < -1 {
-            return Err("timeout must be -1 or nonnegative".into());
+            return Err(Error::Invalid("timeout must be -1 or nonnegative"));
         }
-        let subscriber = handle.as_ref().ok_or("null subscriber")?;
+        let subscriber = handle.as_ref().ok_or(Error::Invalid("null subscriber"))?;
         let message = if timeout_ms == -1 {
             subscriber.receive().map(Some)
         } else {
             subscriber.receive_timeout(Duration::from_millis(timeout_ms as u64))
         };
-        match message.map_err(|e| e.to_string())? {
+        match message? {
             Some(message) => {
                 let message = message.into_boxed_slice();
                 output.length = message.len();
@@ -199,22 +217,21 @@ pub unsafe extern "C" fn cip_try_receive_into(
 ) -> i32 {
     call(|| {
         if copied.is_null() {
-            return Err("null copied output".into());
+            return Err(Error::Invalid("null copied output"));
         }
         *copied = 0;
         let buffer = if capacity == 0 {
             &mut []
         } else {
             if data.is_null() || capacity > isize::MAX as usize {
-                return Err("invalid buffer".into());
+                return Err(Error::Invalid("invalid buffer"));
             }
             slice::from_raw_parts_mut(data, capacity)
         };
         match handle
             .as_ref()
-            .ok_or("null subscriber")?
-            .try_receive_into(buffer)
-            .map_err(|e| e.to_string())?
+            .ok_or(Error::Invalid("null subscriber"))?
+            .try_receive_into(buffer)?
         {
             Some(length) => {
                 *copied = length;
