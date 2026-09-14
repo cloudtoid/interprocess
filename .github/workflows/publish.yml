@@ -1,16 +1,53 @@
-name: publish
-
+name: Release packages
 on:
-  push:
-    branches: [ main ]
-
+  workflow_dispatch:
+    inputs:
+      publish_python:
+        description: Publish Python packages to PyPI
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: release-packages
+  cancel-in-progress: false
 jobs:
-  build:
+  source:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Require merged main
+        run: test "$GITHUB_REF" = refs/heads/main
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - id: version
+        run: |
+          python - <<'PY'
+          import json, os, re, tomllib
+          from pathlib import Path
+          v = tomllib.load(open('Cargo.toml','rb'))['workspace']['package']['version']
+          node = json.load(open('src/node/package.json'))
+          assert node['version'] == v
+          assert all(value == v for value in node['optionalDependencies'].values())
+          assert tomllib.load(open('src/python/pyproject.toml','rb'))['project']['version'] == v
+          assert f'__version__ = "{v}"' in Path('src/python/python/cloudtoid_interprocess/__init__.py').read_text()
+          assert f'VERSION {v} LANGUAGES' in Path('src/c/CMakeLists.txt').read_text()
+          for name in ('c', 'python', 'node'):
+              manifest = tomllib.load(open(f'src/{name}/Cargo.toml', 'rb'))
+              assert manifest['dependencies']['core-queue']['version'] == v
+          assert re.fullmatch(r'\d+\.\d+\.\d+', v), 'Native releases use stable versions'
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('version='+v+'\n')
+          PY
+  nuget:
+    needs: source
     permissions:
       contents: read
       id-token: write
     runs-on: ubuntu-latest
-    name: Build Test Pack and Publish
+    name: Publish NuGet
     steps:
 
       - name: Checkout
@@ -35,4 +72,159 @@ jobs:
           user: pedramr
 
       - name: Push
-        run: dotnet nuget push Cloudtoid.Interprocess.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push Cloudtoid.Interprocess.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --skip-duplicate
+  packages:
+    needs: source
+    uses: ./.github/workflows/interop.yml
+  mac-intel:
+    needs: source
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - run: pip install 'maturin>=1.9,<2'
+      - name: Cross-build Intel binaries on Apple Silicon
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
+        run: |
+          cargo build --release --locked --target x86_64-apple-darwin -p cloudtoid-interprocess-ffi -p cloudtoid-interprocess-node
+          maturin build --release --locked --target x86_64-apple-darwin --manifest-path src/python/Cargo.toml --out target/wheels
+          cp target/x86_64-apple-darwin/release/libcloudtoid_interprocess_node.dylib src/node/interprocess.darwin-x64.node
+          mkdir -p target/sdk/lib/pkgconfig target/sdk/include target/sdk/share/cloudtoid-interprocess
+          cp target/x86_64-apple-darwin/release/libcloudtoid_interprocess.dylib target/sdk/lib/
+          cp src/c/include/interprocess.h target/sdk/include/
+          cp LICENSE target/sdk/share/cloudtoid-interprocess/
+          sed -e 's|@PC_PREFIX@|../..|g' -e 's|@PC_RPATH@|-Wl,-rpath,${libdir}|g' -e 's|@CMAKE_INSTALL_LIBDIR@|lib|g' -e 's|@CMAKE_INSTALL_INCLUDEDIR@|include|g' -e 's|@PROJECT_VERSION@|${{ needs.source.outputs.version }}|g' src/c/cloudtoid-interprocess.pc.in > target/sdk/lib/pkgconfig/cloudtoid-interprocess.pc
+      - uses: actions/upload-artifact@v7
+        with:
+          name: packages-macOS-X64
+          path: |
+            target/wheels/*.whl
+            target/sdk/
+            src/node/interprocess.darwin-x64.node
+  assemble:
+    needs: [source, packages, mac-intel]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: packages-*
+          path: target/artifacts
+      - run: python scripts/package-native.py target/artifacts target/release-packages
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pip install 'maturin>=1.9,<2'
+      - run: maturin sdist --manifest-path src/python/Cargo.toml --out target/release-packages/python
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-packages
+          path: target/release-packages/
+  rust:
+    needs: [source, assemble]
+    runs-on: ubuntu-latest
+    environment: crates-io
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Publish the Rust core and C ABI crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION: ${{ needs.source.outputs.version }}
+        run: |
+          for package in cloudtoid-interprocess cloudtoid-interprocess-ffi; do
+            status=$(curl --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://crates.io/api/v1/crates/$package/$VERSION")
+            case "$status" in
+              200) echo "$package $VERSION is already published" ;;
+              404) cargo publish --locked -p "$package" ;;
+              *) echo "Cannot check $package: HTTP $status"; exit 1 ;;
+            esac
+          done
+  python:
+    if: inputs.publish_python
+    needs: [source, assemble]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-packages
+          path: release-packages
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: release-packages/python/
+          skip-existing: true
+  node:
+    needs: [source, assemble]
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-packages
+          path: release-packages
+      - name: Publish native packages before the main package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ needs.source.outputs.version }}
+        run: |
+          for package in release-packages/npm/*-* release-packages/npm/main; do
+            (
+              cd "$package"
+              name=$(node -p 'require("./package.json").name')
+              status=$(curl --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://registry.npmjs.org/$name/$VERSION")
+              case "$status" in
+                200) echo "$name $VERSION is already published" ;;
+                404) npm publish --access public --provenance ;;
+                *) echo "Cannot check $name: HTTP $status"; exit 1 ;;
+              esac
+            )
+          done
+  release:
+    needs: [source, assemble]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-packages
+          path: release-packages
+      - name: Publish C SDK assets and Go module tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.source.outputs.version }}
+        run: |
+          git fetch origin 'refs/tags/*:refs/tags/*'
+          for tag in "src/go/v$VERSION" "native-v$VERSION"; do
+            if git rev-parse --verify "refs/tags/$tag" >/dev/null 2>&1; then
+              test "$(git rev-parse "$tag^{commit}")" = "$GITHUB_SHA"
+            else
+              git tag "$tag" "$GITHUB_SHA"
+              git push origin "$tag"
+            fi
+          done
+          if ! gh release view "native-v$VERSION" >/dev/null 2>&1; then
+            gh release create "native-v$VERSION" --verify-tag --title "Native libraries $VERSION" --notes "C SDK and Go module release for the shared v3 protocol. NuGet, crates.io, npm, and PyPI publish independently. See each language README and docs/protocol.md for installation and behavior."
+          fi
+          gh release upload "native-v$VERSION" release-packages/*.tar.gz --clobber
