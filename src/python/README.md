@@ -10,22 +10,22 @@ with Subscriber("example", 65536) as subscriber, Publisher("example", 65536) as 
         print(subscriber.receive(timeout=1.0))
 ```
 
-`try_send` returns false when full or recovering. `try_send_batch` accepts a list of bytes and returns the number sent from its prefix. `try_receive` returns bytes or `None`. Empty bytes are a message. `receive(timeout=None)` waits indefinitely, releases the GIL while waiting, and checks Python signals periodically. Timeouts are seconds.
+`try_send` returns false when full or recovering. `try_send_batch` accepts a list of buffer objects and returns the number sent from its prefix. `try_receive` returns bytes or `None`. Empty bytes are a message. `receive(timeout=None)` waits indefinitely, releases the GIL while waiting, and checks Python signals periodically. Timeouts are seconds.
 
-Use context managers or `close()` to release registrations promptly. Finish calls before closing an endpoint; an overlapping close is rejected by Python's native borrow guard. Messages are bytes; serialization is your application's choice. A subscriber consumes each message exclusively; this is a competing-consumer queue, not broadcast or durable storage.
+Use context managers or `close()` to release registrations promptly. Closing a subscriber interrupts an idle receive. Messages are bytes; serialization is your application's choice. A subscriber consumes each message exclusively; this is a competing-consumer queue, not broadcast or durable storage.
 
 Every participant must agree on name, capacity, and Unix path. Pass `path="/shared/directory"` when different runtimes have different temp directories. Capacity is bytes, excludes metadata, exceeds 16, and is divisible by 8.
 
 Build from this repository with `maturin develop --release` in this directory. See [protocol v3](https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md) for layout, memory ordering, resource lifetime, and crash recovery.
-
-## Queue lifetime
-
-The queue is transient: it stays alive while at least one publisher or subscriber is connected. Once all endpoints are closed or their processes exit, unread messages are lost. Opening the same name again creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits; a surviving publisher also keeps the queue alive.
-
-Queue names must be nonempty and contain no slash, backslash, or NUL. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.
 
 `try_send` and `try_send_batch` accept buffer objects such as `bytes`, `bytearray`, and `memoryview`. `bytes` uses the direct path; other buffers are copied into a snapshot before sending. `path` also accepts `os.PathLike` objects. Invalid arguments and closed endpoints raise `ValueError`; capacity mismatches raise `CapacityMismatchError`, publisher limits raise `PublisherLimitError`, corrupt records raise `CorruptQueueError`, and OS failures raise `OSError`.
 
 Closing a subscriber from another thread or a signal handler interrupts an idle receive within its 100 ms wait slice. For asyncio, use `await asyncio.to_thread(subscriber.receive, timeout=...)` with a finite timeout: cancelling an asyncio task does not stop its worker thread. Open endpoints after `fork()` and do not use inherited endpoints in the child; closing inherited endpoints does not release the parent's registrations.
 
 The prebuilt wheel supports standard CPython 3.9 and later. Free-threaded Python is not covered by the ABI3 wheel and requires a source build. Type hints are included.
+
+## Queue lifetime
+
+The queue is transient: it stays alive while at least one publisher or subscriber is connected. Once all endpoints are closed or their processes exit, unread messages are lost. Opening the same name again creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits; a surviving publisher also keeps the queue alive.
+
+Queue names must be nonempty and contain no slash, backslash, or NUL. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.
