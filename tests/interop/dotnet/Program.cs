@@ -10,6 +10,12 @@ byte[] Message(int i) {
     for (int j = 8; j < data.Length; j++) data[j] = (byte)((i + j) % 251);
     return data;
 }
+if (mode is "hold-publisher" or "hold-subscriber") {
+    using IDisposable endpoint = mode == "hold-publisher" ? factory.CreatePublisher(options) : factory.CreateSubscriber(options);
+    Console.WriteLine("READY");
+    Thread.Sleep(Timeout.Infinite);
+    return;
+}
 if (mode == "publish") {
     using var p = factory.CreatePublisher(options);
     var start = args.Length > 4 ? int.Parse(args[4]) : 0;

@@ -36,7 +36,14 @@ fn main() {
         }
         for i in start..start + count {
             let data = message(i);
-            while matches!(publisher.try_send(&data), Err(Error::Full)) {
+            while publisher
+                .try_send(&data)
+                .map(|()| false)
+                .unwrap_or_else(|e| match e {
+                    Error::Full => true,
+                    e => panic!("{e}"),
+                })
+            {
                 std::thread::yield_now();
             }
         }

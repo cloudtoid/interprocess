@@ -5,13 +5,13 @@ Shared-memory byte queues backed by the same Rust core as the C, Python, and Nod
 Install the [C SDK](../c/README.md), make its `pkgconfig` directory available through `PKG_CONFIG_PATH`, and include its library directory in the OS loader search path. This package requires cgo, a C compiler, and `pkg-config`.
 
 ```go
-import queue "github.com/cloudtoid/interprocess/src/go/v3"
+import "github.com/cloudtoid/interprocess/src/go/v3"
 
-options := queue.Options{Name: "example", Capacity: 65536}
-subscriber, err := queue.OpenSubscriber(options)
+options := interprocess.Options{Name: "example", Capacity: 65536}
+subscriber, err := interprocess.OpenSubscriber(options)
 if err != nil { panic(err) }
 defer subscriber.Close()
-publisher, err := queue.OpenPublisher(options)
+publisher, err := interprocess.OpenPublisher(options)
 if err != nil { panic(err) }
 defer publisher.Close()
 if sent, err := publisher.TrySend([]byte("hello")); err != nil {
@@ -32,3 +32,7 @@ All participants must agree on name, capacity, and Unix path. This is volatile I
 ## Queue lifetime
 
 The queue is transient: it stays alive while at least one publisher or subscriber is connected. Once all endpoints are closed or their processes exit, unread messages are lost. Opening the same name again creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits; a surviving publisher also keeps the queue alive.
+
+Queue names must be nonempty and contain no slash, backslash, or NUL. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.
+
+Use `errors.Is` with `ErrCapacityMismatch`, `ErrPublisherLimit`, `ErrInvalidArgument`, `ErrExhausted`, `ErrCorrupt`, `ErrIO`, or `ErrClosed` to handle failures. `Receive(ctx)` checks immediately, then waits on a 1 ms Go timer between nonblocking attempts; waiting goroutines do not hold an OS thread in cgo. Always close endpoints explicitly.

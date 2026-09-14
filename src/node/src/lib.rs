@@ -10,6 +10,7 @@ fn error(e: core_queue::Error) -> Error<String> {
         core_queue::Error::Exhausted => "ERR_EXHAUSTED",
         core_queue::Error::Corrupt => "ERR_CORRUPT",
         core_queue::Error::Io(_) => "ERR_IO",
+        _ => "ERR_INTERNAL",
     };
     Error::new(code.to_owned(), e.to_string())
 }
@@ -52,6 +53,11 @@ impl Publisher {
             .as_ref()
             .ok_or_else(closed)?
             .try_send(&data)
+            .map(|()| true)
+            .or_else(|e| match e {
+                core_queue::Error::Full => Ok(false),
+                e => Err(e),
+            })
             .map_err(error)
     }
     #[napi]

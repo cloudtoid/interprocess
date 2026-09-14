@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 import sys
 
@@ -10,8 +11,8 @@ os.chdir(ROOT)
 ENV = os.environ.copy()
 SDK = ROOT / 'target/sdk'
 ENV['PKG_CONFIG_PATH'] = str(SDK / 'lib/pkgconfig')
-ENV['LD_LIBRARY_PATH'] = str(SDK / 'lib')
-ENV['DYLD_LIBRARY_PATH'] = str(SDK / 'lib')
+ENV.pop('LD_LIBRARY_PATH', None)
+ENV.pop('DYLD_LIBRARY_PATH', None)
 ENV['PATH'] = str(SDK / 'lib') + os.pathsep + ENV['PATH']
 ENV['PYO3_PYTHON'] = sys.executable
 ENV['DOTNET_HOST_PATH'] = ENV.get('DOTNET_HOST_PATH', shutil.which('dotnet') or 'dotnet')
@@ -26,16 +27,18 @@ run('cmake', '-S', 'src/c', '-B', 'target/c-sdk', f'-DCMAKE_INSTALL_PREFIX={SDK}
 run('cmake', '--build', 'target/c-sdk', '--config', 'Release')
 run('cmake', '--install', 'target/c-sdk', '--config', 'Release')
 run(sys.executable, '-m', 'pip', 'install', 'maturin>=1.9,<2')
-run(sys.executable, '-m', 'maturin', 'build', '--release', '--locked', '--manifest-path', 'src/python/Cargo.toml', '--out', 'target/wheels')
+run(sys.executable, '-m', 'maturin', 'build', '--release', '--locked', '--manifest-path', 'src/python/Cargo.toml', '--out', 'target/wheels', *(['--compatibility', 'manylinux_2_34'] if sys.platform == 'linux' else []))
 wheel = next((ROOT / 'target/wheels').glob('*.whl'))
 run(sys.executable, '-m', 'pip', 'install', '--force-reinstall', wheel)
 run(sys.executable, 'src/python/test_api.py')
 run('node', 'src/node/build.js')
+if sys.platform == 'linux':
+    run(sys.executable, 'tests/interop/check_glibc.py', SDK / 'lib/libcloudtoid_interprocess.so', *sorted((ROOT / 'src/node').glob('*.node')))
 run('node', '--test', 'src/node/test.js')
 run('go', 'test', '-race', './...', cwd=ROOT / 'src/go')
 run(ENV['DOTNET_HOST_PATH'], 'build', 'tests/interop/dotnet/Interop.csproj', '-c', 'Release')
 (ROOT / 'target/interop').mkdir(exist_ok=True)
-run('gcc' if os.name == 'nt' else 'cc', 'tests/interop/c_driver.c', f'-I{SDK / "include"}', f'-L{SDK / "lib"}', '-lcloudtoid_interprocess', '-o', f'target/interop/c-driver{EXE}')
-run('go', 'build', '-o', ROOT / f'target/interop/go-driver{EXE}', './cmd/interop', cwd=ROOT / 'src/go')
+run('gcc' if os.name == 'nt' else 'cc', 'tests/interop/c_driver.c', *shlex.split(subprocess.check_output(['pkg-config', '--cflags', '--libs', 'cloudtoid-interprocess'], env=ENV, text=True)), '-o', f'target/interop/c-driver{EXE}')
+run('go', 'build', '-o', ROOT / f'target/interop/go-driver{EXE}', './internal/interop', cwd=ROOT / 'src/go')
 run(sys.executable, 'tests/interop/run.py')
 run(sys.executable, 'tests/interop/mixed.py')

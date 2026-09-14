@@ -21,6 +21,7 @@ fn fail(kind: i32, message: impl std::fmt::Display) -> i32 {
 fn call(work: impl FnOnce() -> Result<i32, Error>) -> i32 {
     match catch_unwind(AssertUnwindSafe(work)) {
         Ok(Ok(status)) => status,
+        Ok(Err(Error::Full)) => 0,
         Ok(Err(error)) => {
             let kind = match error {
                 Error::Invalid(_) => 1,
@@ -29,6 +30,7 @@ fn call(work: impl FnOnce() -> Result<i32, Error>) -> i32 {
                 Error::Exhausted => 4,
                 Error::Corrupt => 5,
                 Error::Io(_) => 6,
+                _ => 7,
             };
             fail(kind, error)
         }
@@ -148,7 +150,7 @@ pub unsafe extern "C" fn cip_try_send(
             .as_ref()
             .ok_or(Error::Invalid("null publisher"))?
             .try_send(bytes(data, length)?)
-            .map(i32::from)
+            .map(|()| 1)
     })
 }
 
@@ -240,4 +242,83 @@ pub unsafe extern "C" fn cip_try_receive_into(
             None => Ok(0),
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn invalid_arguments_and_thread_local_errors() {
+        unsafe {
+            let mut publisher = ptr::null_mut();
+            assert_eq!(
+                cip_publisher_open(ptr::null(), ptr::null(), 64, &mut publisher),
+                -1
+            );
+            assert!(publisher.is_null());
+            assert_eq!(cip_last_error_kind(), 1);
+            let message = CStr::from_ptr(cip_last_error()).to_owned();
+            assert!(!message.is_empty());
+            std::thread::spawn(|| {
+                assert_eq!(cip_try_send(ptr::null(), ptr::null(), 0), -1);
+                assert_eq!(
+                    CStr::from_ptr(cip_last_error()).to_bytes(),
+                    b"null publisher"
+                );
+            })
+            .join()
+            .unwrap();
+            assert_eq!(CStr::from_ptr(cip_last_error()), message.as_c_str());
+            assert_eq!(
+                cip_publisher_open(c"test".as_ptr(), ptr::null(), 64, ptr::null_mut()),
+                -1
+            );
+            assert_eq!(cip_receive(ptr::null(), 0, ptr::null_mut()), -1);
+            assert_eq!(
+                cip_try_receive_into(ptr::null(), ptr::null_mut(), 0, ptr::null_mut()),
+                -1
+            );
+        }
+    }
+
+    #[test]
+    fn empty_buffers_and_full_status() {
+        unsafe {
+            let name = CString::new(format!("ffi{}", std::process::id())).unwrap();
+            let mut publisher = ptr::null_mut();
+            let mut subscriber = ptr::null_mut();
+            assert_eq!(
+                cip_publisher_open(name.as_ptr(), ptr::null(), 24, &mut publisher),
+                1
+            );
+            assert_eq!(
+                cip_subscriber_open(name.as_ptr(), ptr::null(), 24, &mut subscriber),
+                1
+            );
+            let mut message = Buffer {
+                data: ptr::null_mut(),
+                length: 0,
+            };
+            assert_eq!(cip_try_send(publisher, ptr::null(), 1), -1);
+            assert_eq!(cip_receive(subscriber, -2, &mut message), -1);
+            for _ in 0..3 {
+                assert_eq!(cip_try_send(publisher, ptr::null(), 0), 1);
+            }
+            assert_eq!(cip_try_send(publisher, ptr::null(), 0), 0);
+            for _ in 0..3 {
+                assert_eq!(cip_receive(subscriber, 0, &mut message), 1);
+                assert_eq!(message.length, 0);
+                cip_buffer_free(message);
+                message = Buffer {
+                    data: ptr::null_mut(),
+                    length: 0,
+                };
+            }
+            assert_eq!(cip_receive(subscriber, 0, &mut message), 0);
+            cip_buffer_free(message);
+            cip_publisher_close(publisher);
+            cip_subscriber_close(subscriber);
+        }
+    }
 }

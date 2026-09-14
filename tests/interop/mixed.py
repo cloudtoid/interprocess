@@ -56,7 +56,8 @@ with tempfile.TemporaryDirectory(prefix='cip-mixed-') as path, ExitStack() as st
                 thread = threading.Thread(target=collect, args=(language, child), daemon=True)
                 thread.start()
                 threads.append(thread)
-            victims = [start('rust', role)[0] for role in ('hold-publisher', 'hold-subscriber')]
+            victims = [start(language, role)[0] for language in ('rust', 'dotnet')
+                       for role in ('hold-publisher', 'hold-subscriber')]
 
             seen = set()
             counts = {language: 0 for language in LANGUAGES}

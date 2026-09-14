@@ -16,9 +16,7 @@ fn main() {
             for _ in 0..ITERATIONS {
                 publisher.try_send(black_box(&message)).unwrap();
                 assert_eq!(
-                    subscriber
-                        .try_recv_into(black_box(&mut received))
-                        .unwrap(),
+                    subscriber.try_recv_into(black_box(&mut received)).unwrap(),
                     Some(size)
                 );
                 black_box(&received);

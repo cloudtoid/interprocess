@@ -9,6 +9,12 @@ internal static class Program
 {
     private static async Task Main(string[] args)
     {
+        if (args[2] == "mac-semaphore")
+        {
+            MacSemaphoreTests.RunPeer(args[1], int.Parse(args[3], CultureInfo.InvariantCulture));
+            return;
+        }
+
         var options = new QueueOptions(args[1], args[0], 1024);
         if (args[2] == "publisher-disposal")
             await PublisherDisposalTests.RunChildAsync(options, args[3]);
@@ -20,8 +26,6 @@ internal static class Program
             PublisherProcessRecoveryTests.RunChild(options);
         else if (args[2] == "reader-ownership")
             ReaderOwnershipTests.RunChild(options);
-        else if (args[2] == "mac-semaphore")
-            MacSemaphoreTests.RunPeer(options.QueueName, int.Parse(args[3], CultureInfo.InvariantCulture));
         else
             RunParticipant(options, args[2]);
     }

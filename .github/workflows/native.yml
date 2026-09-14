@@ -19,6 +19,13 @@ jobs:
         with:
           components: rustfmt, clippy
       - run: cargo fmt --all --check
-      - run: cargo clippy -p cloudtoid-interprocess --all-targets -- -D warnings
+      - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --release --locked -p cloudtoid-interprocess
-      - run: cargo build --release --locked -p cloudtoid-interprocess-ffi
+      - run: cargo test --release --locked -p cloudtoid-interprocess-ffi
+
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.87.0
+      - run: cargo test --release --locked -p cloudtoid-interprocess

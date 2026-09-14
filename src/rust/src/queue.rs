@@ -12,6 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+/// Maximum number of concurrently connected publisher objects.
 pub const MAX_PUBLISHERS: usize = 2048;
 const SLOT_SIZE: usize = 128;
 const TABLE_OFFSET: usize = 256;
@@ -37,6 +38,8 @@ struct Shared {
     signal: Signal,
     mapping: Mapping,
     options: Options,
+    #[cfg(test)]
+    fail_notification: std::sync::atomic::AtomicBool,
 }
 
 impl Shared {
@@ -48,6 +51,8 @@ impl Shared {
             signal,
             mapping,
             options,
+            #[cfg(test)]
+            fail_notification: std::sync::atomic::AtomicBool::new(false),
         })
     }
 
@@ -177,8 +182,17 @@ impl Shared {
         if self.header().notification.swap(1, SeqCst) == 0 {
             // Notification is a hint: readers retry even if an OS post fails.
             // A wakeup failure must never hide a committed send or consumed message.
-            let _ = self.signal.post();
+            let _ = self.post_notification();
         }
+    }
+
+    #[inline]
+    fn post_notification(&self) -> Result<()> {
+        #[cfg(test)]
+        if self.fail_notification.load(Relaxed) {
+            return Err(std::io::Error::other("injected notification failure").into());
+        }
+        self.signal.post()
     }
 
     fn empty(&self) -> bool {
@@ -202,6 +216,11 @@ impl Drop for Active<'_> {
 }
 
 impl Publisher {
+    /// Creates or joins a queue with the supplied identity and capacity.
+    ///
+    /// # Errors
+    /// Rejects invalid options, capacity mismatches, exhausted registrations,
+    /// publisher limits (publishers only), and operating system failures.
     pub fn open(options: &Options) -> Result<Self> {
         let shared = Shared::open(options.clone())?;
         let (id, lease) = shared.register()?;
@@ -222,7 +241,9 @@ impl Publisher {
         if self.shared.gate().load(Acquire) != 0 {
             return Err(Error::Full);
         }
-        self.send_admitted(message)?.then_some(()).ok_or(Error::Full)
+        self.send_admitted(message)?
+            .then_some(())
+            .ok_or(Error::Full)
     }
 
     /// Publishes an ordered prefix, amortizing publisher admission across a batch.
@@ -238,10 +259,14 @@ impl Publisher {
         }
         let mut sent = 0;
         for message in messages {
-            if !self.send_admitted(message)? {
-                break;
+            match self.send_admitted(message) {
+                Ok(true) => sent += 1,
+                Ok(false) => break,
+                // Preserve the committed prefix even if a lifetime counter runs
+                // out mid-batch. Retrying the remainder surfaces the error.
+                Err(_) if sent > 0 => break,
+                Err(error) => return Err(error),
             }
-            sent += 1;
         }
         Ok(sent)
     }
@@ -339,6 +364,11 @@ impl Drop for GateGuard<'_> {
 }
 
 impl Subscriber {
+    /// Creates or joins a queue with the supplied identity and capacity.
+    ///
+    /// # Errors
+    /// Rejects invalid options, capacity mismatches, exhausted registrations,
+    /// publisher limits (publishers only), and operating system failures.
     pub fn open(options: &Options) -> Result<Self> {
         let shared = Shared::open(options.clone())?;
         let (id, lease) = shared.register()?;
@@ -539,3 +569,20 @@ impl Subscriber {
 
 #[cfg(test)]
 mod tests;
+
+impl std::fmt::Debug for Publisher {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Publisher")
+            .field("options", &self.shared.options)
+            .field("id", &self.id)
+            .finish_non_exhaustive()
+    }
+}
+impl std::fmt::Debug for Subscriber {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Subscriber")
+            .field("options", &self.shared.options)
+            .field("id", &self.id)
+            .finish_non_exhaustive()
+    }
+}

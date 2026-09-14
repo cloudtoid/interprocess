@@ -1,3 +1,5 @@
+/// <reference lib="esnext.disposable" />
+
 /** Protocol v3 byte queues. Participants must agree on name, capacity, and Unix path. */
 export class Publisher {
   constructor(name: string, capacity: number, path?: string);
@@ -6,6 +8,7 @@ export class Publisher {
   /** Returns the accepted prefix length. A batch is not an atomic transaction. */
   trySendBatch(messages: Uint8Array[]): number;
   close(): void;
+  [Symbol.dispose](): void;
 }
 export class Subscriber {
   constructor(name: string, capacity: number, path?: string);
@@ -15,4 +18,5 @@ export class Subscriber {
   receive(options?: { signal?: AbortSignal }): Promise<Buffer>;
   /** Releases the endpoint. Pending receives reject; closing repeatedly is safe. */
   close(): void;
+  [Symbol.dispose](): void;
 }

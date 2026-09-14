@@ -197,20 +197,16 @@ func (s *Subscriber) Receive(ctx context.Context) ([]byte, error) {
 	}
 }
 
-// The native call is nonblocking. Go timers park goroutines without holding
-// an OS thread in cgo; the ready path bypasses timer allocation.
-func (s *Subscriber) receiveFor(timeout time.Duration) ([]byte, error) {
+// TryReceive returns (nil, nil) when empty. Empty messages return a non-nil slice.
+// The native call is nonblocking; waiting uses Go timers without pinning OS threads.
+func (s *Subscriber) TryReceive() ([]byte, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.handle == nil {
 		return nil, ErrClosed
 	}
-	millis := timeout / time.Millisecond
-	if timeout%time.Millisecond != 0 {
-		millis++
-	}
 	var buffer C.cip_buffer
-	ok, err := result(C.go_receive(s.handle, C.int64_t(millis), &buffer))
+	ok, err := result(C.go_receive(s.handle, 0, &buffer))
 	if err != nil || !ok {
 		return nil, err
 	}
@@ -219,9 +215,6 @@ func (s *Subscriber) receiveFor(timeout time.Duration) ([]byte, error) {
 	copy(message, unsafe.Slice((*byte)(unsafe.Pointer(buffer.data)), len(message)))
 	return message, nil
 }
-
-// TryReceive returns (nil, nil) when empty. Empty messages return a non-nil slice.
-func (s *Subscriber) TryReceive() ([]byte, error) { return s.receiveFor(0) }
 
 // TryReceiveInto truncates AND consumes messages larger than buffer. Its bool
 // distinguishes an empty queue from a successfully received zero-byte message.

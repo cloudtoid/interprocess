@@ -22,6 +22,7 @@ fn error(e: core_queue::Error) -> PyErr {
         core_queue::Error::Exhausted => PyOverflowError::new_err(e.to_string()),
         core_queue::Error::Corrupt => CorruptQueueError::new_err(e.to_string()),
         core_queue::Error::Io(error) => error.into(),
+        _ => PyRuntimeError::new_err(e.to_string()),
     }
 }
 fn closed() -> PyErr {
@@ -56,7 +57,9 @@ impl Publisher {
     #[pyo3(signature = (name, capacity, path=None))]
     fn new(name: String, capacity: usize, path: Option<PathBuf>) -> PyResult<Self> {
         Ok(Self {
-            inner: Some(core_queue::Publisher::open(&options(name, capacity, path)).map_err(error)?),
+            inner: Some(
+                core_queue::Publisher::open(&options(name, capacity, path)).map_err(error)?,
+            ),
         })
     }
     fn try_send(&self, data: &Bound<'_, PyAny>) -> PyResult<bool> {
@@ -64,6 +67,11 @@ impl Publisher {
             .as_ref()
             .ok_or_else(closed)?
             .try_send(bytes(data)?.as_bytes())
+            .map(|()| true)
+            .or_else(|e| match e {
+                core_queue::Error::Full => Ok(false),
+                e => Err(e),
+            })
             .map_err(error)
     }
     fn try_send_batch(&self, messages: Vec<Bound<'_, PyAny>>) -> PyResult<usize> {

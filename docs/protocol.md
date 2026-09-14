@@ -159,3 +159,5 @@ Use raw bytes across language boundaries. Managed objects, native pointers, lang
 Ports must test every publisher/subscriber direction, small capacities and repeated wraparound, empty payloads, full queues, concurrent participants, capacity mismatch, last-participant cleanup, process death, and paused live owners. `tests/interop/run.py` runs the six-language pair matrix. Rust tests pin the binary offsets and exercise the native implementation; .NET retains its own regression tests.
 
 Resource cleanup must happen only after all calls using that endpoint have stopped. Rust borrowing provides that lifetime rule. C callers must obey it explicitly. Other bindings enforce their documented close behavior. A queue protocol does not make use-after-close of a language handle valid.
+
+Queue names are limited to 24 UTF-8 bytes on macOS and 245 on Linux, without slashes, backslashes, or NUL. Use at most 24 bytes when sharing configuration across platforms. A corrupt record length is rejected without advancing the reader or clearing storage; callers must stop the participants and start a fresh queue rather than retrying indefinitely.

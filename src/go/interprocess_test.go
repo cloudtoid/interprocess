@@ -112,3 +112,71 @@ func TestReceiveCancellationAndClose(t *testing.T) {
 		t.Fatal("receive survived Close")
 	}
 }
+
+func TestErrorKindsAndConcurrentReceivers(t *testing.T) {
+	options := Options{Name: fmt.Sprintf("gm%d", os.Getpid()), Capacity: 8192}
+	p, err := OpenPublisher(options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer p.Close()
+	s, err := OpenSubscriber(options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	bad := options
+	bad.Capacity *= 2
+	if _, err := OpenPublisher(bad); !errors.Is(err, ErrCapacityMismatch) {
+		t.Fatal(err)
+	}
+	bad.Name = "bad/name"
+	if _, err := OpenSubscriber(bad); !errors.Is(err, ErrInvalidArgument) {
+		t.Fatal(err)
+	}
+	const count = 64
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	received := make(chan []byte, count)
+	failures := make(chan error, count)
+	for i := 0; i < count; i++ {
+		go func() {
+			message, err := s.Receive(ctx)
+			if err != nil {
+				failures <- err
+			} else {
+				received <- message
+			}
+		}()
+	}
+	time.Sleep(20 * time.Millisecond)
+	for i := 0; i < count; i++ {
+		if ok, err := p.TrySend([]byte{byte(i)}); !ok || err != nil {
+			t.Fatal(ok, err)
+		}
+	}
+	seen := make(map[byte]bool)
+	for i := 0; i < count; i++ {
+		select {
+		case message := <-received:
+			if len(message) != 1 || seen[message[0]] {
+				t.Fatal(message)
+			}
+			seen[message[0]] = true
+		case err := <-failures:
+			t.Fatal(err)
+		case <-ctx.Done():
+			t.Fatal(ctx.Err())
+		}
+	}
+	if ok, err := p.TrySend(nil); !ok || err != nil {
+		t.Fatal(ok, err)
+	}
+	if msg, err := s.Receive(ctx); msg == nil || len(msg) != 0 || err != nil {
+		t.Fatal(msg, err)
+	}
+	s.Close()
+	if _, _, err := s.TryReceiveInto(make([]byte, 8)); !errors.Is(err, ErrClosed) {
+		t.Fatal(err)
+	}
+}

@@ -75,7 +75,8 @@ impl Mapping {
             .truncate(false)
             .open(&pathname)?;
         let length = BUFFER_OFFSET + options.capacity;
-        if lock(&file, libc::LOCK_EX | libc::LOCK_NB)? {
+        let first = lock(&file, libc::LOCK_EX | libc::LOCK_NB)?;
+        if first {
             if let Err(error) = (|| -> Result<()> {
                 Signal::unlink(&options.name)?;
                 clean_leases(options)?;
@@ -89,7 +90,12 @@ impl Mapping {
         } else if file.metadata()?.len() != length as u64 {
             return Err(Error::CapacityMismatch);
         }
-        lock(&file, libc::LOCK_SH)?;
+        if let Err(error) = lock(&file, libc::LOCK_SH) {
+            if first {
+                let _ = fs::remove_file(&pathname);
+            }
+            return Err(error);
+        }
         let pointer = unsafe {
             libc::mmap(
                 std::ptr::null_mut(),
@@ -101,7 +107,11 @@ impl Mapping {
             )
         };
         if pointer == libc::MAP_FAILED {
-            return Err(io::Error::last_os_error().into());
+            let error = io::Error::last_os_error();
+            if first {
+                let _ = fs::remove_file(&pathname);
+            }
+            return Err(error.into());
         }
         let ptr = NonNull::new(pointer.cast()).expect("mmap returned address zero");
         Ok(Self {

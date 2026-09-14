@@ -1,19 +1,17 @@
 const examples = {
   Rust: ['rust', `let options = Options::new("work", 65536);
-let subscriber = Subscriber::open(options.clone())?;
-let publisher = Publisher::open(options)?;
+let subscriber = Subscriber::open(&options)?;
+let publisher = Publisher::open(&options)?;
 
-if publisher.try_send(b"hello")? {
-    let message = subscriber.try_receive()?;
-}`],
+publisher.try_send(b"hello")?;
+let message = subscriber.try_recv()?;`],
   Python: ['python', `from cloudtoid_interprocess import Publisher, Subscriber
 
 with Subscriber("work", 65536) as subscriber:
     with Publisher("work", 65536) as publisher:
         if publisher.try_send(b"hello"):
             message = subscriber.receive(timeout=1.0)`],
-  'Node.js': ['node', `import queue from '@cloudtoid/interprocess';
-const { Publisher, Subscriber } = queue;
+  'Node.js': ['node', `import { Publisher, Subscriber } from '@cloudtoid/interprocess';
 const subscriber = new Subscriber('work', 65536);
 const publisher = new Publisher('work', 65536);
 try {
@@ -23,11 +21,11 @@ try {
     });
   }
 } finally { publisher.close(); subscriber.close(); }`],
-  Go: ['go', `options := queue.Options{Name: "work", Capacity: 65536}
-subscriber, err := queue.OpenSubscriber(options)
+  Go: ['go', `options := interprocess.Options{Name: "work", Capacity: 65536}
+subscriber, err := interprocess.OpenSubscriber(options)
 if err != nil { panic(err) }
 defer subscriber.Close()
-publisher, err := queue.OpenPublisher(options)
+publisher, err := interprocess.OpenPublisher(options)
 if err != nil { panic(err) }
 defer publisher.Close()
 if sent, err := publisher.TrySend([]byte("hello")); err != nil {

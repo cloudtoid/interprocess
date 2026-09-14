@@ -25,12 +25,16 @@ pub use queue::{Publisher, Subscriber, MAX_PUBLISHERS};
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct Options {
+    /// Queue name; use at most 24 UTF-8 bytes for portability.
     pub name: String,
+    /// Shared storage directory on Unix; ignored on Windows.
     pub path: PathBuf,
+    /// Message buffer bytes, excluding metadata; greater than 16 and divisible by 8.
     pub capacity: usize,
 }
 
 impl Options {
+    /// Uses the operating system temporary directory for shared storage.
     pub fn new(name: impl Into<String>, capacity: usize) -> Self {
         Self {
             name: name.into(),
@@ -39,6 +43,7 @@ impl Options {
         }
     }
 
+    /// Selects a shared storage directory on Unix.
     pub fn with_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.path = path.into();
         self
@@ -78,16 +83,23 @@ impl Options {
     }
 }
 
+/// Queue failures; full queues are retryable, while corruption requires a fresh queue.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Error {
     /// The queue has insufficient space, or recovery temporarily closed admission.
     Full,
+    /// Invalid queue configuration or message length.
     Invalid(&'static str),
+    /// An existing queue has a different capacity.
     CapacityMismatch,
+    /// All publisher registrations are occupied.
     PublisherLimit,
+    /// A lifetime counter cannot advance without overflowing.
     Exhausted,
+    /// The shared queue contains an invalid record or registration.
     Corrupt,
+    /// An operating system operation failed.
     Io(io::Error),
 }
 
@@ -118,4 +130,5 @@ impl From<io::Error> for Error {
         Self::Io(error)
     }
 }
+/// Result of a queue operation.
 pub type Result<T> = std::result::Result<T, Error>;

@@ -302,3 +302,16 @@ Decide which gaps are intentional and document them. The close semantics row mat
 - Rust std opens files `O_CLOEXEC`, so exec'd children do not inherit locks. Only raw `fork` without exec is a problem (1.5).
 - The Go shim copies the thread-local error before returning across cgo, which correctly handles goroutine migration.
 - Node abort semantics (pre-aborted signal never consumes, reason preserved, close rejects pending receives) are well tested.
+
+
+## Disposition after code review (September 14)
+
+Implemented the correctness fixes in 1.1–1.6: notification failures no longer replace committed results; Python handles signals between receive attempts and permits concurrent close; names are validated before opening resources; forked-child cleanup preserves parent registrations; corrupt lengths are checked against reserved bytes. Batch send also preserves a committed prefix if a lifetime counter exhausts mid-batch.
+
+Settled the unpublished APIs: Rust uses borrowed options, `recv` names, `try_send -> Result<()>` with `Error::Full`, non-exhaustive options/errors, and endpoint `Debug`. C exposes named statuses and thread-local error kinds. Go exposes `errors.Is` sentinels and waits with Go timers instead of blocking cgo threads. Python accepts buffer objects and PathLike, includes typing, and raises specific exceptions. Node accepts Uint8Array, validates safe-integer capacity, exposes error codes and disposal, and has an exports map. The Go test driver is internal. NuGet's README is now `src/dotnet/README.md`.
+
+Packaging now gives the macOS dylib an `@rpath` install name and the SDK relocatable pkg-config metadata, including multi-level lib directories. Interop builds run without Unix loader environment variables. Linux publishing enforces glibc 2.34 for wheels and native binaries. CI lints the workspace, checks Rust 1.87, and exercises the built bindings on Python 3.9/3.14 and Node 18/20/24. README examples compile as a Rust doctest. Website examples and package guides follow the new APIs.
+
+Added targeted tests for notification failures, corrupt records/golden bytes, invalid names, batch exhaustion, C errors/empty buffers, Python buffers/paths/close/signals/fork, Node typed inputs/errors/disposal, Go competing receives/error kinds, and .NET name validation. Mixed-language stress now kills .NET as well as Rust participants. The macOS semaphore test helper now handles raw semaphore names before constructing queue options.
+
+Intentionally deferred the optional larger API additions: async runtimes/native waiter threads, async iterators, new receive-into/batch methods across all bindings, finalizers, and new CMake/static-SDK distribution surfaces. Explicit close and existing buffer APIs remain the documented contract. Keep protocol offsets and admission logic as they are rather than broad layout/algorithm rewrites; golden-byte tests protect compatibility. Keep self-contained package lifetime documentation. Intel Mac artifacts remain cross-built without a permanent Intel CI runner; execution under Rosetta is not added in this pass. Platform and additional fault-injection tests beyond those listed above remain possible follow-ups, not claims of completed coverage.

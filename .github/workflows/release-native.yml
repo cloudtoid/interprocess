@@ -62,7 +62,7 @@ jobs:
           cp target/x86_64-apple-darwin/release/libcloudtoid_interprocess.dylib target/sdk/lib/
           cp src/c/include/interprocess.h target/sdk/include/
           cp LICENSE target/sdk/share/cloudtoid-interprocess/
-          sed -e 's|@CMAKE_INSTALL_LIBDIR@|lib|g' -e 's|@CMAKE_INSTALL_INCLUDEDIR@|include|g' -e 's|@PROJECT_VERSION@|${{ needs.source.outputs.version }}|g' src/c/cloudtoid-interprocess.pc.in > target/sdk/lib/pkgconfig/cloudtoid-interprocess.pc
+          sed -e 's|@PC_PREFIX@|../..|g' -e 's|@PC_RPATH@|-Wl,-rpath,${libdir}|g' -e 's|@CMAKE_INSTALL_LIBDIR@|lib|g' -e 's|@CMAKE_INSTALL_INCLUDEDIR@|include|g' -e 's|@PROJECT_VERSION@|${{ needs.source.outputs.version }}|g' src/c/cloudtoid-interprocess.pc.in > target/sdk/lib/pkgconfig/cloudtoid-interprocess.pc
       - uses: actions/upload-artifact@v6
         with:
           name: packages-macOS-X64

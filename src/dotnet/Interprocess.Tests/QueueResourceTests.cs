@@ -7,6 +7,30 @@ namespace Cloudtoid.Interprocess.Tests;
 public sealed class QueueResourceTests(UniquePathFixture fixture) : IClassFixture<UniquePathFixture>
 {
     [Theory]
+    [InlineData(".")]
+    [InlineData("..")]
+    [InlineData("a/b")]
+    [InlineData("a\\b")]
+    [InlineData("a\0b")]
+    public void InvalidQueueNamesAreRejectedBeforeCreatingResources(string name)
+    {
+        Action create = () => _ = new QueueOptions(name, fixture.Path, 1024);
+        create.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void QueueNameLimitCountsUtf8Bytes()
+    {
+        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
+            return;
+
+        var limit = OperatingSystem.IsMacOS() ? 24 : 245;
+        var name = new string('é', (limit / 2) + 1);
+        Action create = () => _ = new QueueOptions(name, fixture.Path, 1024);
+        create.Should().Throw<ArgumentException>();
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void SignalDisposalFailureStillReleasesQueueResources(bool publishing)

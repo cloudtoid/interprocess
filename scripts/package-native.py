@@ -33,6 +33,7 @@ for artifact, (platform, arch) in platforms.items():
         'os': [platform], 'cpu': [arch], 'license': 'MIT',
         'repository': base['repository'], 'homepage': base['homepage'], 'engines': base['engines'],
     }
+    if platform == 'linux': manifest['libc'] = ['glibc']
     (package / 'package.json').write_text(json.dumps(manifest, indent=2)+'\n')
     wheels = output / 'python'
     wheels.mkdir(exist_ok=True)

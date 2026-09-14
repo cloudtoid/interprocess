@@ -53,3 +53,30 @@ jobs:
             target/wheels/*.whl
             target/sdk/
             src/node/*.node
+
+  runtimes:
+    name: Python ${{ matrix.python }} / Node ${{ matrix.node }}
+    needs: interop
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {python: '3.9', node: '18'}
+          - {python: '3.12', node: '20'}
+          - {python: '3.14', node: '24'}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          name: packages-Linux-X64
+          path: .
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+      - run: pip install target/wheels/*.whl
+      - run: python src/python/test_api.py
+      - run: node --test src/node/test.js

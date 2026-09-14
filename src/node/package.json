@@ -30,5 +30,11 @@
     "@cloudtoid/interprocess-linux-x64": "3.0.0",
     "@cloudtoid/interprocess-win32-x64": "3.0.0",
     "@cloudtoid/interprocess-linux-arm64": "3.0.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
   }
 }

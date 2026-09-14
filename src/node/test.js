@@ -89,3 +89,22 @@ test('AbortSignal preserves its reason and never consumes on pre-cancelled recei
     finally { replacement.close(); }
   } finally { s.close(); p.close(); }
 });
+
+test('typed arrays, error codes, and disposal', () => {
+  const name = `types${process.pid}`;
+  const p = new Publisher(name, 64), s = new Subscriber(name, 64);
+  const dispose = Symbol.dispose ?? Symbol.for('nodejs.dispose');
+  try {
+    assert.equal(p.trySend(new Uint8Array([1, 2])), true);
+    assert.deepEqual(s.tryReceive(), Buffer.from([1, 2]));
+    assert.equal(p.trySendBatch([new Uint8Array([3]), new Uint8Array([4])]), 2);
+    assert.deepEqual(s.tryReceive(), Buffer.from([3]));
+    assert.deepEqual(s.tryReceive(), Buffer.from([4]));
+    assert.throws(() => new Publisher(name, 128), {code: 'ERR_CAPACITY_MISMATCH'});
+    for (const capacity of [-1, NaN, Infinity, 64.5, Number.MAX_SAFE_INTEGER + 1]) {
+      assert.throws(() => new Publisher(name, capacity), {code: 'ERR_INVALID_ARGUMENT'});
+    }
+  } finally { p[dispose](); s[dispose](); }
+  assert.throws(() => p.trySend(new Uint8Array()), {code: 'ERR_CLOSED'});
+  assert.throws(() => s.tryReceive(), {code: 'ERR_CLOSED'});
+});

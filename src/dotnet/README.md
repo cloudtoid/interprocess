@@ -46,3 +46,5 @@ The queue is transient IPC storage. Once all publishers and subscribers are gone
 For dependency injection, register the queue services with `services.AddInterprocessQueue()` and resolve `IQueueFactory`.
 
 [Publisher and subscriber samples](https://github.com/cloudtoid/interprocess/tree/main/src/dotnet/Sample) · [Documentation](https://github.com/cloudtoid/interprocess) · [Report an issue](https://github.com/cloudtoid/interprocess/issues) · [MIT license](https://github.com/cloudtoid/interprocess/blob/main/LICENSE)
+
+Queue names must be nonempty and contain no slash, backslash, or NUL. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.

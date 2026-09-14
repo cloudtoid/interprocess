@@ -37,3 +37,9 @@ cip_subscriber_close(subscriber);
 ## Queue lifetime
 
 The queue is transient: it stays alive while at least one publisher or subscriber is connected. Once all endpoints are closed or their processes exit, unread messages are lost. Opening the same name again creates a fresh, empty queue. Keep a subscriber connected before a short-lived publisher exits; a surviving publisher also keeps the queue alive.
+
+Queue names must be nonempty and contain no slash, backslash, or NUL. The maximum is 24 UTF-8 bytes on macOS and 245 on Linux; use at most 24 bytes for portable names.
+
+Use `CIP_OK`, `CIP_UNAVAILABLE`, and `CIP_ERROR` to interpret status results. On error, `cip_last_error_kind()` gives a stable `cip_error_kind`; `cip_last_error()` provides diagnostic text on the same thread. Define `CIP_STATIC` when linking a static library on Windows.
+
+Handles must not be closed concurrently with an operation. Use bounded `cip_receive` timeouts when shutdown is needed. Open handles after `fork()`; do not use inherited handles in the child. Closing an inherited handle leaves the parent's registration intact.

@@ -42,13 +42,13 @@ fn boundaries_and_wrap() {
     let publisher = Publisher::open(&options).unwrap();
     let subscriber = Subscriber::open(&options).unwrap();
     assert_eq!(subscriber.try_recv().unwrap(), None);
-    assert!(!publisher.try_send(&[0; 57]).unwrap());
+    assert!(matches!(publisher.try_send(&[0; 57]), Err(Error::Full)));
     for length in (0..=56).cycle().take(2000) {
         let message: Vec<_> = (0..length).map(|n| n as u8).collect();
         publisher.try_send(&message).unwrap();
         assert_eq!(subscriber.try_recv().unwrap(), Some(message));
     }
-    assert!(publisher.try_send(&[1; 56]).unwrap());
+    publisher.try_send(&[1; 56]).unwrap();
     assert!(matches!(publisher.try_send(&[]), Err(Error::Full)));
     let mut short = [0; 3];
     assert_eq!(subscriber.try_recv_into(&mut short).unwrap(), Some(3));
@@ -123,7 +123,14 @@ fn concurrent_exactly_once() {
             scope.spawn(move || {
                 for i in 0..10_000u64 {
                     let value = (producer * 10_000 + i).to_le_bytes();
-                    while matches!(publisher.try_send(&value), Err(Error::Full)) {
+                    while publisher
+                        .try_send(&value)
+                        .map(|()| false)
+                        .unwrap_or_else(|e| match e {
+                            Error::Full => true,
+                            e => panic!("{e}"),
+                        })
+                    {
                         std::thread::yield_now();
                     }
                 }
@@ -311,4 +318,103 @@ fn missed_notification_does_not_stall_a_blocking_receiver() {
             b"no permit"
         );
     });
+}
+
+#[test]
+fn golden_record_and_corrupt_lengths() {
+    fn assert_send_sync<T: Send + Sync>() {}
+    assert_send_sync::<Publisher>();
+    assert_send_sync::<Subscriber>();
+    let options = options(64);
+    let publisher = Publisher::open(&options).unwrap();
+    let subscriber = Subscriber::open(&options).unwrap();
+    publisher.try_send(b"abc").unwrap();
+    let record = || unsafe { std::slice::from_raw_parts(publisher.shared.pointer(0), 16).to_vec() };
+    assert_eq!(
+        record(),
+        &[2, 0, 0, 0, 3, 0, 0, 0, 97, 98, 99, 0, 0, 0, 0, 0]
+    );
+    for invalid in [-1i32, 40] {
+        unsafe {
+            publisher.shared.pointer(4).cast::<i32>().write(invalid);
+        }
+        assert!(matches!(subscriber.try_recv(), Err(Error::Corrupt)));
+        assert_eq!(subscriber.shared.header().read.load(Acquire), 0);
+        assert_eq!(subscriber.shared.state(0).load(Acquire), 2);
+        assert_eq!(&record()[8..11], b"abc");
+    }
+    unsafe {
+        publisher.shared.pointer(4).cast::<i32>().write(3);
+    }
+    assert_eq!(subscriber.try_recv_into(&mut []).unwrap(), Some(0));
+    assert_eq!(record(), &[0; 16]);
+}
+
+#[test]
+fn invalid_names_do_not_create_resources() {
+    for name in ["", ".", "..", "a/b", "a\\b", "a\0b"] {
+        assert!(matches!(
+            Publisher::open(&Options::new(name, 64)),
+            Err(Error::Invalid(_))
+        ));
+    }
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    {
+        let limit = if cfg!(target_os = "macos") { 24 } else { 245 };
+        let root = std::env::temp_dir().join(options(64).name);
+        let options = Options::new("é".repeat(limit / 2 + 1), 64).with_path(&root);
+        assert!(matches!(Publisher::open(&options), Err(Error::Invalid(_))));
+        assert!(!root.exists());
+    }
+}
+
+#[test]
+fn notification_errors_preserve_committed_results() {
+    let options = options(64);
+    let publisher = Publisher::open(&options).unwrap();
+    let subscriber = Subscriber::open(&options).unwrap();
+    publisher.shared.fail_notification.store(true, Relaxed);
+    publisher.try_send(b"one").unwrap();
+    assert_eq!(publisher.try_send_batch(&[b"two", b"three"]).unwrap(), 2);
+    assert_eq!(subscriber.recv().unwrap(), b"one");
+    assert_eq!(subscriber.recv().unwrap(), b"two");
+    assert_eq!(subscriber.recv().unwrap(), b"three");
+    // The receiver is waiting when the two messages arrive, so it relays a wakeup
+    // after consuming the first. Failure of that relay cannot hide the result.
+    publisher.shared.fail_notification.store(false, Relaxed);
+    subscriber.shared.fail_notification.store(true, Relaxed);
+    subscriber.shared.header().notification.store(0, SeqCst);
+    std::thread::scope(|scope| {
+        scope.spawn(|| {
+            std::thread::sleep(Duration::from_millis(30));
+            assert_eq!(publisher.try_send_batch(&[b"four", b"five"]).unwrap(), 2);
+        });
+        assert_eq!(
+            subscriber
+                .recv_timeout(Duration::from_secs(1))
+                .unwrap()
+                .unwrap(),
+            b"four"
+        );
+        assert_eq!(subscriber.try_recv().unwrap().unwrap(), b"five");
+    });
+}
+
+#[test]
+fn batch_reports_committed_prefix_before_counter_exhaustion() {
+    let options = options(64);
+    let publisher = Publisher::open(&options).unwrap();
+    let subscriber = Subscriber::open(&options).unwrap();
+    publisher.shared.header().read.store(i64::MAX - 15, Release);
+    publisher
+        .shared
+        .header()
+        .write
+        .store(i64::MAX - 15, Release);
+    assert_eq!(publisher.try_send_batch(&[b"", b""]).unwrap(), 1);
+    assert_eq!(subscriber.try_recv().unwrap(), Some(vec![]));
+    assert!(matches!(
+        publisher.try_send_batch(&[b""]),
+        Err(Error::Exhausted)
+    ));
 }

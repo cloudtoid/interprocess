@@ -44,15 +44,14 @@ These examples send and receive in one process so both endpoints remain connecte
 use cloudtoid_interprocess::{Options, Publisher, Subscriber};
 
 let options = Options::new("example", 65536);
-let subscriber = Subscriber::open(options.clone())?;
-let publisher = Publisher::open(options)?;
-if publisher.try_send(b"hello")? {
-    let message = subscriber.try_receive()?;
-    println!("{message:?}");
-}
+let subscriber = Subscriber::open(&options)?;
+let publisher = Publisher::open(&options)?;
+publisher.try_send(b"hello")?;
+let message = subscriber.try_recv()?;
+println!("{message:?}");
 ```
 
-Endpoints close when dropped. Use `receive()` to wait indefinitely or `receive_timeout(Duration)` for a bounded wait.
+Endpoints close when dropped. Use `recv()` to wait indefinitely or `recv_timeout(Duration)` for a bounded wait.
 
 </details>
 
@@ -135,18 +134,18 @@ package main
 import (
 	"context"
 	"fmt"
-	queue "github.com/cloudtoid/interprocess/src/go/v3"
+	"github.com/cloudtoid/interprocess/src/go/v3"
 	"time"
 )
 
 func main() {
-	options := queue.Options{Name: "example", Capacity: 65536}
-	subscriber, err := queue.OpenSubscriber(options)
+	options := interprocess.Options{Name: "example", Capacity: 65536}
+	subscriber, err := interprocess.OpenSubscriber(options)
 	if err != nil {
 		panic(err)
 	}
 	defer subscriber.Close()
-	publisher, err := queue.OpenPublisher(options)
+	publisher, err := interprocess.OpenPublisher(options)
 	if err != nil {
 		panic(err)
 	}

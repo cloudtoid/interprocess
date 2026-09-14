@@ -7,6 +7,9 @@ repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
 readme = "README.md"
+rust-version = "1.87"
+keywords = ["ipc", "shared-memory", "queue", "interprocess"]
+categories = ["concurrency", "os"]
 description = "Fast cross-language shared-memory queues with process crash recovery"
 
 [target.'cfg(unix)'.dependencies]
