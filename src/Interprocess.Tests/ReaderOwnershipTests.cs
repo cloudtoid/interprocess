@@ -16,7 +16,7 @@ public sealed class ReaderOwnershipTests(UniquePathFixture fixture) : IClassFixt
         {
             using (var subscriber = factory.CreateSubscriber(options))
             {
-                probe.LastReaderId.Should().Be(id);
+                probe.LastParticipantId.Should().Be(id);
                 ReaderLease.IsAlive(options, id).Should().BeTrue();
             }
 
@@ -32,18 +32,19 @@ public sealed class ReaderOwnershipTests(UniquePathFixture fixture) : IClassFixt
         using var publisher = factory.CreatePublisher(options);
         using var subscriber = factory.CreateSubscriber(options);
         using var probe = new OwnershipProbe(options);
-        probe.LastReaderId = int.MaxValue;
+        probe.LastParticipantId = int.MaxValue;
         Assert.Throws<OverflowException>(() => factory.CreateSubscriber(options));
-        probe.LastReaderId.Should().Be(int.MaxValue);
+        probe.LastParticipantId.Should().Be(int.MaxValue);
         publisher.TryEnqueue("survivor"u8).Should().BeTrue();
         subscriber.TryDequeue(out var message).Should().BeTrue();
         message.ToArray().Should().Equal("survivor"u8.ToArray());
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ReaderProcessLifetimeControlsRecoveryAsync(bool crash)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ReaderProcessLifetimeControlsRecoveryAsync(bool crash, bool admissionClosed)
     {
         var options = new QueueOptions(Guid.NewGuid().ToStringInvariant("N")[..16], fixture.Path, 1024);
         var factory = new QueueFactory();
@@ -79,6 +80,9 @@ public sealed class ReaderOwnershipTests(UniquePathFixture fixture) : IClassFixt
 
             if (crash)
             {
+                if (admissionClosed)
+                    probe.CloseAdmission();
+
                 child.Kill();
                 await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -253,11 +257,13 @@ public sealed class ReaderOwnershipTests(UniquePathFixture fixture) : IClassFixt
     {
         internal unsafe long Owner => Volatile.Read(ref Header->ReadLockOwner);
         internal unsafe long ReadOffset => Volatile.Read(ref Header->ReadOffset);
-        internal unsafe int LastReaderId
+        internal unsafe int LastParticipantId
         {
-            get => Volatile.Read(ref Header->LastReaderId);
-            set => Volatile.Write(ref Header->LastReaderId, value);
+            get => Volatile.Read(ref Header->LastParticipantId);
+            set => Volatile.Write(ref Header->LastParticipantId, value);
         }
+
+        internal unsafe void CloseAdmission() => Interlocked.Or(ref Header->ReadLockOwner, long.MinValue);
     }
 
     private sealed class PausedMemory(ManualResetEventSlim entered, ManualResetEventSlim resume) : MemoryManager<byte>

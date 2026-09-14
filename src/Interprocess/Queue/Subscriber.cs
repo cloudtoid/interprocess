@@ -24,7 +24,7 @@ internal sealed class Subscriber : Queue, ISubscriber
         this.options = options;
         try
         {
-            readerId = RegisterReader();
+            readerId = RegisterParticipant();
             lease = new ReaderLease(options, readerId);
             this.signal = signal ?? InterprocessSemaphore.CreateWaiter(options.QueueName);
         }
@@ -196,9 +196,23 @@ internal sealed class Subscriber : Queue, ISubscriber
                 {
                     // Clear through the captured tail before publishers can reuse the space.
                     // Otherwise discarded ready headers could be consumed on a later lap.
-                    Buffer.Clear(readOffset, pending.WriteOffset - readOffset);
-                    Interlocked.Exchange(ref Header->ReadOffset, pending.WriteOffset);
-                    pendingRead = null;
+                    Interlocked.Exchange(ref Header->ReadLockOwner, readerId | long.MinValue);
+                    try
+                    {
+                        if (Publishers.AnyActive())
+                        {
+                            pendingRead = new PendingRead(Stopwatch.GetTimestamp(), readOffset, pending.WriteOffset);
+                            return false;
+                        }
+
+                        Buffer.Clear(readOffset, pending.WriteOffset - readOffset);
+                        Interlocked.Exchange(ref Header->ReadOffset, pending.WriteOffset);
+                        pendingRead = null;
+                    }
+                    finally
+                    {
+                        Interlocked.Exchange(ref Header->ReadLockOwner, readerId);
+                    }
                 }
 
                 return false;
@@ -242,22 +256,11 @@ internal sealed class Subscriber : Queue, ISubscriber
         return true;
     }
 
-    private unsafe long RegisterReader()
-    {
-        while (true)
-        {
-            var previous = Volatile.Read(ref Header->LastReaderId);
-            var next = checked(previous + 1);
-            if (Interlocked.CompareExchange(ref Header->LastReaderId, next, previous) == previous)
-                return next;
-        }
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     private unsafe void TryRecoverReader(long owner)
     {
         // Another call on this subscriber is still alive. Only its owner can release it.
-        if (owner == readerId)
+        if ((owner & long.MaxValue) == readerId)
             return;
 
         var next = Volatile.Read(ref nextRecoveryCheck);
@@ -265,7 +268,7 @@ internal sealed class Subscriber : Queue, ISubscriber
         if (now < next || Interlocked.CompareExchange(ref nextRecoveryCheck, now + RecoveryInterval, next) != next)
             return;
 
-        if (!ReaderLease.IsAlive(options, owner))
+        if (!ReaderLease.IsAlive(options, owner & long.MaxValue))
             Interlocked.CompareExchange(ref Header->ReadLockOwner, 0L, owner);
     }
 

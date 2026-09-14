@@ -32,6 +32,7 @@ internal sealed class MemoryFileUnix : IMemoryFile
                 // No live participants: recover any resources left behind by a crash.
                 InterprocessSemaphore.Unlink(queueName);
                 ReaderLease.Cleanup(options);
+                PublisherRegistry.Cleanup(options);
                 stream.SetLength(0);
             }
             else if (stream.Length != options.GetQueueStorageSize())
@@ -77,6 +78,7 @@ internal sealed class MemoryFileUnix : IMemoryFile
                     // the old resources between this check and their removal.
                     InterprocessSemaphore.Unlink(queueName);
                     ReaderLease.Cleanup(options);
+                    PublisherRegistry.Cleanup(options);
                     if (!PathUtil.TryDeleteFile(file))
                         logger.FailedToDeleteSharedMemoryFile();
                 }

@@ -14,6 +14,7 @@ internal abstract class Queue : IDisposable
         try
         {
             Buffer = new CircularBuffer(sizeof(QueueHeader) + view.Pointer, options.Capacity);
+            Publishers = new PublisherRegistry(options);
         }
         catch
         {
@@ -34,6 +35,7 @@ internal abstract class Queue : IDisposable
     }
 
     protected CircularBuffer Buffer { get; }
+    protected PublisherRegistry Publishers { get; }
     protected ILogger<Queue> Logger { get; }
     protected bool IsDisposed => Volatile.Read(ref disposed) != 0;
 
@@ -51,7 +53,10 @@ internal abstract class Queue : IDisposable
         AppDomain.CurrentDomain.ProcessExit -= OnAppExit;
         Console.CancelKeyPress -= OnAppExit;
         if (disposing)
+        {
+            Publishers.Dispose();
             view.Dispose();
+        }
     }
 
     protected unsafe void Notify(IInterprocessSemaphoreReleaser signal)
@@ -90,6 +95,17 @@ internal abstract class Queue : IDisposable
 
         // Round up to the closest integer divisible by 8. This will add the [padding] if one is needed.
         return (length + 7) & ~7L;
+    }
+
+    protected unsafe long RegisterParticipant()
+    {
+        while (true)
+        {
+            var previous = Volatile.Read(ref Header->LastParticipantId);
+            var next = checked(previous + 1);
+            if (Interlocked.CompareExchange(ref Header->LastParticipantId, next, previous) == previous)
+                return next;
+        }
     }
 
     private void OnAppExit(object? sender, EventArgs e)

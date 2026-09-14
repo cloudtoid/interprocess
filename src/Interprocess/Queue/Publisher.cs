@@ -3,6 +3,7 @@ namespace Cloudtoid.Interprocess;
 internal sealed class Publisher : Queue, IPublisher
 {
     private readonly IInterprocessSemaphoreReleaser signal;
+    private readonly PublisherLease lease;
     private int activeEnqueues;
 
     internal Publisher(
@@ -13,16 +14,18 @@ internal sealed class Publisher : Queue, IPublisher
     {
         try
         {
+            lease = Publishers.Register(RegisterParticipant());
             this.signal = signal ?? InterprocessSemaphore.CreateReleaser(options.QueueName);
         }
         catch
         {
+            lease?.Dispose();
             base.Dispose(true);
             throw;
         }
     }
 
-    public bool TryEnqueue(ReadOnlySpan<byte> message)
+    public unsafe bool TryEnqueue(ReadOnlySpan<byte> message)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         Interlocked.Increment(ref activeEnqueues);
@@ -30,7 +33,16 @@ internal sealed class Publisher : Queue, IPublisher
         {
             // Disposal may have started between the first check and incrementing the counter.
             ObjectDisposedException.ThrowIf(IsDisposed, this);
-            return TryEnqueueCore(message);
+            lease.Enter();
+            try
+            {
+                // Recovery closes admission before inspecting shared in-flight counters.
+                return Volatile.Read(ref Header->ReadLockOwner) >= 0 && TryEnqueueCore(message);
+            }
+            finally
+            {
+                lease.Exit();
+            }
         }
         finally
         {
@@ -46,7 +58,10 @@ internal sealed class Publisher : Queue, IPublisher
             spin.SpinOnce();
 
         if (disposing)
+        {
             signal.Dispose();
+            lease.Dispose();
+        }
 
         base.Dispose(disposing);
     }

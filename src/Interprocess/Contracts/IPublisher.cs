@@ -11,6 +11,7 @@ public interface IPublisher : IDisposable
     /// A full notification semaphore does not fail an already committed message.
     /// Positions never wrap. After counter exhaustion, drain the queue and move all participants to a fresh queue.
     /// </remarks>
+    /// <returns>False when the message does not fit or recovery temporarily closes admission; otherwise true.</returns>
     /// <exception cref="ObjectDisposedException">The publisher has started disposing.</exception>
     /// <exception cref="OverflowException">The reservation would exceed the queue's lifetime byte limit.</exception>
     bool TryEnqueue(ReadOnlySpan<byte> message);

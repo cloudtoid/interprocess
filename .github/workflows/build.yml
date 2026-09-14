@@ -12,7 +12,8 @@ jobs:
     strategy:
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]
-    name: Build and Test on ${{ matrix.os }}
+        configuration: [Debug, Release]
+    name: ${{ matrix.configuration }} on ${{ matrix.os }}
     
     steps:
 
@@ -26,4 +27,4 @@ jobs:
             10.0.x
 
       - name: Build and Test
-        run: dotnet test src/Interprocess.sln
+        run: dotnet test src/Interprocess.sln --configuration ${{ matrix.configuration }}
