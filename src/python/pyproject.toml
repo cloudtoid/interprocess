@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "cloudtoid-interprocess"
-version = "3.0.0"
+version = "3.0.1"
 description = "Fast shared-memory byte queues across Python, Rust, C, Go, Node.js, and .NET"
 requires-python = ">=3.9"
 license = "MIT"

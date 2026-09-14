@@ -58,6 +58,19 @@ fn io_errors_preserve_their_source() {
 }
 
 #[test]
+fn allocating_receive_initializes_large_wrapped_messages() {
+    let options = options(131080);
+    let publisher = Publisher::open(&options).unwrap();
+    let subscriber = Subscriber::open(&options).unwrap();
+    for round in 0..80 {
+        let length = [0, 1, 65535, 65536, 65537][round % 5];
+        let message: Vec<_> = (0..length).map(|n| (n + round) as u8).collect();
+        publisher.try_send(&message).unwrap();
+        assert_eq!(subscriber.try_recv().unwrap(), Some(message));
+    }
+}
+
+#[test]
 fn boundaries_and_wrap() {
     let options = options(64);
     let publisher = Publisher::open(&options).unwrap();
