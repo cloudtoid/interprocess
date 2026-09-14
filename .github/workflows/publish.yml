@@ -126,12 +126,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: pip install 'maturin>=1.9,<2'
       - run: maturin sdist --manifest-path src/python/Cargo.toml --out target/release-packages/python
-      - name: Pack npm tarballs
-        run: |
-          mkdir -p target/release-packages/tarballs
-          for package in target/release-packages/npm/*; do
-            npm pack "./$package" --pack-destination target/release-packages/tarballs
-          done
       - uses: actions/upload-artifact@v7
         with:
           name: release-packages
@@ -191,26 +185,20 @@ jobs:
       - name: Publish native packages before the main package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ needs.source.outputs.version }}
         run: |
-          publish_package() {
+          for package in release-packages/npm/*-* release-packages/npm/main; do
             (
-              cd "$1"
+              cd "$package"
               name=$(node -p 'require("./package.json").name')
-              version=$(node -p 'require("./package.json").version')
-              status=$(curl --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://registry.npmjs.org/$name/$version")
+              status=$(curl --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://registry.npmjs.org/$name/$VERSION")
               case "$status" in
-                200) echo "$name $version is already published" ;;
+                200) echo "$name $VERSION is already published" ;;
                 404) npm publish --access public --provenance ;;
                 *) echo "Cannot check $name: HTTP $status"; exit 1 ;;
               esac
             )
-          }
-          for package in release-packages/npm/*; do
-            if [ "$(basename "$package")" != main ]; then
-              publish_package "$package"
-            fi
           done
-          publish_package release-packages/npm/main
   release:
     needs: [source, assemble]
     runs-on: ubuntu-latest
