@@ -94,6 +94,7 @@ function select(tab, focus = false) {
   link.href = `https://github.com/cloudtoid/interprocess/tree/main/src/${folder}`;
   link.textContent = `Read the ${language} guide →`;
   document.querySelector('#copy-status').textContent = '';
+  document.querySelector('#install-copy-status').textContent = '';
   if (focus) tab.focus();
 }
 tabs.forEach((tab, index) => {
@@ -110,5 +111,15 @@ tabs.forEach((tab, index) => {
 document.querySelector('#copy').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(code.textContent); document.querySelector('#copy-status').textContent = 'Copied'; }
   catch { document.querySelector('#copy-status').textContent = 'Select the code to copy'; }
+});
+document.querySelector('#copy-install').addEventListener('click', async () => {
+  const command = document.querySelector('#install-command').textContent;
+  const status = document.querySelector('#install-copy-status');
+  try {
+    await navigator.clipboard.writeText(command);
+    if (document.querySelector('#install-command').textContent === command) status.textContent = 'Copied';
+  } catch {
+    if (document.querySelector('#install-command').textContent === command) status.textContent = 'Select the command to copy';
+  }
 });
 select(tabs[0]);

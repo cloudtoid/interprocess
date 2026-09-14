@@ -340,3 +340,9 @@ header { border-bottom: 1px solid var(--line); }
 [data-palette="olive"][data-theme="dark"] { --accent: #c8d29b; --button-fill: #626b2d; --button-hover: #515b21; --hero-background: #222418; --section-background: #202119; --highlight: #222418; }
 [data-palette="graphite"] { --accent: #505660; --button-hover: #3e444e; --hero-background: #eaecef; --section-background: #f2f3f5; --highlight: #eaecef; }
 [data-palette="graphite"][data-theme="dark"] { --accent: #c5c9d0; --button-fill: #505660; --button-hover: #3e444e; --hero-background: #202226; --section-background: #1b1d20; --highlight: #202226; }
+
+.install-code { display: flex; align-items: flex-start; gap: 8px; }
+.install-code pre { flex: 1; min-width: 0; }
+#copy-install { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; margin-top: 8px; padding: 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--muted); cursor: pointer; }
+#copy-install:hover { color: var(--accent); border-color: var(--accent); }
+#install-copy-status { font-size: 12px; color: var(--muted); }
