@@ -9,9 +9,9 @@ package interprocess
 #include <string.h>
 // Copy errors before returning across cgo: a goroutine can resume on a different
 // OS thread, where the native thread-local error would no longer be its own.
-typedef struct { int32_t status; char *error; } cip_result;
+typedef struct { int32_t status; int32_t kind; char *error; } cip_result;
 static cip_result cip_result_for(int32_t status) {
-    cip_result r = {status, NULL};
+    cip_result r = {status, cip_last_error_kind(), NULL};
     if (status < 0) {
         const char *message = cip_last_error();
         size_t size = strlen(message) + 1;
@@ -40,6 +40,8 @@ import "C"
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -52,7 +54,19 @@ type Options struct {
 	Capacity   int
 }
 
+// ErrClosed reports an operation on a closed endpoint.
 var ErrClosed = errors.New("interprocess: endpoint is closed")
+
+// Stable native error kinds support errors.Is across the C boundary.
+var (
+	ErrInvalidArgument  = errors.New("interprocess: invalid argument")
+	ErrCapacityMismatch = errors.New("interprocess: capacity mismatch")
+	ErrPublisherLimit   = errors.New("interprocess: publisher limit reached")
+	ErrExhausted        = errors.New("interprocess: queue lifetime exhausted")
+	ErrCorrupt          = errors.New("interprocess: corrupt queue")
+	ErrIO               = errors.New("interprocess: operating system error")
+	ErrInternal         = errors.New("interprocess: internal error")
+)
 
 func result(r C.cip_result) (bool, error) {
 	if r.status >= 0 {
@@ -62,18 +76,29 @@ func result(r C.cip_result) (bool, error) {
 		return false, errors.New("interprocess: native operation failed")
 	}
 	defer C.free(unsafe.Pointer(r.error))
-	return false, errors.New(C.GoString(r.error))
+	kind := ErrInternal
+	switch r.kind {
+	case C.CIP_INVALID_ARGUMENT:
+		kind = ErrInvalidArgument
+	case C.CIP_CAPACITY_MISMATCH:
+		kind = ErrCapacityMismatch
+	case C.CIP_PUBLISHER_LIMIT:
+		kind = ErrPublisherLimit
+	case C.CIP_EXHAUSTED:
+		kind = ErrExhausted
+	case C.CIP_CORRUPT:
+		kind = ErrCorrupt
+	case C.CIP_IO_ERROR:
+		kind = ErrIO
+	}
+	return false, fmt.Errorf("%w: %s", kind, C.GoString(r.error))
 }
 func stringsFor(o Options) (*C.char, *C.char, func(), error) {
 	if o.Capacity <= 16 || o.Capacity%8 != 0 {
-		return nil, nil, nil, errors.New("interprocess: invalid capacity")
+		return nil, nil, nil, ErrInvalidArgument
 	}
-	for _, value := range []string{o.Name, o.Path} {
-		for _, c := range value {
-			if c == 0 {
-				return nil, nil, nil, errors.New("interprocess: string contains NUL")
-			}
-		}
+	if strings.IndexByte(o.Name, 0) >= 0 || strings.IndexByte(o.Path, 0) >= 0 {
+		return nil, nil, nil, ErrInvalidArgument
 	}
 	name := C.CString(o.Name)
 	var path *C.char
@@ -90,6 +115,7 @@ type Publisher struct {
 	handle *C.cip_publisher
 }
 
+// OpenPublisher creates or joins a transient queue as a publisher.
 func OpenPublisher(o Options) (*Publisher, error) {
 	name, path, free, err := stringsFor(o)
 	if err != nil {
@@ -103,6 +129,8 @@ func OpenPublisher(o Options) (*Publisher, error) {
 	}
 	return p, nil
 }
+
+// TrySend publishes without waiting; false means full or recovering.
 func (p *Publisher) TrySend(message []byte) (bool, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -111,6 +139,8 @@ func (p *Publisher) TrySend(message []byte) (bool, error) {
 	}
 	return result(C.go_send(p.handle, (*C.uint8_t)(unsafe.Pointer(unsafe.SliceData(message))), C.size_t(len(message))))
 }
+
+// Close releases the publisher and is safe to call repeatedly.
 func (p *Publisher) Close() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -126,6 +156,7 @@ type Subscriber struct {
 	handle *C.cip_subscriber
 }
 
+// OpenSubscriber creates or joins a transient queue as a subscriber.
 func OpenSubscriber(o Options) (*Subscriber, error) {
 	name, path, free, err := stringsFor(o)
 	if err != nil {
@@ -143,29 +174,31 @@ func OpenSubscriber(o Options) (*Subscriber, error) {
 // Receive waits for a message, context cancellation, or Close. Cancellation returns
 // ctx.Err(). Use context.Background() to wait without a deadline.
 func (s *Subscriber) Receive(ctx context.Context) ([]byte, error) {
+	var timer *time.Timer
 	for {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		wait := 5 * time.Millisecond
-		if deadline, ok := ctx.Deadline(); ok {
-			remaining := time.Until(deadline)
-			if remaining <= 0 {
-				return nil, context.DeadlineExceeded
-			}
-			if remaining < wait {
-				wait = remaining
-			}
-		}
-		message, err := s.receiveFor(wait)
+		message, err := s.TryReceive()
 		if message != nil || err != nil {
 			return message, err
+		}
+		if timer == nil {
+			timer = time.NewTimer(time.Millisecond)
+			defer timer.Stop()
+		} else {
+			timer.Reset(time.Millisecond)
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-timer.C:
 		}
 	}
 }
 
-// Bounded native calls let cancellation and Close make progress without a
-// goroutine per receive. The nonblocking path bypasses context and timer work.
+// The native call is nonblocking. Go timers park goroutines without holding
+// an OS thread in cgo; the ready path bypasses timer allocation.
 func (s *Subscriber) receiveFor(timeout time.Duration) ([]byte, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -202,6 +235,8 @@ func (s *Subscriber) TryReceiveInto(buffer []byte) (int, bool, error) {
 	ok, err := result(C.go_receive_into(s.handle, (*C.uint8_t)(unsafe.Pointer(unsafe.SliceData(buffer))), C.size_t(len(buffer)), &copied))
 	return int(copied), ok, err
 }
+
+// Close releases the subscriber; pending Receive calls observe ErrClosed.
 func (s *Subscriber) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

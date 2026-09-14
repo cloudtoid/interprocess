@@ -202,8 +202,8 @@ impl Drop for Active<'_> {
 }
 
 impl Publisher {
-    pub fn open(options: Options) -> Result<Self> {
-        let shared = Shared::open(options)?;
+    pub fn open(options: &Options) -> Result<Self> {
+        let shared = Shared::open(options.clone())?;
         let (id, lease) = shared.register()?;
         let slot = shared.slot(id)?;
         Ok(Self {
@@ -214,15 +214,15 @@ impl Publisher {
         })
     }
 
-    /// Returns false when there is insufficient space or recovery closes admission.
-    pub fn try_send(&self, message: &[u8]) -> Result<bool> {
+    /// Returns [`Error::Full`] when there is insufficient space or recovery closes admission.
+    pub fn try_send(&self, message: &[u8]) -> Result<()> {
         let count = self.shared.active(self.slot);
         count.fetch_add(1, SeqCst);
         let _active = Active(count);
         if self.shared.gate().load(Acquire) != 0 {
-            return Ok(false);
+            return Err(Error::Full);
         }
-        self.send_admitted(message)
+        self.send_admitted(message)?.then_some(()).ok_or(Error::Full)
     }
 
     /// Publishes an ordered prefix, amortizing publisher admission across a batch.
@@ -339,8 +339,8 @@ impl Drop for GateGuard<'_> {
 }
 
 impl Subscriber {
-    pub fn open(options: Options) -> Result<Self> {
-        let shared = Shared::open(options)?;
+    pub fn open(options: &Options) -> Result<Self> {
+        let shared = Shared::open(options.clone())?;
         let (id, lease) = shared.register()?;
         Ok(Self {
             _lease: lease,
@@ -352,7 +352,7 @@ impl Subscriber {
     }
 
     /// Copies and consumes a ready message, allocating a result vector.
-    pub fn try_receive(&self) -> Result<Option<Vec<u8>>> {
+    pub fn try_recv(&self) -> Result<Option<Vec<u8>>> {
         self.receive_with(|shared, offset, length| {
             let mut message = vec![0; length];
             unsafe {
@@ -364,7 +364,7 @@ impl Subscriber {
 
     /// Copies into caller-owned storage. An undersized buffer truncates and consumes
     /// the message, matching the .NET v3 API. The return value is bytes copied.
-    pub fn try_receive_into(&self, buffer: &mut [u8]) -> Result<Option<usize>> {
+    pub fn try_recv_into(&self, buffer: &mut [u8]) -> Result<Option<usize>> {
         self.receive_with(|shared, offset, length| {
             let length = length.min(buffer.len());
             unsafe {
@@ -375,7 +375,7 @@ impl Subscriber {
     }
 
     /// Waits for a message indefinitely.
-    pub fn receive(&self) -> Result<Vec<u8>> {
+    pub fn recv(&self) -> Result<Vec<u8>> {
         // The unbounded path only returns on delivery or error.
         self.receive_wait(None)
             .map(|message| message.expect("unbounded wait timed out"))
@@ -383,7 +383,7 @@ impl Subscriber {
 
     /// Waits for a message, or returns None after the timeout. A zero timeout
     /// performs one attempt. Missed notifications retain the five-millisecond retry.
-    pub fn receive_timeout(&self, timeout: Duration) -> Result<Option<Vec<u8>>> {
+    pub fn recv_timeout(&self, timeout: Duration) -> Result<Option<Vec<u8>>> {
         self.receive_wait(Some(timeout))
     }
 
@@ -391,7 +391,7 @@ impl Subscriber {
         let started = Instant::now();
         let mut relay = false;
         let result = (|| loop {
-            if let Some(message) = self.try_receive()? {
+            if let Some(message) = self.try_recv()? {
                 return Ok(Some(message));
             }
             let wait = match timeout {

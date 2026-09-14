@@ -91,7 +91,7 @@ pub unsafe extern "C" fn cip_publisher_open(
             return Err(Error::Invalid("null output"));
         }
         *output = ptr::null_mut();
-        let publisher = Publisher::open(options(name, path, capacity)?)?;
+        let publisher = Publisher::open(&options(name, path, capacity)?)?;
         *output = Box::into_raw(Box::new(publisher));
         Ok(1)
     })
@@ -111,7 +111,7 @@ pub unsafe extern "C" fn cip_subscriber_open(
             return Err(Error::Invalid("null output"));
         }
         *output = ptr::null_mut();
-        let subscriber = Subscriber::open(options(name, path, capacity)?)?;
+        let subscriber = Subscriber::open(&options(name, path, capacity)?)?;
         *output = Box::into_raw(Box::new(subscriber));
         Ok(1)
     })
@@ -178,9 +178,9 @@ pub unsafe extern "C" fn cip_receive(
         }
         let subscriber = handle.as_ref().ok_or(Error::Invalid("null subscriber"))?;
         let message = if timeout_ms == -1 {
-            subscriber.receive().map(Some)
+            subscriber.recv().map(Some)
         } else {
-            subscriber.receive_timeout(Duration::from_millis(timeout_ms as u64))
+            subscriber.recv_timeout(Duration::from_millis(timeout_ms as u64))
         };
         match message? {
             Some(message) => {
@@ -231,7 +231,7 @@ pub unsafe extern "C" fn cip_try_receive_into(
         match handle
             .as_ref()
             .ok_or(Error::Invalid("null subscriber"))?
-            .try_receive_into(buffer)?
+            .try_recv_into(buffer)?
         {
             Some(length) => {
                 *copied = length;

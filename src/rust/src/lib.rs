@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 //! Shared-memory byte queues compatible with Cloudtoid.Interprocess protocol v3.
 //!
 //! Publishers reserve concurrently. Readers serialize consumption. A paused live
@@ -21,6 +23,7 @@ pub use queue::{Publisher, Subscriber, MAX_PUBLISHERS};
 
 /// Queue identity and message-buffer capacity. Every participant must agree.
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub struct Options {
     pub name: String,
     pub path: PathBuf,
@@ -76,7 +79,10 @@ impl Options {
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Error {
+    /// The queue has insufficient space, or recovery temporarily closed admission.
+    Full,
     Invalid(&'static str),
     CapacityMismatch,
     PublisherLimit,
@@ -88,6 +94,7 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Full => f.write_str("queue is full or temporarily unavailable during recovery"),
             Self::Invalid(message) => f.write_str(message),
             Self::CapacityMismatch => f.write_str("capacity does not match the existing queue"),
             Self::PublisherLimit => f.write_str("the queue already has 2048 connected publishers"),

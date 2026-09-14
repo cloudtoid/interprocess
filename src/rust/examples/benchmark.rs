@@ -6,18 +6,18 @@ fn main() {
     const ITERATIONS: usize = 1_000_000;
     for size in [3, 50, 1024] {
         let options = Options::new(format!("b{}x{size}", std::process::id()), 1 << 20);
-        let publisher = Publisher::open(options.clone()).unwrap();
-        let subscriber = Subscriber::open(options).unwrap();
+        let publisher = Publisher::open(&options).unwrap();
+        let subscriber = Subscriber::open(&options).unwrap();
         let message = vec![42; size];
         let mut received = vec![0; size];
         let mut samples = Vec::new();
         for round in 0..12 {
             let start = Instant::now();
             for _ in 0..ITERATIONS {
-                assert!(publisher.try_send(black_box(&message)).unwrap());
+                publisher.try_send(black_box(&message)).unwrap();
                 assert_eq!(
                     subscriber
-                        .try_receive_into(black_box(&mut received))
+                        .try_recv_into(black_box(&mut received))
                         .unwrap(),
                     Some(size)
                 );

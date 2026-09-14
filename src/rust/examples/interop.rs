@@ -1,4 +1,4 @@
-use cloudtoid_interprocess::{Options, Publisher, Subscriber};
+use cloudtoid_interprocess::{Error, Options, Publisher, Subscriber};
 use std::{
     io::{self, Write},
     time::Duration,
@@ -19,15 +19,15 @@ fn main() {
         let _publisher;
         let _subscriber;
         if args[1] == "hold-publisher" {
-            _publisher = Publisher::open(options).unwrap();
+            _publisher = Publisher::open(&options).unwrap();
         } else {
-            _subscriber = Subscriber::open(options).unwrap();
+            _subscriber = Subscriber::open(&options).unwrap();
         }
         println!("READY");
         io::stdout().flush().unwrap();
         io::stdin().read_line(&mut String::new()).unwrap();
     } else if args[1] == "publish" {
-        let publisher = Publisher::open(options).unwrap();
+        let publisher = Publisher::open(&options).unwrap();
         let start = args.get(5).map_or(0, |s| s.parse::<usize>().unwrap());
         if args.len() > 5 {
             println!("READY");
@@ -36,17 +36,17 @@ fn main() {
         }
         for i in start..start + count {
             let data = message(i);
-            while !publisher.try_send(&data).unwrap() {
+            while matches!(publisher.try_send(&data), Err(Error::Full)) {
                 std::thread::yield_now();
             }
         }
     } else {
-        let subscriber = Subscriber::open(options).unwrap();
+        let subscriber = Subscriber::open(&options).unwrap();
         println!("READY");
         if args[1] == "collect" {
             loop {
                 let data = subscriber
-                    .receive_timeout(Duration::from_secs(30))
+                    .recv_timeout(Duration::from_secs(30))
                     .unwrap()
                     .unwrap();
                 if data.is_empty() {
@@ -61,7 +61,7 @@ fn main() {
         for i in 0..count {
             assert_eq!(
                 subscriber
-                    .receive_timeout(Duration::from_secs(30))
+                    .recv_timeout(Duration::from_secs(30))
                     .unwrap()
                     .unwrap(),
                 message(i)

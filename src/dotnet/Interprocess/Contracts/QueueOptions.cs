@@ -25,14 +25,19 @@ public sealed class QueueOptions
     public unsafe QueueOptions(string queueName, string path, long capacity)
     {
         QueueName = CheckNonEmpty(queueName, nameof(queueName));
-        CheckParam(queueName is not "." and not ".." && queueName.IndexOfAny(['/', '\\', '\0']) < 0,
-            nameof(queueName), "Queue name must be a single name without slashes or NUL.");
+        CheckParam(
+            queueName is not "." and not ".." && queueName.IndexOfAny(['/', '\\', '\0']) < 0,
+            nameof(queueName),
+            "Queue name must be a single name without slashes or NUL.");
         if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
         {
             var limit = OperatingSystem.IsMacOS() ? 24 : 245;
-            CheckParam(System.Text.Encoding.UTF8.GetByteCount(queueName) <= limit,
-                nameof(queueName), $"Queue name exceeds the platform limit of {limit} UTF-8 bytes.");
+            CheckParam(
+                System.Text.Encoding.UTF8.GetByteCount(queueName) <= limit,
+                nameof(queueName),
+                $"Queue name exceeds the platform limit of {limit} UTF-8 bytes.");
         }
+
         Path = CheckValue(path, nameof(path));
 
         Capacity = CheckGreaterThan(capacity, 16, nameof(capacity));

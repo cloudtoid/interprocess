@@ -42,7 +42,7 @@ impl Publisher {
     pub fn new(name: String, capacity: f64, path: Option<String>) -> Result<Self, String> {
         Ok(Self {
             inner: Some(
-                core_queue::Publisher::open(options(name, capacity, path)?).map_err(error)?,
+                core_queue::Publisher::open(&options(name, capacity, path)?).map_err(error)?,
             ),
         })
     }
@@ -79,7 +79,7 @@ impl Subscriber {
     pub fn new(name: String, capacity: f64, path: Option<String>) -> Result<Self, String> {
         Ok(Self {
             inner: Some(
-                core_queue::Subscriber::open(options(name, capacity, path)?).map_err(error)?,
+                core_queue::Subscriber::open(&options(name, capacity, path)?).map_err(error)?,
             ),
         })
     }
@@ -88,7 +88,7 @@ impl Subscriber {
         self.inner
             .as_ref()
             .ok_or_else(closed)?
-            .try_receive()
+            .try_recv()
             .map(|m| m.map(Buffer::from))
             .map_err(error)
     }

@@ -29,7 +29,7 @@ Interprocess is used internally by Microsoft.
 | Python | `cloudtoid-interprocess` (PyPI); import `cloudtoid_interprocess` | [Python 3.9+](src/python/README.md) |
 | Node.js | `@cloudtoid/interprocess` (npm) | [Node.js 18+, JavaScript and TypeScript](src/node/README.md) |
 | Go | `github.com/cloudtoid/interprocess/src/go/v3` | [Go 1.24+, cgo, and the C SDK](src/go/README.md) |
-| .NET | [`Cloudtoid.Interprocess`][NuGet] (NuGet) | [.NET 10+, C# and dependency injection](PACKAGE_README.md) |
+| .NET | [`Cloudtoid.Interprocess`][NuGet] (NuGet) | [.NET 10+, C# and dependency injection](src/dotnet/README.md) |
 
 Rust supplies the native engine; C, Python, Node.js, and Go use that engine. .NET has its own managed implementation of the same protocol. Node's platform binaries are companion `@cloudtoid/interprocess-*` packages; applications use the main package.
 
@@ -192,7 +192,7 @@ if (publisher.TryEnqueue("hello"u8)) {
 }
 ```
 
-Blocking receives accept a `CancellationToken`. For dependency injection, register `services.AddInterprocessQueue()` and resolve `IQueueFactory`. See the [.NET package guide](PACKAGE_README.md) and [publisher/subscriber samples](src/dotnet/Sample/).
+Blocking receives accept a `CancellationToken`. For dependency injection, register `services.AddInterprocessQueue()` and resolve `IQueueFactory`. See the [.NET package guide](src/dotnet/README.md) and [publisher/subscriber samples](src/dotnet/Sample/).
 
 </details>
 
