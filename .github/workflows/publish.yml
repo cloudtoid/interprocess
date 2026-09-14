@@ -21,8 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      nuget-version: ${{ steps.nuget-version.outputs.version }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: Require merged main
         run: test "$GITHUB_REF" = refs/heads/main
       - uses: actions/setup-python@v7
@@ -46,8 +49,14 @@ jobs:
           assert re.fullmatch(r'\d+\.\d+\.\d+', v), 'Native releases use stable versions'
           with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('version='+v+'\n')
           PY
+      - name: Check .NET package changes and version
+        id: nuget-version
+        if: inputs.registry == 'all' || inputs.registry == 'nuget'
+        run: |
+          python -m unittest discover -s scripts -p 'test_nuget_version.py'
+          python scripts/nuget-version.py
   nuget:
-    if: inputs.registry == 'all' || inputs.registry == 'nuget'
+    if: needs.source.outputs.nuget-version != '' && (inputs.registry == 'all' || inputs.registry == 'nuget')
     needs: source
     permissions:
       contents: read
@@ -66,10 +75,10 @@ jobs:
             10.0.x
 
       - name: Test - Release
-        run: dotnet test -c Release -p:VersionSuffix=${{github.run_number}} src/dotnet/Interprocess.sln
+        run: dotnet test -c Release -p:Version=${{ needs.source.outputs.nuget-version }} src/dotnet/Interprocess.sln
 
       - name: Pack
-        run: dotnet pack -c Release --no-build --output . --version-suffix ${{github.run_number}} src/dotnet/Interprocess/Interprocess.csproj
+        run: dotnet pack -c Release --no-build --output . -p:Version=${{ needs.source.outputs.nuget-version }} -p:RepositoryCommit=${{ github.sha }} src/dotnet/Interprocess/Interprocess.csproj
 
       - name: NuGet login
         uses: NuGet/login@v1
