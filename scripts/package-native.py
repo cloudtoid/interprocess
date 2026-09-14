@@ -31,7 +31,7 @@ for artifact, (platform, arch) in platforms.items():
         'description': f'Cloudtoid Interprocess native binary for {platform} {arch}',
         'main': binary.name, 'files': [binary.name, 'LICENSE'],
         'os': [platform], 'cpu': [arch], 'license': 'MIT',
-        'repository': base['repository'], 'engines': base['engines'],
+        'repository': base['repository'], 'homepage': base['homepage'], 'engines': base['engines'],
     }
     (package / 'package.json').write_text(json.dumps(manifest, indent=2)+'\n')
     wheels = output / 'python'

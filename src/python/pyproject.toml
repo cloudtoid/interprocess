@@ -14,6 +14,7 @@ authors = [{name = "Cloudtoid"}]
 classifiers = ["Programming Language :: Python :: 3", "Programming Language :: Rust", "Topic :: System :: Distributed Computing"]
 
 [project.urls]
+Homepage = "https://cloudtoid.com"
 Repository = "https://github.com/cloudtoid/interprocess"
 Documentation = "https://github.com/cloudtoid/interprocess/blob/main/docs/protocol.md"
 
