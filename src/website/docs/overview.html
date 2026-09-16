@@ -11,6 +11,7 @@
 <h2 id="first-queue">Your first queue</h2>
 <ol><li>Install the package for your language. Go also needs the C SDK.</li><li>Choose a short queue name and a capacity, such as <code>65536</code> bytes. On Unix, choose an explicit shared directory when processes use different runtimes.</li><li>Open a subscriber and a publisher using the same identity and capacity.</li><li>Send bytes. Check the result: a full queue needs an application-level retry or backpressure policy.</li><li>Receive bytes and close each endpoint when its work is finished.</li></ol>
 <aside class="doc-note"><strong>Keep participants connected.</strong> The queue is transient. Once the last publisher or subscriber closes or exits, unread messages are lost. Reopening the same name starts a fresh queue.</aside>
+<p><a href="/docs/python-rust/">Try the two-process Rust-to-Python tutorial →</a> for a complete runnable example.</p>
 <h2 id="how-to-use">Which receive should I use?</h2>
 <p>Use a nonblocking receive when your application already controls scheduling. Use a waiting receive when you want the library to wait for work. Reuse caller-owned buffers in Rust, Go, C, or .NET to avoid allocating a result buffer on each receive.</p>
 <div class="doc-table"><table><thead><tr><th>Language</th><th>Try once</th><th>Wait for work</th></tr></thead><tbody>

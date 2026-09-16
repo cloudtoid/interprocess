@@ -3,6 +3,7 @@
 <h2 id="install">Install</h2>
 <p>Requires Rust 1.87 or later on a supported little-endian 64-bit platform.</p>
 <pre><code class="language-bash">cargo add cloudtoid-interprocess</code></pre>
+<p>Connecting different languages? Follow the <a href="/docs/python-rust/">Rust-to-Python messaging tutorial</a>.</p>
 <h2 id="example">Send and receive</h2>
 <p>This complete example keeps both endpoints alive. Separate processes use the same options; on Unix, add <code>.with_path("/absolute/shared/directory")</code> when their temporary directories differ.</p>
 <pre><code class="language-rust">use cloudtoid_interprocess::{Options, Publisher, Subscriber};

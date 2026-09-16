@@ -2,7 +2,7 @@
   {
     "slug": "",
     "label": "Overview",
-    "title": "Developer documentation",
+    "title": "Shared-memory IPC documentation",
     "description": "Build fast cross-process messaging with Cloudtoid Interprocess. Installation guides and API references for Rust, Node.js, Go, C, Python, and .NET."
   },
   {
@@ -10,6 +10,12 @@
     "label": "Queue concepts",
     "title": "Queue lifetime, delivery, and interoperability",
     "description": "Understand transient queue lifetime, competing subscribers, capacity, message ordering, crash recovery, and cross-language compatibility in protocol v3."
+  },
+  {
+    "slug": "python-rust",
+    "label": "Python ↔ Rust tutorial",
+    "title": "Send messages from Rust to Python with shared memory",
+    "description": "Run a Rust publisher and Python subscriber in separate processes. A practical shared-memory IPC tutorial with installation, working code, and queue lifetime explained."
   },
   {
     "slug": "protocol",
@@ -20,37 +26,37 @@
   {
     "slug": "rust",
     "label": "Rust",
-    "title": "Rust API reference",
+    "title": "Rust shared-memory IPC: installation and API",
     "description": "Install cloudtoid-interprocess and use Options, Publisher, and Subscriber. Reference for batch sends, reusable receive buffers, blocking waits, and errors."
   },
   {
     "slug": "node",
     "label": "Node.js",
-    "title": "Node.js & TypeScript API reference",
+    "title": "Node.js shared-memory IPC: installation and API",
     "description": "Install @cloudtoid/interprocess. Send Uint8Array messages, receive Buffers, cancel with AbortSignal, and close endpoints using the Node.js API."
   },
   {
     "slug": "go",
     "label": "Go",
-    "title": "Go API reference",
+    "title": "Go shared-memory IPC: installation and API",
     "description": "Use Cloudtoid Interprocess from Go with cgo. Configure Options, send and receive byte slices, reuse buffers, and cancel receives with context.Context."
   },
   {
     "slug": "c",
     "label": "C",
-    "title": "C API reference",
+    "title": "C shared-memory IPC: installation and API",
     "description": "Install the Cloudtoid Interprocess C SDK. Reference for handles, status codes, receive timeouts, owned buffers, and safe shutdown."
   },
   {
     "slug": "python",
     "label": "Python",
-    "title": "Python API reference",
+    "title": "Python shared-memory IPC: installation and API",
     "description": "Build Cloudtoid Interprocess for Python. Send bytes and buffer objects, receive with timeouts, use context managers, and handle queue exceptions."
   },
   {
     "slug": "dotnet",
     "label": ".NET",
-    "title": ".NET API reference",
+    "title": "C# / .NET shared-memory IPC: installation and API",
     "description": "Install Cloudtoid.Interprocess from NuGet. Use QueueFactory, QueueOptions, IPublisher, and ISubscriber with reusable buffers and CancellationToken."
   }
 ]

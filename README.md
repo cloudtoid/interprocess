@@ -42,7 +42,7 @@ Rust supplies the native engine; C, Python, Node.js, and Go use that engine. .NE
 
 ## Quick start
 
-Choose a language in the table above for installation commands, a working example, and its API reference. Start with [queue concepts](https://cloudtoid.com/docs/concepts/) when connecting separate processes or mixing languages.
+Choose a language in the table above for installation commands, a working example, and its API reference. Start with [queue concepts](https://cloudtoid.com/docs/concepts/) when connecting separate processes or mixing languages. For a complete two-process example, follow the [Rust-to-Python shared-memory messaging tutorial](https://cloudtoid.com/docs/python-rust/).
 
 Queues are transient: keep at least one publisher or subscriber connected throughout the handoff. Once all endpoints are gone, unread messages are lost and reopening the queue starts fresh.
 

@@ -1,0 +1,68 @@
+<p class="doc-lead">Send five messages from a Rust process to a Python process on the same machine. Both programs join one shared-memory queue: no socket server or broker is needed.</p>
+<p>This example uses UTF-8 text. Interprocess transports bytes without choosing a serialization format for you; you can use the same pattern for binary records or serialized application messages.</p>
+<h2 id="setup">Install and prepare</h2>
+<p>Use a supported 64-bit Linux, macOS, or Windows system with Python 3.9+, Rust 1.87+, Git, and a native linker. Create a working directory and a Python virtual environment, then activate it using the command for your shell:</p>
+<pre><code class="language-bash">mkdir ipc-demo
+cd ipc-demo
+python -m venv .venv</code></pre>
+<p>macOS / Linux:</p>
+<pre><code class="language-bash">source .venv/bin/activate</code></pre>
+<p>Windows PowerShell:</p>
+<pre><code class="language-powershell">.venv\Scripts\Activate.ps1</code></pre>
+<p>Use <code>python3</code> instead of <code>python</code> if that is how your system names Python 3. The Python package currently builds from source; it is not yet on PyPI.</p>
+<pre><code class="language-bash">python -m pip install "git+https://github.com/cloudtoid/interprocess.git@native-v3.0.1#subdirectory=src/python"
+cargo new sender
+cd sender
+cargo add cloudtoid-interprocess@3.0.1
+cd ..</code></pre>
+<h2 id="receiver">Write the Python subscriber</h2>
+<p>Save this as <code>receive.py</code> in <code>ipc-demo</code>. It opens the queue before printing <code>Ready</code>, then waits up to 60 seconds for each message.</p>
+<pre><code class="language-python">from pathlib import Path
+from cloudtoid_interprocess import Subscriber
+
+queue_path = Path("queue-data").resolve()
+queue_path.mkdir(exist_ok=True)
+
+with Subscriber("python-rust-demo", 65536, path=str(queue_path)) as subscriber:
+    print("Ready. Run the Rust sender in the second terminal.", flush=True)
+    for _ in range(5):
+        message = subscriber.receive(timeout=60.0)
+        if message is None:
+            raise TimeoutError("No message arrived within 60 seconds")
+        print(message.decode("utf-8"), flush=True)</code></pre>
+<h2 id="sender">Write the Rust publisher</h2>
+<p>Replace <code>sender/src/main.rs</code> with this program. The name, directory, and 65,536-byte capacity match the subscriber.</p>
+<pre><code class="language-rust">use cloudtoid_interprocess::{Options, Publisher};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let path = std::env::current_dir()?.join("queue-data");
+    std::fs::create_dir_all(&amp;path)?;
+    let options = Options::new("python-rust-demo", 65536).with_path(path);
+    let publisher = Publisher::open(&amp;options)?;
+
+    for number in 1..=5 {
+        let message = format!("Hello from Rust: {number}");
+        publisher.try_send(message.as_bytes())?;
+    }
+    Ok(())
+}</code></pre>
+<p>Build it before starting the subscriber, so compilation does not consume the receive timeout:</p>
+<pre><code class="language-bash">cargo build --release --manifest-path sender/Cargo.toml</code></pre>
+<h2 id="run">Run two processes</h2>
+<p>In the first terminal, from <code>ipc-demo</code> with the virtual environment active:</p>
+<pre><code class="language-bash">python receive.py</code></pre>
+<p>After <code>Ready</code> appears, open a second terminal in the <strong>same <code>ipc-demo</code> directory</strong> and run:</p>
+<pre><code class="language-bash">cargo run --release --manifest-path sender/Cargo.toml</code></pre>
+<p>The Python terminal prints:</p>
+<pre><code class="language-plaintext">Hello from Rust: 1
+Hello from Rust: 2
+Hello from Rust: 3
+Hello from Rust: 4
+Hello from Rust: 5</code></pre>
+<h2 id="lifetime">Why the subscriber starts first</h2>
+<p>The queue is transient. The waiting Python subscriber keeps it alive after the Rust publisher exits. When Python closes the last endpoint, the queue ends; the next run starts fresh. Running the sender alone and then starting the subscriber will not preserve the messages.</p>
+<p>On Unix, both programs must resolve <code>queue-data</code> to the same directory. Windows ignores this path and uses the queue name within the same session. Run both programs as the same user for this example. You can rerun the demo by starting the subscriber first again.</p>
+<h2 id="next">Use this in your application</h2>
+<p>The five small messages fit in this queue without retries. For a continuous producer, handle Rust's <code>Error::Full</code> with a bounded retry or your application's backpressure policy. Successful publication means the bytes entered the queue; it does not confirm that the other process handled them.</p>
+<p>Multiple publishers and subscribers can join the same queue. Subscribers compete for messages: this is not broadcast. Keep at least one participant alive for as long as the queue is needed.</p>
+<p>Continue with the <a href="/docs/rust/">Rust API</a>, <a href="/docs/python/">Python API</a>, and <a href="/docs/concepts/">queue lifetime and delivery guarantees</a>. For measured throughput and latency, see the <a href="/#performance">platform benchmarks</a>; this tutorial is a functional example, not a benchmark.</p>

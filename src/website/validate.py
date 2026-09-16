@@ -55,8 +55,11 @@ class Page(HTMLParser):
 
 
 pages = {p: Page(p) for p in root.rglob('*.html')}
-expected = ['index.html', 'docs/index.html'] + [f'docs/{slug}/index.html' for slug in ('concepts', 'rust', 'node', 'go', 'c', 'python', 'dotnet')]
-assert all(root / path in pages for path in expected), 'Missing documentation pages'
+manifest = json.loads((root.parent / 'docs/pages.json').read_text())
+expected = {root / 'index.html'} | {
+    root / 'docs' / page['slug'] / 'index.html' for page in manifest
+}
+assert set(pages) == expected, 'Missing or stale documentation pages'
 titles, descriptions, canonicals = set(), set(), set()
 for path, page in pages.items():
     relative = path.relative_to(root).as_posix()
