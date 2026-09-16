@@ -3,6 +3,7 @@
 <h2 id="install">Install from source</h2>
 <p>The Python package is not yet published on PyPI. Requires Python 3.9 or later, Git, Rust, and a native linker. Run in an activated virtual environment:</p>
 <pre><code class="language-bash">python -m pip install "git+https://github.com/cloudtoid/interprocess.git@native-v3.0.1#subdirectory=src/python"</code></pre>
+<p>Connecting different languages? Follow the <a href="/docs/python-rust/">Rust-to-Python messaging tutorial</a>.</p>
 <h2 id="example">Send and receive</h2>
 <pre><code class="language-python">from cloudtoid_interprocess import Publisher, Subscriber
 
