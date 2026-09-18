@@ -12,8 +12,8 @@ const installation = {
     "dotnet add package Cloudtoid.Interprocess"
   ],
   "Python": [
-    "PyPI publishing is pending. Run in an activated Python 3.9+ virtual environment with Git, Rust, and a native linker installed.",
-    "python -m pip install \"git+https://github.com/cloudtoid/interprocess.git@native-v3.0.1#subdirectory=src/python\""
+    "Run in an activated Python 3.9+ virtual environment.",
+    "python -m pip install cloudtoid-interprocess"
   ],
   "Go": [
     "Install the C SDK first (see the C guide), then run in your Go module. Requires Go 1.24+, cgo enabled, a C compiler, and pkg-config.",

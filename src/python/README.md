@@ -6,10 +6,10 @@ Fast shared-memory byte queues. Exchange messages directly with Rust, C, Go, Nod
 
 ## [Install](https://cloudtoid.com/docs/python/#install)
 
-PyPI publishing is pending. Run in an activated Python 3.9+ virtual environment with Git, Rust, and a native linker installed.
+Requires Python 3.9 or later.
 
 ```sh
-python -m pip install "git+https://github.com/cloudtoid/interprocess.git@native-v3.0.1#subdirectory=src/python"
+python -m pip install cloudtoid-interprocess
 ```
 
 ## Example
