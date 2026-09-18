@@ -19,6 +19,7 @@ class QueueTests(unittest.TestCase):
             self.assertEqual(s.receive(timeout=0), b"a")
             self.assertEqual(s.receive(timeout=1), b"b")
             self.assertIsNone(s.receive(timeout=0.005))
+            self.assertIsNone(s.receive(timeout=0))
             with self.assertRaises(ValueError): s.receive(timeout=-1)
         with self.assertRaises(ValueError): p.try_send(b"closed")
         with self.assertRaises(ValueError): s.try_receive()

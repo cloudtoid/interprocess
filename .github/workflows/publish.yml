@@ -37,8 +37,9 @@ jobs:
           node = json.load(open('src/node/package.json'))
           assert node['version'] == v
           assert all(value == v for value in node['optionalDependencies'].values())
-          assert tomllib.load(open('src/python/pyproject.toml','rb'))['project']['version'] == v
-          assert f'__version__ = "{v}"' in Path('src/python/python/cloudtoid_interprocess/__init__.py').read_text()
+          python_version = tomllib.load(open('src/python/pyproject.toml','rb'))['project']['version']
+          assert python_version == v or python_version.startswith(f'{v}.post')
+          assert f'__version__ = "{python_version}"' in Path('src/python/python/cloudtoid_interprocess/__init__.py').read_text()
           assert f'VERSION {v} LANGUAGES' in Path('src/c/CMakeLists.txt').read_text()
           for name in ('c', 'python', 'node'):
               manifest = tomllib.load(open(f'src/{name}/Cargo.toml', 'rb'))
