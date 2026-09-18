@@ -143,6 +143,14 @@ impl Subscriber {
                     .map_err(|_| PyValueError::new_err("timeout must be finite and nonnegative"))
             })
             .transpose()?;
+        if timeout.is_some_and(|limit| limit.is_zero()) {
+            py.check_signals()?;
+            let message = self.try_receive(py)?;
+            if message.is_none() {
+                py.check_signals()?;
+            }
+            return Ok(message);
+        }
         let started = Instant::now();
         loop {
             py.check_signals()?;
