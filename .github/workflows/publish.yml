@@ -7,10 +7,6 @@ on:
         type: choice
         default: all
         options: [all, nuget, rust, npm, python, github]
-      publish_python:
-        description: Publish Python packages to PyPI
-        type: boolean
-        default: true
 permissions:
   contents: read
 concurrency:
@@ -172,7 +168,7 @@ jobs:
             esac
           done
   python:
-    if: inputs.registry == 'python' || (inputs.registry == 'all' && inputs.publish_python)
+    if: inputs.registry == 'python' || inputs.registry == 'all'
     needs: [source, assemble]
     runs-on: ubuntu-latest
     environment: pypi
