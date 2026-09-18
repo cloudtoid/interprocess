@@ -14,4 +14,4 @@ name = "cloudtoid_interprocess"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-core-queue = { package = "cloudtoid-interprocess", path = "../rust", version = "3.0.1" }
+core-queue = { package = "cloudtoid-interprocess", path = "../rust", version = "3.0.2" }

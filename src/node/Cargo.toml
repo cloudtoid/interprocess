@@ -12,7 +12,7 @@ doctest = false
 crate-type = ["cdylib"]
 
 [dependencies]
-core-queue = { package = "cloudtoid-interprocess", path = "../rust", version = "3.0.1" }
+core-queue = { package = "cloudtoid-interprocess", path = "../rust", version = "3.0.2" }
 # Native calls are synchronous; JS handles waiting. No N-API thread-safe
 # callback/GC dispatcher is needed (enabled by napi4 and later).
 napi = { version = "3", default-features = false, features = ["napi3"] }

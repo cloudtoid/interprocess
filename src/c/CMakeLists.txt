@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(cloudtoid_interprocess VERSION 3.0.1 LANGUAGES C)
+project(cloudtoid_interprocess VERSION 3.0.2 LANGUAGES C)
 include(GNUInstallDirs)
 find_program(CARGO_EXECUTABLE cargo REQUIRED)
 get_filename_component(REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)

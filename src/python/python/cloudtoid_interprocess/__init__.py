@@ -3,4 +3,4 @@ from ._exceptions import InterprocessError, CapacityMismatchError, PublisherLimi
 from ._native import Publisher, Subscriber
 
 __all__ = ["Publisher", "Subscriber", "InterprocessError", "CapacityMismatchError", "PublisherLimitError", "CorruptQueueError"]
-__version__ = "3.0.1.post1"
+__version__ = "3.0.2"
