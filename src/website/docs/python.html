@@ -1,8 +1,8 @@
 <p class="doc-lead">Send Python bytes and buffer objects through the shared Rust engine. Use context managers to keep endpoint lifetimes explicit.</p>
 <p class="doc-source"><a href="https://github.com/cloudtoid/interprocess/tree/main/src/python">Python package source ↗</a> · <a href="https://github.com/cloudtoid/interprocess/blob/main/src/python/src/lib.rs">Binding implementation ↗</a></p>
-<h2 id="install">Install from source</h2>
-<p>The Python package is not yet published on PyPI. Requires Python 3.9 or later, Git, Rust, and a native linker. Run in an activated virtual environment:</p>
-<pre><code class="language-bash">python -m pip install "git+https://github.com/cloudtoid/interprocess.git@native-v3.0.1#subdirectory=src/python"</code></pre>
+<h2 id="install">Install</h2>
+<p>Requires Python 3.9 or later.</p>
+<pre><code class="language-bash">python -m pip install cloudtoid-interprocess</code></pre>
 <p>Connecting different languages? Follow the <a href="/docs/python-rust/">Rust-to-Python messaging tutorial</a>.</p>
 <h2 id="example">Send and receive</h2>
 <pre><code class="language-python">from cloudtoid_interprocess import Publisher, Subscriber

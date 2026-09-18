@@ -51,7 +51,7 @@
     "slug": "python",
     "label": "Python",
     "title": "Python shared-memory IPC: installation and API",
-    "description": "Build Cloudtoid Interprocess for Python. Send bytes and buffer objects, receive with timeouts, use context managers, and handle queue exceptions."
+    "description": "Install Cloudtoid Interprocess from PyPI. Send bytes and buffer objects, receive with timeouts, use context managers, and handle queue exceptions."
   },
   {
     "slug": "dotnet",

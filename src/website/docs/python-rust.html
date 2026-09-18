@@ -9,8 +9,8 @@ python -m venv .venv</code></pre>
 <pre><code class="language-bash">source .venv/bin/activate</code></pre>
 <p>Windows PowerShell:</p>
 <pre><code class="language-powershell">.venv\Scripts\Activate.ps1</code></pre>
-<p>Use <code>python3</code> instead of <code>python</code> if that is how your system names Python 3. The Python package currently builds from source; it is not yet on PyPI.</p>
-<pre><code class="language-bash">python -m pip install "git+https://github.com/cloudtoid/interprocess.git@native-v3.0.1#subdirectory=src/python"
+<p>Use <code>python3</code> instead of <code>python</code> if that is how your system names Python 3.</p>
+<pre><code class="language-bash">python -m pip install cloudtoid-interprocess
 cargo new sender
 cd sender
 cargo add cloudtoid-interprocess@3.0.1
